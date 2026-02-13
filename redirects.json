@@ -25,22 +25,6 @@
         "status": 302
       }
     },
-    "Project": {
-      "/nl": {
-        "type": "exact",
-        "target": "https://neo-life.github.io",
-        "status": "302"
-      },
-      "/nl/pa": {
-        "type": "prefix",
-        "appendPath": true,
-        "target": "https://pa.i0c.cc"
-      },
-      "/nl/ab": {
-        "type": "exact",
-        "target": "https://github.com/Neo-Life/CBB_Lover"
-      }
-    },
     "Others": {
       "/r/h": {
         "type": "prefix",
