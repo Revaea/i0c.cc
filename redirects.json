@@ -49,9 +49,8 @@
         "target": "https://hls.revaea.com"
       },
       "/r/p": {
-        "type": "prefix",
+        "type": "proxy",
         "appendPath": true,
-        "status": 302,
         "target": "https://i.pximg.net"
       },
       "/r/c": {
