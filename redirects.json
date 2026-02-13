@@ -64,6 +64,11 @@
         "appendPath": true,
         "status": "302",
         "target": "https://n.revaea.com"
+      },
+      "/r/g": {
+        "type": "proxy",
+        "appendPath": true,
+        "target": "https://raw.githubusercontent.com"
       }
     }
   }
