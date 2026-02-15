@@ -4,6 +4,7 @@
   "private": true,
   "pnpm": {
     "overrides": {
+      "@isaacs/brace-expansion": "5.0.1",
       "@vercel/fun>tar": "7.5.7",
       "@vercel/fun>path-to-regexp": "8.3.0",
       "@vercel/node>path-to-regexp": "6.3.0",
