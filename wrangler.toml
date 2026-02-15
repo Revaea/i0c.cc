@@ -5,3 +5,8 @@ compatibility_date = "2025-12-14"
 
 [vars]
 ROBOTS_POLICY = "allow"
+
+[observability]
+[observability.logs]
+enabled = true
+invocation_logs = true
