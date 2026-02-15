@@ -15,9 +15,9 @@
       },
       "/i": {
         "type": "prefix",
-        "target": "https://igcrystal.icu",
         "appendPath": false,
-        "status": 302
+        "status": 302,
+        "target": "https://revaea.com/igcrystal"
       },
       "/i/b": {
         "type": "exact",
