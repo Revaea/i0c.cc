@@ -15,6 +15,54 @@
 import { DEFAULT_STATUS, HSTS_HEADER_VALUE } from "./constants";
 import { NormalizedRule, ResolvedRuntime } from "./types";
 
+const SENSITIVE_FORWARD_HEADERS = [
+  "cookie",
+  "authorization",
+  "proxy-authorization",
+  "x-forwarded-for",
+  "x-real-ip"
+] as const;
+
+function isIPv4(hostname: string): boolean {
+  return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname);
+}
+
+function isPrivateIPv4(hostname: string): boolean {
+  if (!isIPv4(hostname)) return false;
+  const parts = hostname.split(".").map((p) => Number(p));
+  if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n) || n < 0 || n > 255)) return false;
+  const [a, b] = parts;
+
+  // 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8
+  if (a === 0 || a === 10 || a === 127) return true;
+  // 169.254.0.0/16 (link-local)
+  if (a === 169 && b === 254) return true;
+  // 172.16.0.0/12
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  // 192.168.0.0/16
+  if (a === 192 && b === 168) return true;
+  return false;
+}
+
+function isLikelyLocalhost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1") return true;
+  // block common internal hostnames
+  if (host.endsWith(".localhost")) return true;
+  // IPv6 unique local / link-local (best-effort)
+  if (host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80:")) return true;
+  return false;
+}
+
+function assertSafeProxyUrl(url: URL): void {
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error(`Unsupported proxy protocol: ${url.protocol}`);
+  }
+  if (isLikelyLocalhost(url.hostname) || isPrivateIPv4(url.hostname)) {
+    throw new Error(`Blocked proxy target host: ${url.hostname}`);
+  }
+}
+
 export function needsHttpsRedirect(url: URL): boolean {
   return url.protocol !== "https:" || url.hostname.startsWith("www.");
 }
@@ -46,6 +94,12 @@ export async function proxyRequest(
   const originalHost = request.headers.get("host") ?? "";
   const originalUrl = new URL(request.url);
   const targetUrlObj = new URL(targetUrl);
+  try {
+    assertSafeProxyUrl(targetUrlObj);
+  } catch (e) {
+    console.error("Unsafe proxy target:", e);
+    return new Response("Bad Request: Unsafe proxy target.", { status: 400 });
+  }
 
   const MAX_REDIRECTS = 5;
   let currentTarget = targetUrl;
@@ -64,13 +118,26 @@ export async function proxyRequest(
     const headers = new Headers(request.headers);
     const currentUrlObj = new URL(currentTarget);
 
+    try {
+      assertSafeProxyUrl(currentUrlObj);
+    } catch (e) {
+      console.error("Unsafe proxy redirect target:", e);
+      return new Response("Bad Gateway: Upstream redirect blocked.", { status: 502 });
+    }
+
     headers.delete("host");
-    headers.set("x-forwarded-host", request.headers.get("host") ?? "");
-    headers.set("x-forwarded-proto", "https");
     headers.delete("cf-connecting-ip");
     headers.delete("cf-ipcountry");
     headers.delete("cf-ray");
     headers.delete("cf-visitor");
+
+    for (const name of SENSITIVE_FORWARD_HEADERS) {
+      headers.delete(name);
+    }
+
+    // Re-assert forwarding headers after stripping user-controlled versions.
+    headers.set("x-forwarded-host", request.headers.get("host") ?? "");
+    headers.set("x-forwarded-proto", "https");
 
     headers.set("origin", currentUrlObj.origin);
     headers.set("referer", currentTarget);
@@ -99,7 +166,15 @@ export async function proxyRequest(
       const location = lastResponse.headers.get("Location");
       if (!location) break;
 
-      const nextUrl = new URL(location, currentUrlObj).toString();
+      const nextUrlObj = new URL(location, currentUrlObj);
+      try {
+        assertSafeProxyUrl(nextUrlObj);
+      } catch (e) {
+        console.error("Blocked unsafe upstream redirect:", e);
+        return new Response("Bad Gateway: Unsafe upstream redirect.", { status: 502 });
+      }
+
+      const nextUrl = nextUrlObj.toString();
 
       if (status === 301 || status === 302 || status === 303) {
         effectiveMethod = "GET";
