@@ -14,6 +14,9 @@ importers:
       '@esbuild-plugins/tsconfig-paths':
         specifier: ^0.1.2
         version: 0.1.2(esbuild@0.27.3)(typescript@6.0.2)
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.5.0
       concurrently:
         specifier: ^9.2.1
         version: 9.2.1
@@ -1201,6 +1204,9 @@ packages:
 
   '@types/node@20.11.0':
     resolution: {integrity: sha512-o9bjXmDNcF7GbM4CNQpmi+TutCgap/K3w1JyKgxAjqx41zp9qlIAVFi0IhCNsJcXolEqLWhbFbEeL0PvYm4pcQ==}
+
+  '@types/node@25.5.0':
+    resolution: {integrity: sha512-jp2P3tQMSxWugkCUKLRPVUpGaL5MVFwF8RDuSRztfwgN1wmqJeMSbKlnEtQqU8UrhTmzEmZdu2I6v2dpp7XIxw==}
 
   '@vercel/backends@0.0.53':
     resolution: {integrity: sha512-f8JK9Jatlco6kT/NsLYVR88iqS7oZxUXzXW8TofLmyTT5o+OEXSY2hzAQSjul6r0qz/9yAhtQkMhcHG8Ne01ZQ==}
@@ -2397,6 +2403,9 @@ packages:
   undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
 
+  undici-types@7.18.2:
+    resolution: {integrity: sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==}
+
   undici@5.28.4:
     resolution: {integrity: sha512-72RFADWFqKmUb2hmmvNODKL3p9hcB6Gt2DOQMis1SEBaV6a4MH8soBvzg+95CYhCKPFedut2JY9bMfrDl9D23g==}
     engines: {node: '>=14.0'}
@@ -3226,6 +3235,10 @@ snapshots:
   '@types/node@20.11.0':
     dependencies:
       undici-types: 5.26.5
+
+  '@types/node@25.5.0':
+    dependencies:
+      undici-types: 7.18.2
 
   '@vercel/backends@0.0.53(rollup@4.57.1)(typescript@6.0.2)':
     dependencies:
@@ -4652,6 +4665,8 @@ snapshots:
   uid-promise@1.0.0: {}
 
   undici-types@5.26.5: {}
+
+  undici-types@7.18.2: {}
 
   undici@5.28.4:
     dependencies:

@@ -3,8 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "pnpm": {
-    "overrides": {
-    }
+    "overrides": {}
   },
   "scripts": {
     "build": "tsup --config tsup.config.ts && node scripts/post-build.mjs",
@@ -21,6 +20,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260329.1",
     "@esbuild-plugins/tsconfig-paths": "^0.1.2",
+    "@types/node": "^25.5.0",
     "concurrently": "^9.2.1",
     "tsup": "^8.5.1",
     "typescript": "^6.0.2",
