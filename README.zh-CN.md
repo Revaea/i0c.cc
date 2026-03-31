@@ -3,7 +3,7 @@
 面向 Cloudflare Workers、Vercel Edge Functions、Netlify Edge Functions 等 fetch 兼容边缘平台的通用脚本：负责强制 HTTPS、返回 favicon，并基于远程 redirects.json 中的规则执行重定向或代理。
 
 在线预览：
-- 主域名：https://i0c.cc
+- 主域名：https://api.i0c.cc
 - Vercel 部署：https://vc.i0c.cc
 - Netlify 部署：https://nf.i0c.cc
 
