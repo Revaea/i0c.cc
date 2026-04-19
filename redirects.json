@@ -21,8 +21,8 @@
       },
       "/i/b": {
         "type": "exact",
-        "target": "https://blog.igcrystal.icu",
-        "status": 302
+        "status": 302,
+        "target": "https://b.i0c.cc"
       }
     },
     "Others": {
