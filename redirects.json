@@ -13,12 +13,6 @@
         "status": 302,
         "target": "https://revaea.com"
       },
-      "/i": {
-        "type": "prefix",
-        "appendPath": false,
-        "status": 302,
-        "target": "https://revaea.com/igcrystal"
-      },
       "/i/b": {
         "type": "exact",
         "status": 302,
