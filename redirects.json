@@ -12,11 +12,6 @@
         "appendPath": true,
         "status": 302,
         "target": "https://revaea.com"
-      },
-      "/i/b": {
-        "type": "exact",
-        "status": 302,
-        "target": "https://b.i0c.cc"
       }
     },
     "Others": {
