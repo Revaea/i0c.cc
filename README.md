@@ -1,4 +1,4 @@
-# <img src="https://raw.githubusercontent.com/Revaea/i0c.cc/refs/heads/main/logo.webp" alt="i0c.cc" width="420">
+# <img src="./logo.webp" alt="i0c.cc" width="420">
 
 Universal redirect runtime for fetch-compatible edge platforms (Cloudflare Workers, Vercel Edge Functions, Netlify Edge Functions). It enforces HTTPS, serves a favicon, and applies redirect or proxy rules defined in a remote `redirects.json` file.
 
