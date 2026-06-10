@@ -9,7 +9,7 @@
  * 处理跨不同运行时（Node.js 与 Edge Runtime）安全读取环境变量的逻辑。
  * 它抽象了 `process.env` 和 `globalThis`/bindings 之间的差异。
  *
- * @see {@link https://github.com/IGCyukira/i0c.cc} for repository info.
+ * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
 declare const process: undefined | { env?: Record<string, string | undefined> };

@@ -7,7 +7,7 @@
  * [CN] 图标处理程序。
  * 直接从内存解码并服务嵌入的 Base64 图标（Favicon），
  *
- * @see {@link https://github.com/IGCyukira/i0c.cc} for repository info.
+ * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
 import { base64Icon } from "@/assets/favicon"; 

@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://raw.githubusercontent.com/IGCyukira/i0c.cc/main/redirects.schema.json",
+  "$id": "https://raw.githubusercontent.com/Revaea/i0c.cc/main/redirects.schema.json",
   "title": "i0c.cc Redirect Slots Configuration",
   "description": "Schema for redirect and proxy rules consumed by the Cloudflare Worker.",
   "type": "object",

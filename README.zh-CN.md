@@ -9,9 +9,9 @@
 
 ## 一键部署
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository=https://github.com/IGCyukira/i0c.cc)  <br>
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/IGCyukira/i0c.cc)  <br>
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/IGCyukira/i0c.cc)  
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository=https://github.com/Revaea/i0c.cc)  <br>
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/Revaea/i0c.cc)  <br>
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Revaea/i0c.cc)  
 
 部署完成后记得：
 - 在目标平台的环境配置里设置 `REDIRECTS_CONFIG_URL` 或仓库/分支/路径三元组，让运行时代码能读取正确的 redirects.json。
@@ -43,11 +43,11 @@
 - `REDIRECTS_CONFIG_BRANCH`（回退：`CONFIG_BRANCH`）—— 承载数据文件的分支。
 - `REDIRECTS_CONFIG_PATH`（回退：`CONFIG_PATH`）—— 仓库内的文件路径。
 
-如果提供了仓库 / 分支 / 路径，运行时会自动拼出 raw.githubusercontent.com 地址。未设置任何变量时，默认值仍为仓库 `IGCyukira/i0c.cc`、分支 `data`、文件 `redirects.json`。
+如果提供了仓库 / 分支 / 路径，运行时会自动拼出 raw.githubusercontent.com 地址。未设置任何变量时，默认值仍为仓库 `Revaea/i0c.cc`、分支 `data`、文件 `redirects.json`。
 
 ### `redirects.json` 配置速查
 
-现在可以部署[面板](https://github.com/IGCyukira/i0c.cc-webui)从而方便在线编辑 `redirects.json` 了。
+现在可以部署[面板](https://github.com/Revaea/i0c.cc-webui)从而方便在线编辑 `redirects.json` 了。
 
 在 `redirects.json` 中提供 `Slots`（或 `slots` / `SLOT`）对象即可定义所有规则。下表列出每条路由可用字段：
 
@@ -68,7 +68,7 @@
 
 ```jsonc
 {
-  "$schema": "https://raw.githubusercontent.com/IGCyukira/i0c.cc/main/redirects.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Revaea/i0c.cc/main/redirects.schema.json",
   "Slots": {
     // ...
   }

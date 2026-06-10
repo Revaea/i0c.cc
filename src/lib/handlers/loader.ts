@@ -9,7 +9,7 @@
  * 处理通过 HTTP 获取远程配置 JSON 的请求，并管理内存缓存策略，
  * 以优化性能并降低延迟。
  *
- * @see {@link https://github.com/IGCyukira/i0c.cc} for repository info.
+ * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
 import { DEFAULT_CONFIG_URL } from "./config";

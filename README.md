@@ -1,4 +1,4 @@
-# <img src="https://raw.githubusercontent.com/IGCyukira/i0c.cc/refs/heads/main/logo.webp" alt="i0c.cc" width="420">
+# <img src="./logo.webp" alt="i0c.cc" width="420">
 
 Universal redirect runtime for fetch-compatible edge platforms (Cloudflare Workers, Vercel Edge Functions, Netlify Edge Functions). It enforces HTTPS, serves a favicon, and applies redirect or proxy rules defined in a remote `redirects.json` file.
 
@@ -9,9 +9,9 @@ Live previews:
 
 ## One-click deploy
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository=https://github.com/IGCyukira/i0c.cc)  <br>
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/IGCyukira/i0c.cc)  <br>
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/IGCyukira/i0c.cc)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository=https://github.com/Revaea/i0c.cc)  <br>
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/Revaea/i0c.cc)  <br>
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Revaea/i0c.cc)
 
 After deploying:
 - Set `REDIRECTS_CONFIG_URL` or the repo/branch/path trio in your platform’s dashboard so the runtime can load the correct `redirects.json`.
@@ -43,11 +43,11 @@ You can override the default GitHub location without touching the code. Set any 
 - `REDIRECTS_CONFIG_BRANCH` (fallback: `CONFIG_BRANCH`) — Branch that hosts the data file.
 - `REDIRECTS_CONFIG_PATH` (fallback: `CONFIG_PATH`) — Path to the JSON file inside the repo.
 
-If repo, branch, or path are provided (with or without a direct URL), the handler automatically constructs the raw GitHub URL. With no environment overrides, the defaults remain `IGCyukira/i0c.cc`, branch `data`, file `redirects.json`.
+If repo, branch, or path are provided (with or without a direct URL), the handler automatically constructs the raw GitHub URL. With no environment overrides, the defaults remain `Revaea/i0c.cc`, branch `data`, file `redirects.json`.
 
 ### `redirects.json` Quick Reference
 
-You can also deploy the [WebUI panel](https://github.com/IGCyukira/i0c.cc-webui) to edit `redirects.json` online.
+You can also deploy the [WebUI panel](https://github.com/Revaea/i0c.cc-webui) to edit `redirects.json` online.
 
 Provide a `Slots` (or `slots` / `SLOT`) object in `redirects.json` to define all routing rules. The table below lists the available fields for each route:
 
@@ -68,7 +68,7 @@ Tip: add the schema reference below to unlock autocomplete and validation in sup
 
 ```jsonc
 {
-  "$schema": "https://raw.githubusercontent.com/IGCyukira/i0c.cc/main/redirects.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Revaea/i0c.cc/main/redirects.schema.json",
   "Slots": {
     // ...
   }

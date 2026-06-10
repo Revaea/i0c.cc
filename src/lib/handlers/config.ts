@@ -8,7 +8,7 @@
  * [CN] 配置 URL 解析。
  * 确定重定向规则（JSON）的源 URL。它负责解析直接 URL 绑定与基于代码仓库（GitHub）路径构建之间的优先级。
  *
- * @see {@link https://github.com/IGCyukira/i0c.cc} for repository info.
+ * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
 import { readBindingVar, readEnvPriority } from "./env";
@@ -16,7 +16,7 @@ import { readBindingVar, readEnvPriority } from "./env";
 const ENV_CONFIG_REPO = readEnvPriority(["REDIRECTS_CONFIG_REPO", "CONFIG_REPO"]);
 const ENV_CONFIG_BRANCH = readEnvPriority(["REDIRECTS_CONFIG_BRANCH", "CONFIG_BRANCH"]);
 const ENV_CONFIG_PATH = readEnvPriority(["REDIRECTS_CONFIG_PATH", "CONFIG_PATH"]);
-const CONFIG_REPO = ENV_CONFIG_REPO ?? "IGCyukira/i0c.cc";
+const CONFIG_REPO = ENV_CONFIG_REPO ?? "Revaea/i0c.cc";
 const CONFIG_BRANCH = ENV_CONFIG_BRANCH ?? "data";
 const CONFIG_PATH = ENV_CONFIG_PATH ?? "redirects.json";
 

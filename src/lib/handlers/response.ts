@@ -9,7 +9,7 @@
  * 为客户端构造最终的 HTTP 响应。包含处理重定向（3xx 状态码）和代理（请求转发）的具体逻辑，
  * 包括设置安全响应头。
  *
- * @see {@link https://github.com/IGCyukira/i0c.cc} for repository info.
+ * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
 import { DEFAULT_STATUS, HSTS_HEADER_VALUE } from "./constants";

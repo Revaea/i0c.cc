@@ -7,7 +7,7 @@
  * [CN] SEO 工具集。
  * 基于已编译的路由规则生成 `robots.txt` 和 `sitemap.xml`。
  *
- * @see {@link https://github.com/IGCyukira/i0c.cc} for repository info.
+ * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
 import { buildCompiledList } from "./matcher";

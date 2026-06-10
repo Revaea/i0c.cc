@@ -9,7 +9,7 @@
  * 定义库中使用的所有 TypeScript 接口、类型和共享数据结构。
  *在此处集中管理类型可防止循环依赖。
  *
- * @see {@link https://github.com/IGCyukira/i0c.cc} for repository info.
+ * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
 export type RouteType = "prefix" | "exact" | "proxy";
