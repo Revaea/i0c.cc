@@ -1,10 +1,10 @@
-<img src="https://raw.githubusercontent.com/IGCyukira/i0c.cc-webui/refs/heads/main/public/img/E617F59CDD7A58032DC2B01D78A97986.webp" alt="i0c.cc" width = "720">
+<img src="https://raw.githubusercontent.com/Revaea/i0c.cc-webui/refs/heads/main/public/img/E617F59CDD7A58032DC2B01D78A97986.webp" alt="i0c.cc" width = "720">
 
 ## Project Overview
 
 i0c.cc WebUI is a management panel based on Next.js 16, designed for online editing of `redirects.json` after logging in via GitHub OAuth. When saving changes, it calls the GitHub Contents API to create commits on the specified branch of the target repository, preserving the history.
 
-**Better together: Use this with [i0c.cc](https://github.com/IGCyukira/i0c.cc) for the ultimate serverless redirection management.**
+**Better together: Use this with [i0c.cc](https://github.com/Revaea/i0c.cc) for the ultimate serverless redirection management.**
 
 This project provides two editing modes:
 
@@ -28,10 +28,10 @@ This project provides two editing modes:
 
 
 
-3. By default, `redirects.json` is loaded from the `data` branch of `IGCyukira/i0c.cc`, and the QR code domain defaults to `https://i0c.cc`. You may modify the following variables as needed:
+3. By default, `redirects.json` is loaded from the `data` branch of `Revaea/i0c.cc`, and the QR code domain defaults to `https://i0c.cc`. You may modify the following variables as needed:
 
   ```dotenv
-  GITHUB_REPO_OWNER="IGCyukira"
+  GITHUB_REPO_OWNER="Revaea"
   GITHUB_REPO_NAME="i0c.cc"
   GITHUB_TARGET_BRANCH="data"
   GITHUB_CONFIG_PATH="redirects.json"
@@ -64,7 +64,7 @@ This project provides two editing modes:
 - GitHub OAuth login, automatically retrieves access tokens and stores them in the session.
 - Visual editing of `redirects.json`: group tree management + rule form editing.
 - JSON editor: line numbers, current line highlighting, JSON syntax validation (error prompts for formatting issues).
-- Form behavior aligned with the schema (specification source: [https://raw.githubusercontent.com/IGCyukira/i0c.cc/main/redirects.schema.json](https://raw.githubusercontent.com/IGCyukira/i0c.cc/main/redirects.schema.json)).
+- Form behavior aligned with the schema (specification source: [https://raw.githubusercontent.com/Revaea/i0c.cc/main/redirects.schema.json](https://raw.githubusercontent.com/Revaea/i0c.cc/main/redirects.schema.json)).
 - Supports undo/redo for quick editing rollback.
 - Calls the GitHub Contents API to create commits with commit messages when saving.
 - Displays recent commit history with links to view details on GitHub.
