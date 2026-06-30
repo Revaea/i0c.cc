@@ -4,5 +4,4 @@ dist/
 .vercel/
 netlify/
 .wrangler/
-i0c.cc-webui/
 .env

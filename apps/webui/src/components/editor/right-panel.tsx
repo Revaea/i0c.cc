@@ -34,6 +34,7 @@ export function RightPanel({
   const [activeLine, setActiveLine] = useState(1);
 
   const [schemaLoadError, setSchemaLoadError] = useState<string | null>(null);
+  const [schemaRevision, setSchemaRevision] = useState(0);
   const [schemaValidationError, setSchemaValidationError] = useState<string | null>(null);
   const schemaValidatorRef = useRef<((data: unknown) => boolean) | null>(null);
   const schemaValidatorErrorsRef = useRef<unknown>(null);
@@ -93,6 +94,7 @@ export function RightPanel({
           schemaValidatorErrorsRef.current = validate.errors;
           return ok as boolean;
         };
+        setSchemaRevision((value) => value + 1);
       } catch (error) {
         const message = error instanceof Error ? error.message : t("unknownError");
         setSchemaLoadError(t("schemaLoadFail", { message }));
@@ -103,57 +105,60 @@ export function RightPanel({
   }, [editorMode, schemaUrl, t]);
 
   useEffect(() => {
-    if (editorMode !== "json") {
-      setSchemaValidationError(null);
-      return;
-    }
+    let cancelled = false;
 
-    if (jsonFormatError) {
-      setSchemaValidationError(null);
-      return;
-    }
+    queueMicrotask(() => {
+      if (cancelled) {
+        return;
+      }
 
-    const validate = schemaValidatorRef.current;
-    if (!validate) {
-      return;
-    }
+      if (editorMode !== "json" || jsonFormatError || jsonDraft.trim() === "") {
+        setSchemaValidationError(null);
+        return;
+      }
 
-    if (jsonDraft.trim() === "") {
-      setSchemaValidationError(null);
-      return;
-    }
+      const validate = schemaValidatorRef.current;
+      if (!validate) {
+        setSchemaValidationError(null);
+        return;
+      }
 
-    let data: unknown;
-    try {
-      data = JSON.parse(jsonDraft);
-    } catch {
-      setSchemaValidationError(null);
-      return;
-    }
+      let data: unknown;
+      try {
+        data = JSON.parse(jsonDraft);
+      } catch {
+        setSchemaValidationError(null);
+        return;
+      }
 
-    const ok = validate(data);
-    if (ok) {
-      setSchemaValidationError(null);
-      return;
-    }
+      const ok = validate(data);
+      if (ok) {
+        setSchemaValidationError(null);
+        return;
+      }
 
-    const errors = schemaValidatorErrorsRef.current as
-      | Array<{ instancePath?: string; message?: string }>
-      | null
-      | undefined;
+      const errors = schemaValidatorErrorsRef.current as
+        | Array<{ instancePath?: string; message?: string }>
+        | null
+        | undefined;
 
-    if (!errors || errors.length === 0) {
-      setSchemaValidationError(t("schemaValidateFailUnknown"));
-      return;
-    }
+      if (!errors || errors.length === 0) {
+        setSchemaValidationError(t("schemaValidateFailUnknown"));
+        return;
+      }
 
-    const shown = errors.slice(0, 5).map((item) => {
-      const path = (item.instancePath || "(root)").trim() || "(root)";
-      return `${path}: ${item.message ?? "invalid"}`;
+      const shown = errors.slice(0, 5).map((item) => {
+        const path = (item.instancePath || "(root)").trim() || "(root)";
+        return `${path}: ${item.message ?? "invalid"}`;
+      });
+      const more = errors.length > 5 ? t("schemaValidateMore", { count: errors.length - 5 }) : "";
+      setSchemaValidationError(t("schemaValidateFail", { lines: shown.join("\n"), more }));
     });
-    const more = errors.length > 5 ? t("schemaValidateMore", { count: errors.length - 5 }) : "";
-    setSchemaValidationError(t("schemaValidateFail", { lines: shown.join("\n"), more }));
-  }, [editorMode, jsonDraft, jsonFormatError, t]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editorMode, jsonDraft, jsonFormatError, schemaRevision, t]);
 
   const updateActiveLineFromSelection = useCallback(() => {
     const element = textareaRef.current;

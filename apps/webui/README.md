@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/Revaea/i0c.cc-webui/refs/heads/main/public/img/E617F59CDD7A58032DC2B01D78A97986.webp" alt="i0c.cc" width = "720">
+<img src="./public/img/E617F59CDD7A58032DC2B01D78A97986.webp" alt="i0c.cc" width="720">
 
 ## Project Overview
 
@@ -50,7 +50,7 @@ This project provides two editing modes:
      node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
      ```
 
-2. Install dependencies and start the development server:
+2. From the repository root, install dependencies and start the development server:
 
    ```bash
    pnpm install

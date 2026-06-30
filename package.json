@@ -2,9 +2,6 @@
   "name": "i0c-redirect-worker",
   "version": "0.1.0",
   "private": true,
-  "pnpm": {
-    "overrides": {}
-  },
   "scripts": {
     "build": "tsup --config tsup.config.ts && node scripts/post-build.mjs",
     "dev:cf": "wrangler dev",
@@ -14,8 +11,12 @@
     "dev:vc": "concurrently \"pnpm build:vc:watch\" \"vercel dev\"",
     "deploy:vc": "vercel --prod",
     "build:nf": "pnpm build",
-    "dev:nf": "npx --yes netlify-cli@latest dev",
-    "deploy:nf": "npx --yes netlify-cli@latest deploy --build"
+    "dev:nf": "pnpm dlx netlify-cli@latest dev",
+    "deploy:nf": "pnpm dlx netlify-cli@latest deploy --build",
+    "webui:dev": "pnpm --filter i0c.cc-webui dev",
+    "webui:build": "pnpm --filter i0c.cc-webui build",
+    "webui:start": "pnpm --filter i0c.cc-webui start",
+    "webui:lint": "pnpm --filter i0c.cc-webui lint"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260329.1",

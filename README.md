@@ -47,7 +47,7 @@ If repo, branch, or path are provided (with or without a direct URL), the handle
 
 ### `redirects.json` Quick Reference
 
-You can also deploy the [WebUI panel](https://github.com/Revaea/i0c.cc-webui) to edit `redirects.json` online.
+You can also deploy the [WebUI panel](apps/webui) to edit `redirects.json` online.
 
 Provide a `Slots` (or `slots` / `SLOT`) object in `redirects.json` to define all routing rules. The table below lists the available fields for each route:
 

@@ -47,7 +47,7 @@
 
 ### `redirects.json` 配置速查
 
-现在可以部署[面板](https://github.com/Revaea/i0c.cc-webui)从而方便在线编辑 `redirects.json` 了。
+现在可以部署[面板](apps/webui)从而方便在线编辑 `redirects.json` 了。
 
 在 `redirects.json` 中提供 `Slots`（或 `slots` / `SLOT`）对象即可定义所有规则。下表列出每条路由可用字段：
 

@@ -46,7 +46,7 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
 		node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 		```
 
-5. 安装依赖并启动开发服务器：
+5. 在仓库根目录安装依赖并启动开发服务器：
 
 	```bash
 	pnpm install
