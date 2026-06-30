@@ -16,7 +16,7 @@ Live previews:
 After deploying:
 - Set `REDIRECTS_CONFIG_URL` or the repo/branch/path trio in your platform’s dashboard so the runtime can load the correct `redirects.json`.
 - Sync secrets across environments if you override other handler options (for example, cache bindings).
-- Re-run `npm run build` locally when updating the shared redirect logic, then redeploy.
+- Re-run `pnpm build` locally when updating the shared redirect logic, then redeploy.
 
 ## Choose an adapter
 
