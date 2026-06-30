@@ -20,11 +20,11 @@ After deploying:
 
 ## Choose an adapter
 
-- Cloudflare Workers: [src/platforms/cloudflare.ts](src/platforms/cloudflare.ts)  
-- Vercel Edge Functions: [src/platforms/vercel-edge.ts](src/platforms/vercel-edge.ts)  
-- Netlify Edge Functions: [src/platforms/netlify-edge.ts](src/platforms/netlify-edge.ts)  
+- Cloudflare Workers: [apps/runtime/src/platforms/cloudflare.ts](apps/runtime/src/platforms/cloudflare.ts)  
+- Vercel Edge Functions: [apps/runtime/src/platforms/vercel-edge.ts](apps/runtime/src/platforms/vercel-edge.ts)  
+- Netlify Edge Functions: [apps/runtime/src/platforms/netlify-edge.ts](apps/runtime/src/platforms/netlify-edge.ts)  
 
-Need a custom runtime? Import `handleRedirectRequest` from [src/lib/handler.ts](src/lib/handler.ts) and call it with your own `Request` object plus optional `HandlerOptions` (for example, to override the config URL or provide a custom cache implementation).
+Need a custom runtime? Import `handleRedirectRequest` from [apps/runtime/src/lib/handler.ts](apps/runtime/src/lib/handler.ts) and call it with your own `Request` object plus optional `HandlerOptions` (for example, to override the config URL or provide a custom cache implementation).
 
 ## Environment Variables and Configuration
 

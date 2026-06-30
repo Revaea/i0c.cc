@@ -1,0 +1,27 @@
+{
+  "name": "i0c-redirect-worker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsup --config tsup.config.ts && node scripts/post-build.mjs",
+    "dev:cf": "wrangler dev",
+    "deploy:cf": "wrangler deploy",
+    "build:vc": "pnpm build",
+    "build:vc:watch": "tsup --config tsup.config.ts --watch --onSuccess \"node scripts/post-build.mjs\"",
+    "dev:vc": "concurrently \"pnpm build:vc:watch\" \"vercel dev\"",
+    "deploy:vc": "vercel --prod",
+    "build:nf": "pnpm build",
+    "dev:nf": "pnpm dlx netlify-cli@latest dev",
+    "deploy:nf": "pnpm dlx netlify-cli@latest deploy --build"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260329.1",
+    "@esbuild-plugins/tsconfig-paths": "^0.1.2",
+    "@types/node": "^25.5.0",
+    "concurrently": "^9.2.1",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.2",
+    "vercel": "^50.37.3",
+    "wrangler": "^4.78.0"
+  }
+}
