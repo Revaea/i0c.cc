@@ -8,8 +8,8 @@
     "deploy:cf": "wrangler deploy",
     "build:vc": "pnpm build",
     "build:vc:watch": "tsup --config tsup.config.ts --watch --onSuccess \"node scripts/post-build.mjs\"",
-    "dev:vc": "concurrently \"pnpm build:vc:watch\" \"vercel dev\"",
-    "deploy:vc": "vercel --prod",
+    "dev:vc": "concurrently \"pnpm build:vc:watch\" \"pnpm dlx vercel@52.2.1 dev\"",
+    "deploy:vc": "pnpm dlx vercel@52.2.1 --prod",
     "build:nf": "pnpm build",
     "dev:nf": "pnpm dlx netlify-cli@latest dev",
     "deploy:nf": "pnpm dlx netlify-cli@latest deploy --build"
@@ -21,7 +21,6 @@
     "concurrently": "^9.2.1",
     "tsup": "^8.5.1",
     "typescript": "^6.0.2",
-    "vercel": "^52.2.0",
     "wrangler": "^4.78.0"
   }
 }
