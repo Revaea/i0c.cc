@@ -43,7 +43,7 @@ export function RightPanel({
   const lineHeightPx = 20;
   const paddingTopPx = 12;
 
-  const schemaUrl = "https://raw.githubusercontent.com/Revaea/i0c.cc/main/redirects.schema.json";
+  const schemaUrl = "https://raw.githubusercontent.com/Revaea/i0c.cc/main/apps/runtime/redirects.schema.json";
 
   const lineCount = useMemo(() => Math.max(1, jsonDraft.split("\n").length), [jsonDraft]);
 

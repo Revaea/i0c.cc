@@ -64,7 +64,7 @@ This project provides two editing modes:
 - GitHub OAuth login, automatically retrieves access tokens and stores them in the session.
 - Visual editing of `redirects.json`: group tree management + rule form editing.
 - JSON editor: line numbers, current line highlighting, JSON syntax validation (error prompts for formatting issues).
-- Form behavior aligned with the schema (specification source: [https://raw.githubusercontent.com/Revaea/i0c.cc/main/redirects.schema.json](https://raw.githubusercontent.com/Revaea/i0c.cc/main/redirects.schema.json)).
+- Form behavior aligned with the schema (specification source: [https://raw.githubusercontent.com/Revaea/i0c.cc/main/apps/runtime/redirects.schema.json](https://raw.githubusercontent.com/Revaea/i0c.cc/main/apps/runtime/redirects.schema.json)).
 - Supports undo/redo for quick editing rollback.
 - Calls the GitHub Contents API to create commits with commit messages when saving.
 - Displays recent commit history with links to view details on GitHub.

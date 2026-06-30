@@ -60,7 +60,7 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
 - GitHub OAuth 登录，自动获取访问令牌并保存在会话中。
 - 可视化编辑 `redirects.json`：分组树管理 + 规则表单编辑。
 - JSON 编辑器：行号、当前行高亮、JSON 语法校验（格式错误提示）。
-- 表单行为对齐 Schema（规范来源：[https://raw.githubusercontent.com/Revaea/i0c.cc/main/redirects.schema.json](https://raw.githubusercontent.com/Revaea/i0c.cc/main/redirects.schema.json)）。
+- 表单行为对齐 Schema（规范来源：[https://raw.githubusercontent.com/Revaea/i0c.cc/main/apps/runtime/redirects.schema.json](https://raw.githubusercontent.com/Revaea/i0c.cc/main/apps/runtime/redirects.schema.json)）。
 - 支持撤销/重做，便于快速回退编辑。
 - 保存时调用 GitHub Contents API，创建带提交说明的 commit。
 - 展示最近的提交历史并可跳转到 GitHub 查看详情。

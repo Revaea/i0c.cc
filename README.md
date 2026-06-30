@@ -68,7 +68,7 @@ Tip: add the schema reference below to unlock autocomplete and validation in sup
 
 ```jsonc
 {
-  "$schema": "https://raw.githubusercontent.com/Revaea/i0c.cc/main/redirects.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Revaea/i0c.cc/main/apps/runtime/redirects.schema.json",
   "Slots": {
     // ...
   }
