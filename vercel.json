@@ -1,4 +1,0 @@
-{
-  "buildCommand": "pnpm build:vc",
-  "outputDirectory": ".vercel/output"
-}
