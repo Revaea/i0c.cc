@@ -5,10 +5,9 @@
     "moduleResolution": "Bundler",
     "lib": ["ES2022", "WebWorker", "DOM"], 
     "types": ["@cloudflare/workers-types", "node"],
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@handlers/*": ["src/lib/handlers/*"]
+      "@/*": ["./src/*"],
+      "@handlers/*": ["./src/lib/handlers/*"]
     },
     "allowJs": true,
     "checkJs": false,
