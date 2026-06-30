@@ -2,6 +2,7 @@
   "name": "i0c-redirect-worker",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "build": "tsup --config tsup.config.ts && node scripts/post-build.mjs",
     "dev:cf": "wrangler dev",
