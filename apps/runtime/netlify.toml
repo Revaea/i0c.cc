@@ -1,5 +1,5 @@
 [build]
-command = "pnpm runtime:build:nf"
+command = "pnpm build:nf"
 publish = "dist"
 edge_functions = "dist/netlify/edge-functions"
 
