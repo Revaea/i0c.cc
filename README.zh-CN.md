@@ -49,8 +49,8 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
 5. 安装依赖并启动开发服务器：
 
 	```bash
-	npm install
-	npm run dev
+	pnpm install
+	pnpm dev
 	```
 
 6. 打开 [http://localhost:3000](http://localhost:3000) 或 **你的域名**，使用拥有仓库写入权限的 GitHub 账号登录后即可编辑 `redirects.json`。
