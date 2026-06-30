@@ -1,0 +1,47 @@
+{
+  "name": "i0c.cc-webui",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "pnpm": {
+    "overrides": {
+      "@eslint/eslintrc>ajv": "6.14.0",
+      "eslint>ajv": "6.14.0",
+      "preact": "10.28.2",
+      "minimatch": "10.2.2"
+    },
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "@swc/core",
+      "sharp",
+      "unrs-resolver"
+    ]
+  },
+  "dependencies": {
+    "ajv": "^8.18.0",
+    "ajv-formats": "^3.0.1",
+    "next": "16.2.6",
+    "next-auth": "^4.24.13",
+    "next-intl": "^4.9.2",
+    "qrcode.react": "^4.2.0",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
+    "zod": "^4.2.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "babel-plugin-react-compiler": "1.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
