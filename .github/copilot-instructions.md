@@ -1,5 +1,11 @@
 在项目中，需要遵循规范。
 
+当前仓库是 pnpm workspace monorepo：
+- `apps/runtime`：边缘重定向运行时，覆盖 Cloudflare Workers、Vercel Edge Functions、Netlify Edge Functions。
+- `apps/webui`：Next.js 管理面板，用于编辑 `redirects.json`。
+- 仓库根目录只做 workspace 总览和统一脚本入口，不应当按单一前端应用部署。
+- 优先使用根目录脚本，例如 `pnpm runtime:build`、`pnpm webui:build`、`pnpm webui:lint`。
+
 组件文件（.tsx / .vue）：PascalCase
 普通脚本文件（.ts / .js）：camelCase 或 kebab-case，建议统一选一种
 文件夹：kebab-case
@@ -39,6 +45,8 @@ CSS 类名：kebab-case
 - 注释中不得出现 AI 身份、自我描述、对话式表达、提示词或生成过程相关内容。
 
 关于文件编码默认使用 UTF-8
+
+换行、缩进等基础编辑行为遵循仓库根目录的 `.editorconfig`，不要做无关的全仓换行重写。
 
 本机使用的是uv管理的python
 本机使用pnpm管理包

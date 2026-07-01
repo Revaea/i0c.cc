@@ -11,49 +11,64 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
 
 ## 快速开始
 
-1. 复制示例环境变量：
+1. 在 `apps/webui` 目录下复制示例环境变量：
 
-	- macOS/Linux：
-		```bash
-		cp .env.example .env.local
-		```
-	- Windows PowerShell：
-		```powershell
-		Copy-Item .env.example .env.local
-		```
+   - macOS/Linux：
+     ```bash
+     cp .env.example .env.local
+     ```
+   - Windows PowerShell：
+     ```powershell
+     Copy-Item .env.example .env.local
+     ```
 
 2. 在 GitHub 创建 OAuth App，回调地址填写 `http(s)://<localhost:3000 或 你的域名>/api/auth/callback/github`，然后将 `Client ID`、`Client Secret` 写入 `.env.local` 的 `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`。如果是部署在 ▲ Vercel，将配置写到环境变量便好。
 
+   默认 OAuth scope 是 `read:user user:email public_repo`。如果目标仓库是私有仓库，请将 `GITHUB_OAUTH_SCOPE` 设置为 `read:user user:email repo`。
+
 3. 设置信息（`redirects.json` 默认为 `Revaea/i0c.cc` 的 `data` 分支，二维码域名默认为 `https://i0c.cc`，可根据需要修改以下变量）：
 
-	```dotenv
-	GITHUB_REPO_OWNER="Revaea"
-	GITHUB_REPO_NAME="i0c.cc"
-	GITHUB_TARGET_BRANCH="data"
-	GITHUB_CONFIG_PATH="redirects.json"
+   ```dotenv
+   GITHUB_REPO_OWNER="Revaea"
+   GITHUB_REPO_NAME="i0c.cc"
+   GITHUB_TARGET_BRANCH="data"
+   GITHUB_CONFIG_PATH="redirects.json"
 
-	NEXT_PUBLIC_DOMAIN="https://your-domain.com"
-	```
+   NEXT_PUBLIC_DOMAIN="https://your-domain.com"
+   ```
 
 4. 生成 `NEXTAUTH_SECRET` 并写入 `.env.local`。生产环境将 `NEXTAUTH_URL` 设为 `https://你的域名`，开发环境可将 `NEXTAUTH_URL` 设为 `http://localhost:3000`。
 
-	- 使用 OpenSSL：
-		```bash
-		openssl rand -base64 32
-		```
-	- 或使用 Node.js：
-		```bash
-		node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-		```
+   - 使用 OpenSSL：
+     ```bash
+     openssl rand -base64 32
+     ```
+   - 或使用 Node.js：
+     ```bash
+     node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+     ```
 
 5. 在仓库根目录安装依赖并启动开发服务器：
 
-	```bash
-	pnpm install
-	pnpm dev
-	```
+   ```bash
+   pnpm install
+   pnpm webui:dev
+   ```
 
 6. 打开 [http://localhost:3000](http://localhost:3000) 或 **你的域名**，使用拥有仓库写入权限的 GitHub 账号登录后即可编辑 `redirects.json`。
+
+## 部署
+
+在 monorepo 中部署这个包时，Vercel 使用下面的设置：
+
+| 设置 | 值 |
+|------|----|
+| Framework Preset | Next.js |
+| Root Directory | `apps/webui` |
+| Build Command | `pnpm build` |
+| Output Directory | Next.js default |
+
+将 [.env.example](.env.example) 中的环境变量配置到 Vercel。生产环境的 `NEXTAUTH_URL` 必须和部署域名一致，GitHub OAuth callback URL 必须是 `https://<你的域名>/api/auth/callback/github`。
 
 ## 功能概览
 

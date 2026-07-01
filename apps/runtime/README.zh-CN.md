@@ -16,6 +16,8 @@
 [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/Revaea/i0c.cc)
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Revaea/i0c.cc)
 
+如果平台检测到多个项目，请选择 `apps/runtime`。
+
 平台要求填写项目或构建配置时，使用下面的值：
 
 | 平台 | 项目根目录 | 构建命令 | 输出 |
@@ -48,7 +50,9 @@
 
 ### 配置重定向数据源
 
-无需改代码即可切换 `redirects.json` 的来源。只要在部署环境中设置下面任意变量即可，Cloudflare Worker bindings 和 Vercel `process.env` 都会被自动识别。
+无需改代码即可切换 `redirects.json` 的来源。只要在部署环境中设置下面任意变量，runtime 就会自动从平台环境中读取。
+
+本地参考配置可以复制 [.env.example](.env.example)，再按你的部署目标调整。
 
 - `REDIRECTS_CONFIG_URL`（回退：`CONFIG_URL`）：指定 `redirects.json` 的完整 URL，会优先生效。
 - `REDIRECTS_CONFIG_REPO`（回退：`CONFIG_REPO`）：GitHub 仓库，格式为 `owner/name`。

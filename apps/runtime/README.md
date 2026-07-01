@@ -16,6 +16,8 @@ Deploy this package with `apps/runtime` as the project root.
 [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/Revaea/i0c.cc)
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Revaea/i0c.cc)
 
+If the platform detects multiple projects, choose `apps/runtime`.
+
 Use these settings when the platform asks for project or build configuration:
 
 | Platform | Project root | Build command | Output |
@@ -48,7 +50,9 @@ Need a custom runtime? Import `handleRedirectRequest` from [src/lib/handler.ts](
 
 ### Configure the redirects source
 
-You can override the default GitHub location without touching the code. Set any of the environment variables below; the runtime will pick them up automatically on Cloudflare Worker bindings or Vercel `process.env`.
+You can override the default GitHub location without touching the code. Set any of the environment variables below; the runtime will pick them up automatically from the platform environment.
+
+For local reference, copy [.env.example](.env.example) and adjust the values for your deployment.
 
 - `REDIRECTS_CONFIG_URL` (fallback: `CONFIG_URL`): Absolute URL of the `redirects.json`. This short-circuits the repo/branch/path logic.
 - `REDIRECTS_CONFIG_REPO` (fallback: `CONFIG_REPO`): GitHub repo in `owner/name` form.

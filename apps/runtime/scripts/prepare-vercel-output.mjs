@@ -21,7 +21,7 @@ async function ensureDistEntry() {
       throw new Error(`Expected file but found something else at ${edgeEntry}`);
     }
   } catch (error) {
-    throw new Error(`Missing dist output at ${edgeEntry}. Did you run \"npm run build\" first?`, { cause: error });
+    throw new Error(`Missing dist output at ${edgeEntry}. Did you run \"pnpm build\" first?`, { cause: error });
   }
 }
 

@@ -2,11 +2,18 @@
   "name": "i0c.cc-webui",
   "version": "0.1.0",
   "private": true,
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Revaea/i0c.cc.git"
+  },
+  "homepage": "https://github.com/Revaea/i0c.cc",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "validate:redirects": "node scripts/validate-redirects.mjs"
   },
   "dependencies": {
     "ajv": "^8.18.0",

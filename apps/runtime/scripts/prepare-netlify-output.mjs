@@ -15,7 +15,7 @@ async function ensureDistEntry() {
   try {
     stat = await fs.stat(distEntry);
   } catch (error) {
-    throw new Error(`Missing dist output at ${distEntry}. Did you run \"npm run build\" first?`, { cause: error });
+    throw new Error(`Missing dist output at ${distEntry}. Did you run \"pnpm build\" first?`, { cause: error });
   }
 
   if (!stat.isFile()) {

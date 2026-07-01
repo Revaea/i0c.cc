@@ -27,6 +27,8 @@ Deploy the redirect runtime from [apps/runtime](apps/runtime).
 [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/Revaea/i0c.cc)
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Revaea/i0c.cc)
 
+If the platform detects multiple projects, choose `apps/runtime`.
+
 Use these settings when the platform asks for project or build configuration:
 
 | Platform | Project root | Build command | Output |
@@ -56,6 +58,12 @@ The WebUI needs GitHub OAuth and repository access environment variables. See [a
 
 ## Local development
 
+Enable Corepack so `pnpm` follows the version declared in `package.json`:
+
+```bash
+corepack enable
+```
+
 Install dependencies from the repository root:
 
 ```bash
@@ -81,6 +89,12 @@ pnpm runtime:build
 pnpm webui:build
 ```
 
+Run the full local validation before committing:
+
+```bash
+pnpm check
+```
+
 ## Redirect data
 
 The runtime reads redirect rules from `redirects.json`, usually from the `data` branch of this repository. The schema lives at:
@@ -100,8 +114,18 @@ Use this schema reference in `redirects.json`:
 }
 ```
 
+Validate the `data` branch redirect file against the schema:
+
+```bash
+pnpm data:validate
+```
+
 ## Documentation
 
 - Runtime documentation: [apps/runtime/README.md](apps/runtime/README.md)
 - WebUI documentation: [apps/webui/README.md](apps/webui/README.md)
 - Chinese overview: [README.zh-CN.md](README.zh-CN.md)
+
+## License
+
+Apache-2.0. See [LICENSE](LICENSE).

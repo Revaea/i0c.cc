@@ -13,7 +13,7 @@ This project provides two editing modes:
 
 ## Quick Start
 
-1. Copy the example environment variables:
+1. From `apps/webui`, copy the example environment variables:
 
    - macOS/Linux:
      ```bash
@@ -26,20 +26,20 @@ This project provides two editing modes:
 
 2. Create an OAuth App on GitHub, set the callback URL to `http(s)://<localhost:3000 or your domain>/api/auth/callback/github`, and write the `Client ID` and `Client Secret` into `.env.local` as `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`. If deploying on ▲ Vercel, configure these as environment variables.
 
-
+   The default OAuth scope is `read:user user:email public_repo`. If the target repository is private, set `GITHUB_OAUTH_SCOPE` to `read:user user:email repo`.
 
 3. By default, `redirects.json` is loaded from the `data` branch of `Revaea/i0c.cc`, and the QR code domain defaults to `https://i0c.cc`. You may modify the following variables as needed:
 
-  ```dotenv
-  GITHUB_REPO_OWNER="Revaea"
-  GITHUB_REPO_NAME="i0c.cc"
-  GITHUB_TARGET_BRANCH="data"
-  GITHUB_CONFIG_PATH="redirects.json"
+   ```dotenv
+   GITHUB_REPO_OWNER="Revaea"
+   GITHUB_REPO_NAME="i0c.cc"
+   GITHUB_TARGET_BRANCH="data"
+   GITHUB_CONFIG_PATH="redirects.json"
 
-  NEXT_PUBLIC_DOMAIN="https://your-domain.com"
-  ```
+   NEXT_PUBLIC_DOMAIN="https://your-domain.com"
+   ```
 
-1. Generate `NEXTAUTH_SECRET` and write it into `.env.local`. For production, set `NEXTAUTH_URL` to `https://your-domain`; for development, set it to `http://localhost:3000`.
+4. Generate `NEXTAUTH_SECRET` and write it into `.env.local`. For production, set `NEXTAUTH_URL` to `https://your-domain`; for development, set it to `http://localhost:3000`.
 
    - Using OpenSSL:
      ```bash
@@ -50,14 +50,27 @@ This project provides two editing modes:
      node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
      ```
 
-2. From the repository root, install dependencies and start the development server:
+5. From the repository root, install dependencies and start the development server:
 
    ```bash
    pnpm install
-   pnpm dev
+   pnpm webui:dev
    ```
 
-3. Open [http://localhost:3000](http://localhost:3000) or **your domain**, log in with a GitHub account that has write access to the repository, and start editing `redirects.json`.
+6. Open [http://localhost:3000](http://localhost:3000) or **your domain**, log in with a GitHub account that has write access to the repository, and start editing `redirects.json`.
+
+## Deploy
+
+Deploy this package from the monorepo with these Vercel settings:
+
+| Setting | Value |
+|---------|-------|
+| Framework Preset | Next.js |
+| Root Directory | `apps/webui` |
+| Build Command | `pnpm build` |
+| Output Directory | Next.js default |
+
+Set the environment variables from [.env.example](.env.example) in Vercel. For production, `NEXTAUTH_URL` must match the deployed domain, and the GitHub OAuth callback URL must be `https://<your-domain>/api/auth/callback/github`.
 
 ## Features Overview
 

@@ -311,7 +311,7 @@ export function RouteEntryEditor({
                       <div className="inline-flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-3 text-sm text-slate-900">
                         <input
                           type="checkbox"
-                          checked={Boolean(configValue.appendPath)}
+                          checked={configValue.appendPath !== false}
                           onChange={(e) => onChange({ ...configValue, appendPath: e.target.checked })}
                           className="h-4 w-4 rounded border-slate-300 accent-slate-900"
                         />

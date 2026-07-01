@@ -2,8 +2,15 @@
   "name": "i0c.cc-workspace",
   "version": "0.1.0",
   "private": true,
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Revaea/i0c.cc.git"
+  },
+  "homepage": "https://github.com/Revaea/i0c.cc",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
+    "check": "pnpm runtime:build && pnpm webui:lint && pnpm webui:build",
     "runtime:build": "pnpm --filter i0c-redirect-worker build",
     "runtime:dev:cf": "pnpm --filter i0c-redirect-worker dev:cf",
     "runtime:deploy:cf": "pnpm --filter i0c-redirect-worker deploy:cf",
@@ -16,6 +23,7 @@
     "webui:dev": "pnpm --filter i0c.cc-webui dev",
     "webui:build": "pnpm --filter i0c.cc-webui build",
     "webui:start": "pnpm --filter i0c.cc-webui start",
-    "webui:lint": "pnpm --filter i0c.cc-webui lint"
+    "webui:lint": "pnpm --filter i0c.cc-webui lint",
+    "data:validate": "pnpm --filter i0c.cc-webui validate:redirects"
   }
 }

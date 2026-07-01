@@ -2,6 +2,12 @@
   "name": "i0c-redirect-worker",
   "version": "0.1.0",
   "private": true,
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Revaea/i0c.cc.git"
+  },
+  "homepage": "https://github.com/Revaea/i0c.cc",
   "scripts": {
     "build": "tsup --config tsup.config.ts && node scripts/post-build.mjs",
     "dev:cf": "wrangler dev",

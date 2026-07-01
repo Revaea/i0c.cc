@@ -4,4 +4,11 @@ dist/
 .vercel/
 netlify/
 .wrangler/
+
+# Local environment files
 .env
+.env.local
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
