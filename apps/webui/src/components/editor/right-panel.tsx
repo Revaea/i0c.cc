@@ -9,7 +9,7 @@ import addFormats from "ajv-formats";
 
 import { Button } from "@/components/ui/button";
 
-import redirectsSchema from "../../../../runtime/redirects.schema.json";
+import redirectsSchema from "i0c-redirect-worker/redirects.schema.json";
 
 interface SchemaValidatorResult {
   error: string | null;
