@@ -1,3 +1,17 @@
+/**
+ * @file analytics.ts
+ * @description
+ * [EN] Privacy-Preserving Analytics Emitter.
+ * Classifies matched requests, normalizes privacy-safe dimensions, signs events,
+ * and schedules delivery to the configured collector.
+ *
+ * [CN] 隐私保护型统计事件发送器。
+ * 对已匹配请求进行分类，规范化隐私友好的统计维度，为事件签名，
+ * 并将其调度发送至已配置的采集端。
+ *
+ * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
+ */
+
 import { readBindingVar, readEnvVar } from "./env";
 import type {
   AnalyticsProvider,

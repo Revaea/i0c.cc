@@ -85,6 +85,14 @@ These defaults apply only when project configuration and the dominant style of c
 - Organize new components as behavior, structure, then presentation unless the framework or nearby components establish another order.
 - In React components, keep state, derived data, handlers, and effects before the primary JSX return. Keep component-owned presentation in the owning stylesheet or established styling system.
 
+### Runtime Core File Headers
+
+These rules apply only to TypeScript modules under `apps/runtime/src/lib`.
+
+- Begin each module with the established bilingual JSDoc file header before its imports.
+- Include `@file` with the exact filename, `@description`, concise `[EN]` and `[CN]` responsibility summaries, and the existing repository `@see` link.
+- Keep the summary focused on the module's ownership and design role. Update it when that responsibility changes.
+
 ## Workspace, Dependencies, and Lockfile
 
 - Use the package manager and version declared by the root `packageManager` field.
