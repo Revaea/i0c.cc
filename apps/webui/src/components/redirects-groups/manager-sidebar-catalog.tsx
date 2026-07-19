@@ -112,7 +112,6 @@ export function RouteEntriesCatalog({
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{headerTitle}</h2>
             <div className="flex items-center gap-2">
-              <span className="text-xs tabular-nums text-muted">{entries.length}</span>
               {onAddRule ? (
                 <Button
                   onClick={onAddRule}
