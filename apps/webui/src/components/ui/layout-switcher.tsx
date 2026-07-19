@@ -128,7 +128,7 @@ export function LayoutSwitcher({
           id={panelId}
           role="dialog"
           aria-label={t("layout")}
-          className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl border border-line bg-panel p-4 shadow-[0_18px_40px_-24px_rgb(23_32_51_/_45%)]"
+          className="absolute right-0 top-full z-50 mt-2 w-80 animate-[fade-up_200ms_ease-out] rounded-2xl border border-line bg-panel p-4 shadow-[0_18px_40px_-24px_rgb(23_32_51_/_45%)] motion-reduce:animate-none"
         >
           <div className="flex items-center gap-2 text-sm font-semibold text-ink">
             <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-muted" aria-hidden="true">
@@ -148,7 +148,7 @@ export function LayoutSwitcher({
                 className={buttonClassName({
                   className: "h-11 px-0",
                   size: "md",
-                  variant: mode === layoutMode ? "selected" : "ghost",
+                  variant: mode === layoutMode ? "primary" : "ghost",
                 })}
                 aria-label={labels[layoutMode]}
                 aria-pressed={mode === layoutMode}
