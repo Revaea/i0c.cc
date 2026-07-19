@@ -3,7 +3,8 @@
 import { useCallback, useState } from "react";
 import { useTranslations } from "next-intl";
 
-import { Sidebar } from "@/components/ui/sidebar";
+import { AppShell } from "@/components/ui/app-shell";
+import { AppSectionNavigation } from "@/components/ui/app-section-navigation";
 import { ContentSkeleton, SidebarSkeletonBody, SidebarSkeletonCatalog, SidebarSkeletonFooter } from "@/components/ui/skeletons";
 import { GroupEntriesEditor } from "@/components/editor/group-entries-editor";
 import { RightPanel } from "@/components/editor/right-panel";
@@ -13,19 +14,10 @@ import { RouteEntriesCatalog } from "@/components/redirects-groups/manager-sideb
 import { ManagerSidebarBody } from "./manager-sidebar-body";
 import { ManagerSidebarFooter } from "./manager-sidebar-footer";
 
-export type RedirectsGroupsManagerProps = {
-  mobileSidebarOpen?: boolean;
-  onMobileSidebarOpenChange?: (open: boolean) => void;
-};
-
-export function RedirectsGroupsManager({
-  mobileSidebarOpen,
-  onMobileSidebarOpenChange,
-}: RedirectsGroupsManagerProps) {
+export function RedirectsGroupsManager() {
   const tGroups = useTranslations("groups");
   const tEntries = useTranslations("entries");
   const tEditor = useTranslations("editor");
-  const tCommon = useTranslations("common");
 
   const {
     isLoading,
@@ -92,64 +84,64 @@ export function RedirectsGroupsManager({
     save();
   }, [applyJson, editorMode, jsonDraft, save, tEditor]);
 
-  const closeMobileSidebar = useCallback(() => {
-    onMobileSidebarOpenChange?.(false);
-  }, [onMobileSidebarOpenChange]);
-
   const handleSelectGroup = useCallback(
     (groupId: string) => {
       selectGroup(groupId);
-      if (mobileSidebarOpen) {
-        closeMobileSidebar();
-      }
     },
-    [closeMobileSidebar, mobileSidebarOpen, selectGroup]
+    [selectGroup]
   );
-
-  const showMobileSidebar = !!mobileSidebarOpen;
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-10 sm:flex-row">
-        <div className="hidden lg:block order-1 w-full sm:w-64 lg:w-80 shrink-0">
-          <div className="flex min-h-0 flex-col gap-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)]">
-            <Sidebar>
+      <AppShell
+        navigation={
+          <div className="space-y-5 p-5 sm:p-6">
+            <AppSectionNavigation />
+            <div className="border-b border-line pb-5">
               <SidebarSkeletonBody />
-            </Sidebar>
-            <div className="hidden lg:flex shrink-0 max-h-[30vh] rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
+            </div>
+            <div className="border-b border-line pb-5">
               <SidebarSkeletonCatalog />
             </div>
-            <div className="flex shrink-0 flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
+            <div>
               <SidebarSkeletonFooter />
             </div>
           </div>
-        </div>
-        <section className="order-2 min-w-0 flex-1">
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-lg">
-            <ContentSkeleton />
-          </div>
-        </section>
-      </div>
+        }
+      >
+        <main data-layout-region="content" className="mx-auto w-full max-w-[var(--app-content-max-width)] px-5 py-7 sm:px-8 sm:py-10 lg:px-10">
+          <ContentSkeleton />
+        </main>
+      </AppShell>
     );
   }
 
   if (loadError) {
     return (
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-10 sm:flex-row">
-        <div className="hidden lg:block order-1 w-full sm:w-64 lg:w-80 shrink-0">
-          <Sidebar title={tGroups("group")}>
-            <div className="text-sm text-slate-600">{tGroups("cannotLoad")}</div>
-          </Sidebar>
-        </div>
-        <section className="order-2 min-w-0 flex-1">
-          <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">{loadError}</div>
-        </section>
-      </div>
+      <AppShell
+        navigation={
+          <div className="space-y-5 p-5 sm:p-6">
+            <AppSectionNavigation />
+            <div className="border-b border-line pb-5">
+              <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+                {tGroups("group")}
+              </h2>
+              <div className="mt-3 text-sm text-muted">{tGroups("cannotLoad")}</div>
+            </div>
+          </div>
+        }
+      >
+        <main data-layout-region="content" className="mx-auto w-full max-w-[var(--app-content-max-width)] px-5 py-7 sm:px-8 sm:py-10 lg:px-10">
+          <div className="border-l-2 border-rose-400 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            {loadError}
+          </div>
+        </main>
+      </AppShell>
     );
   }
 
   const sidebarFooterNode = (
-    <div className="flex shrink-0 flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
+    <div className="flex flex-col">
       <ManagerSidebarFooter
         canUndo={canUndo}
         canRedo={canRedo}
@@ -186,7 +178,7 @@ export function RedirectsGroupsManager({
     <RouteEntriesCatalog
       entries={selectedGroup.entries}
       title={tEditor("entries") ?? "Entries"}
-      className="hidden lg:flex shrink-0 max-h-[30vh] rounded-3xl border border-slate-200 bg-white shadow-lg"
+      className="max-h-[38vh] border-b border-line pb-5"
       onAddRule={() => addEntry(selectedGroup.id)}
       addRuleLabel={tEntries("addRule")}
       onRemoveEntry={(entryId) => removeEntry(selectedGroup.id, entryId)}
@@ -194,61 +186,21 @@ export function RedirectsGroupsManager({
     />
   ) : null;
 
-  const mobileCatalogNode = selectedGroup && selectedGroup.entries.length > 0 ? (
-    <RouteEntriesCatalog
-      entries={selectedGroup.entries}
-      title={tEditor("entries") ?? "Entries"}
-      variant="collapsible"
-      wrapperClassName="lg:hidden sticky top-20 z-30 mx-auto w-full max-w-6xl px-6"
-      collapsibleContentClassName="max-h-[40vh]"
-      onAddRule={() => addEntry(selectedGroup.id)}
-      addRuleLabel={tEntries("addRule")}
-      onRemoveEntry={(entryId) => removeEntry(selectedGroup.id, entryId)}
-      showLocateButton
-    />
-  ) : null;
+  const navigationNode = (
+    <div className="space-y-5 p-5 sm:p-6">
+      <AppSectionNavigation />
+      <div className="border-b border-line pb-5">
+        {sidebarBodyNode}
+      </div>
+      {catalogNode}
+      {sidebarFooterNode}
+    </div>
+  );
 
   return (
-    <>
-      {mobileCatalogNode}
-
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-10 sm:flex-row">
-        <div className="hidden lg:block order-1 w-full sm:w-64 lg:w-80 shrink-0">
-          <div className="flex min-h-0 flex-col gap-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)]">
-            <Sidebar scroll={false}>
-              {sidebarBodyNode}
-            </Sidebar>
-            {catalogNode}
-            {sidebarFooterNode}
-          </div>
-        </div>
-
-        {showMobileSidebar ? (
-          <div className="fixed inset-0 z-40 bg-slate-50 lg:hidden">
-            <div className="h-full px-6 pb-6 pt-24">
-              <div
-                className="mx-auto h-full max-w-6xl overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent"
-                style={{ scrollbarGutter: "stable" }}
-              >
-                <div className="space-y-6 p-2">
-                  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
-                    {sidebarBodyNode}
-                  </div>
-                  {sidebarFooterNode}
-                  <button
-                    type="button"
-                    onClick={closeMobileSidebar}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-lg hover:bg-slate-50"
-                  >
-                    {tCommon("close")}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        <section className="order-2 min-w-0 flex-1">
+    <AppShell navigation={navigationNode}>
+      <main data-layout-region="content" className="mx-auto w-full max-w-[var(--app-content-max-width)] px-5 py-7 sm:px-8 sm:py-10 lg:px-10">
+        <section className="min-w-0">
           <RightPanel
             editorMode={editorMode}
             onEnterRulesMode={enterRulesMode}
@@ -267,14 +219,14 @@ export function RedirectsGroupsManager({
                 />
               ) : (
                 <div>
-                  <h1 className="text-lg font-semibold text-slate-900">{tGroups("group")}</h1>
-                  <p className="mt-1 text-sm text-slate-500">{tGroups("selectHint")}</p>
+                  <h1 className="text-lg font-semibold text-ink">{tGroups("group")}</h1>
+                  <p className="mt-1 text-sm text-muted">{tGroups("selectHint")}</p>
                 </div>
               )
             }
           />
         </section>
-      </div>
-    </>
+      </main>
+    </AppShell>
   );
 }

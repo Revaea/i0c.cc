@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { formControlClassName } from "@/components/ui/form-control";
+
 export type DropdownOption = { value: string; label: string };
 
 export function DropdownSelect({
@@ -44,13 +46,15 @@ export function DropdownSelect({
       <button
         type="button"
         onClick={() => setOpen((previous) => !previous)}
-        className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-10 text-left text-sm text-slate-900 outline-none focus:border-slate-300"
+        className={formControlClassName({ className: "relative w-full pl-3.5 pr-10 text-left" })}
+        aria-haspopup="listbox"
+        aria-expanded={open}
       >
         {selected?.label ?? value}
         <svg
           viewBox="0 0 24 24"
           fill="none"
-          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
           stroke="currentColor"
           strokeWidth="2"
         >
@@ -59,7 +63,7 @@ export function DropdownSelect({
       </button>
 
       {open ? (
-        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-line bg-panel shadow-[0_18px_40px_-24px_rgb(23_32_51_/_45%)]">
           <div className="max-h-60 overflow-auto py-1">
             {options.map((option) => {
               const isSelected = option.value === value;
@@ -72,10 +76,10 @@ export function DropdownSelect({
                     setOpen(false);
                   }}
                   className={
-                    "w-full px-3 py-2 text-left text-sm " +
+                    "w-full px-3 py-2 text-left text-sm transition focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent " +
                     (isSelected
-                      ? "bg-slate-50 font-medium text-slate-900"
-                      : "text-slate-700 hover:bg-slate-50")
+                      ? "bg-accent-soft font-semibold text-accent-strong"
+                      : "text-ink hover:bg-panel-muted")
                   }
                 >
                   {option.label}

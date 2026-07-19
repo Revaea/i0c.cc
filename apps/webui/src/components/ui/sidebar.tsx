@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
+import { Button } from "@/components/ui/button";
 import type { RedirectGroup } from "@/composables/redirects-groups/model";
 
 export type SidebarProps = {
@@ -17,8 +18,8 @@ export function Sidebar({ title, className, children, footer, scroll = true }: S
   return (
     <aside className={"w-full shrink-0 sm:max-w-sm " + (className ?? "")}>
       <div className="flex min-h-0 flex-col gap-4">
-        <div className="flex min-h-0 flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
-          {title ? <h2 className="text-sm font-semibold text-slate-900">{title}</h2> : null}
+        <div className="flex min-h-0 flex-col border-b border-line pb-5">
+          {title ? <h2 className="text-sm font-semibold text-ink">{title}</h2> : null}
           {scroll ? (
             <div className={(title ? "mt-4 " : "") + "min-h-0 overflow-y-auto pr-1 max-h-[30vh]"}>{children}</div>
           ) : (
@@ -26,11 +27,7 @@ export function Sidebar({ title, className, children, footer, scroll = true }: S
           )}
         </div>
 
-        {footer ? (
-          <div className="shrink-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
-            {footer}
-          </div>
-        ) : null}
+        {footer ? <div className="shrink-0">{footer}</div> : null}
       </div>
     </aside>
   );
@@ -79,22 +76,25 @@ export function GroupTree({
       return (
         <li key={group.id} className="space-y-2">
           <div
-            className={`flex items-center justify-between gap-2 rounded-xl px-2 py-2 ${
-              selected ? "bg-slate-50" : "hover:bg-slate-50"
+            className={`flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 transition ${
+              selected
+                ? "bg-accent-soft text-accent-strong"
+                : "hover:bg-panel"
             }`}
             style={{ paddingLeft: `${8 + depth * 12}px` }}
           >
             <button
               type="button"
+              data-navigation-close="true"
               onClick={() => onSelectGroup(group.id)}
-              className="min-w-0 flex-1 text-left text-sm font-medium text-slate-700"
+              className="min-w-0 flex-1 rounded-lg text-left text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               title={label}
             >
               <span className="flex min-w-0 items-center gap-2">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
-                  className="h-4 w-4 shrink-0 text-slate-500"
+                  className="h-4 w-4 shrink-0 text-muted"
                   stroke="currentColor"
                   strokeWidth="2"
                 >
@@ -118,7 +118,7 @@ export function GroupTree({
                     }}
                     onBlur={() => onCommitRenameGroup(group.id)}
                     autoFocus
-                    className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+                    className="min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 py-1 text-sm text-ink focus:border-accent focus:outline-none"
                   />
                 ) : (
                   <span className="block min-w-0 flex-1 truncate">{label}</span>
@@ -127,43 +127,39 @@ export function GroupTree({
             </button>
 
             <div className="flex gap-1">
-              <button
-                type="button"
+              <Button
                 onClick={() => onAddChildGroup(group.id)}
                 disabled={!canNest}
-                className={
-                  "flex h-6 w-6 items-center justify-center rounded-lg border bg-white " +
-                  (canNest
-                    ? "border-slate-200 text-slate-600 hover:bg-slate-50"
-                    : "border-slate-200 text-slate-300 cursor-not-allowed")
-                }
+                size="icon-sm"
+                variant="ghost"
+                className={canNest ? "" : "cursor-not-allowed"}
                 title={canNest ? t("addChild") : t("maxDepthHint", { count: MAX_GROUP_DEPTH })}
               >
                 <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="2">
                   <path d="M12 6v12m6-6H6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 onClick={() => onBeginRenameGroup(group.id)}
-                className="flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                size="icon-sm"
+                variant="ghost"
                 title={t("rename")}
               >
                 <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="2">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" strokeLinecap="round" strokeLinejoin="round" />
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 onClick={() => onRemoveGroup(group.id)}
-                className="flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-600 hover:bg-rose-50"
+                size="icon-sm"
+                variant="danger"
                 title={t("delete")}
               >
                 <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="2">
                   <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-              </button>
+              </Button>
             </div>
           </div>
 

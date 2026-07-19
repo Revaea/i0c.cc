@@ -3,6 +3,8 @@
 import { useTranslations } from "next-intl";
 import { signIn } from "next-auth/react";
 
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 
 export function SignInPanel() {
@@ -10,25 +12,23 @@ export function SignInPanel() {
 
   return (
     <div className="w-full max-w-md">
-      <div
-        className="rounded-3xl border border-slate-200 bg-white p-10 shadow-lg will-change-transform animate-[panel-in_520ms_cubic-bezier(0.16,1,0.3,1)] motion-reduce:animate-none"
-      >
+      <Card elevation="flat" padding="lg" className="animate-[panel-in_420ms_cubic-bezier(0.16,1,0.3,1)] motion-reduce:animate-none">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.4em] text-slate-500 animate-[fade-left_420ms_ease-out] [animation-delay:120ms] [animation-fill-mode:both] motion-reduce:animate-none">
-            <span className="h-1 w-8 rounded-full bg-slate-900" />
+          <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
+            <span className="h-1 w-8 rounded-full bg-accent" />
             i0c.cc
           </div>
 
           <LanguageSwitcher />
         </div>
-        <h1 className="mt-6 text-3xl font-semibold text-slate-900 animate-[fade-up_420ms_ease-out] [animation-delay:160ms] [animation-fill-mode:both] motion-reduce:animate-none">
+        <h1 className="mt-6 text-3xl font-semibold text-ink">
           {t("signInTitle")}
         </h1>
 
-        <button
-          type="button"
+        <Button
           onClick={() => signIn("github")}
-          className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 animate-[fade-up_420ms_ease-out] [animation-delay:240ms] [animation-fill-mode:both] motion-reduce:animate-none"
+          className="mt-8 w-full"
+          variant="primary"
         >
           <svg
             aria-hidden="true"
@@ -45,8 +45,8 @@ export function SignInPanel() {
             <path d="M9 18c-4.51 2-5-2-7-2" />
           </svg>
           {t("signInWithGithub")}
-        </button>
-      </div>
+        </Button>
+      </Card>
     </div>
   );
 }

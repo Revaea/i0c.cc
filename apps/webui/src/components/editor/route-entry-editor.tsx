@@ -3,10 +3,16 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
 
-import { QRCodeButton } from "@/components/ui/qr-code";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import {
+  fieldLabelClassName,
+  fieldLabelRowClassName,
+  formControlClassName,
+} from "@/components/ui/form-control";
 import { LabelWithTooltip } from "@/components/ui/label-with-tooltip";
-
 import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { QRCodeButton } from "@/components/ui/qr-code";
 import {
   asString,
   createEmptyConfig,
@@ -135,53 +141,41 @@ export function RouteEntryEditor({
     [arrayValue, configValue, mode, onChange, stringValue]
   );
 
-  const containerClassName = level > 0 ? "mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4" : "";
+  const containerClassName = level > 0 ? "mt-3 rounded-xl border border-line bg-panel-muted p-4" : "";
 
   return (
     <div className={containerClassName}>
       <div className="space-y-2">
-        <span className="block text-xs font-medium text-slate-500">{t("ruleType")}</span>
+        <span className={"block " + fieldLabelClassName}>{t("ruleType")}</span>
 
-        <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-white p-1">
-          <button
-            type="button"
+        <div className="grid grid-cols-3 gap-1 rounded-xl bg-panel-muted p-1">
+          <Button
             onClick={() => setMode("string")}
-            className={
-              "relative inline-flex w-full items-center justify-center whitespace-nowrap rounded-lg py-1.5 px-3 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 " +
-              (mode === "string"
-                ? "bg-slate-900 text-white"
-                : "text-slate-700 hover:bg-slate-50")
-            }
+            className="w-full whitespace-nowrap"
+            size="sm"
+            variant={mode === "string" ? "primary" : "ghost"}
           >
             {t("quick")}
-          </button>
+          </Button>
 
-          <button
-            type="button"
+          <Button
             onClick={() => setMode("object")}
-            className={
-              "relative inline-flex w-full items-center justify-center whitespace-nowrap rounded-lg py-1.5 px-3 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 " +
-              (mode === "object"
-                ? "bg-slate-900 text-white"
-                : "text-slate-700 hover:bg-slate-50")
-            }
+            className="w-full whitespace-nowrap"
+            size="sm"
+            variant={mode === "object" ? "primary" : "ghost"}
           >
             {t("detail")}
-          </button>
+          </Button>
 
           {allowArray ? (
-            <button
-              type="button"
+            <Button
               onClick={() => setMode("array")}
-              className={
-                "relative inline-flex w-full items-center justify-center whitespace-nowrap rounded-lg py-1.5 px-3 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 " +
-                (mode === "array"
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-700 hover:bg-slate-50")
-              }
+              className="w-full whitespace-nowrap"
+              size="sm"
+              variant={mode === "array" ? "primary" : "ghost"}
             >
               {t("multi")}
-            </button>
+            </Button>
           ) : (
             <div aria-hidden className="h-7" />
           )}
@@ -196,7 +190,7 @@ export function RouteEntryEditor({
               value={stringValue}
               onChange={(e) => onChange(e.target.value)}
               placeholder={t("targetPlaceholder")}
-              className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-300"
+              className={formControlClassName({ className: "flex-1" })}
             />
             {pathKey && <QRCodeButton pathKey={pathKey} />}
           </div>
@@ -206,17 +200,16 @@ export function RouteEntryEditor({
       {mode === "array" && arrayValue ? (
         <div className="mt-4 space-y-3">
           {arrayValue.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm text-slate-600">{t("noRuleItems")}</p>
-            </div>
+            <Card elevation="flat" padding="sm" tone="muted" className="border-dashed">
+              <p className="text-sm text-muted">{t("noRuleItems")}</p>
+            </Card>
           ) : null}
 
           {arrayValue.map((item, index) => (
-            <div key={index} className="rounded-2xl border border-slate-200 bg-white p-4">
+            <Card key={index} elevation="flat" padding="sm">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-medium text-slate-500">{t("ruleItem", { index: index + 1 })}</p>
-                <button
-                  type="button"
+                <p className={fieldLabelClassName}>{t("ruleItem", { index: index + 1 })}</p>
+                <Button
                   onClick={() => {
                     if (!window.confirm(t("confirmDeleteRule"))) return;
                     const next = arrayValue.slice();
@@ -228,7 +221,8 @@ export function RouteEntryEditor({
                     next.splice(index, 1);
                     onChange(next);
                   }}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-rose-600 hover:bg-rose-50"
+                  size="icon"
+                  variant="danger"
                   title={t("deleteRule")}
                 >
                   <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2">
@@ -240,7 +234,7 @@ export function RouteEntryEditor({
                     <path d="M10 11v6" strokeLinecap="round" strokeLinejoin="round" />
                     <path d="M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                </button>
+                </Button>
               </div>
               <div className="mt-3">
                 <RouteEntryEditor
@@ -256,19 +250,19 @@ export function RouteEntryEditor({
                   }}
                 />
               </div>
-            </div>
+            </Card>
           ))}
 
-          <button
-            type="button"
+          <Button
             onClick={() => onChange([...(arrayValue ?? []), ""])}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            size="sm"
+            variant="secondary"
           >
             <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2">
               <path d="M12 6v12m6-6H6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             {t("addRuleItem")}
-          </button>
+          </Button>
         </div>
       ) : null}
 
@@ -307,15 +301,17 @@ export function RouteEntryEditor({
 
                   {showAppendPath ? (
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1.5">{t("appendPath")}</label>
-                      <div className="inline-flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-3 text-sm text-slate-900">
+                      <label className={fieldLabelRowClassName + " " + fieldLabelClassName}>
+                        {t("appendPath")}
+                      </label>
+                      <div className="inline-flex h-10 w-full items-center gap-2 rounded-xl border border-line bg-panel px-3 text-sm text-ink">
                         <input
                           type="checkbox"
                           checked={configValue.appendPath !== false}
                           onChange={(e) => onChange({ ...configValue, appendPath: e.target.checked })}
-                          className="h-4 w-4 rounded border-slate-300 accent-slate-900"
+                          className="h-4 w-4 rounded border-line-strong accent-accent"
                         />
-                        <span className="text-sm text-slate-700">{t("appendPathHint")}</span>
+                        <span className="text-sm text-ink">{t("appendPathHint")}</span>
                       </div>
                     </div>
                   ) : null}
@@ -347,7 +343,7 @@ export function RouteEntryEditor({
                           onChange(setExclusiveDestination(configValue, nextKey, e.target.value));
                         }}
                         placeholder="https://example.com"
-                        className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-300"
+                        className={formControlClassName({ className: "flex-1" })}
                       />
                       {pathKey && <QRCodeButton pathKey={pathKey} />}
                     </div>
@@ -370,10 +366,9 @@ export function RouteEntryEditor({
                           onChange({ ...nextConfig, status: next });
                         }}
                         placeholder="301"
-                        className={
-                          "w-full rounded-xl border bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-300 " +
-                          (statusInvalid ? "border-rose-300" : "border-slate-200")
-                        }
+                        className={formControlClassName({
+                          className: "w-full " + (statusInvalid ? "border-rose-300" : ""),
+                        })}
                       />
                       {statusInvalid ? <p className="mt-1 text-xs text-rose-600">{t("statusInvalid")}</p> : null}
                     </div>
@@ -395,13 +390,21 @@ export function RouteEntryEditor({
                         onChange({ ...nextConfig, priority: next });
                       }}
                       placeholder="0"
-                      className={
-                        "w-full rounded-xl border bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-300 " +
-                        (priorityInvalid ? "border-rose-300" : "border-slate-200")
-                      }
+                      className={formControlClassName({
+                        className: "w-full " + (priorityInvalid ? "border-rose-300" : ""),
+                      })}
                     />
                     {priorityInvalid ? <p className="mt-1 text-xs text-rose-600">{t("priorityInvalid")}</p> : null}
                   </div>
+                </div>
+
+                <div>
+                  <LabelWithTooltip label={t("analyticsIdLabel")} tooltip={t("analyticsIdTooltip")} />
+                  <input
+                    value={asString(configValue.analyticsId)}
+                    readOnly
+                    className="h-10 w-full rounded-xl border border-line bg-panel-muted px-3.5 font-mono text-xs text-muted outline-none"
+                  />
                 </div>
               </>
             );

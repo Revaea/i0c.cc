@@ -19,7 +19,7 @@ export default async function Home() {
 
   if (!hasAccessToken(session)) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
+      <main className="flex min-h-screen items-center justify-center bg-canvas px-6">
         <SignInPanel />
       </main>
     );
