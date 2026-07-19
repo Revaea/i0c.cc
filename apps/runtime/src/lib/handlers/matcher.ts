@@ -97,8 +97,11 @@ function normaliseRule(value: RouteValue, fallbackPriority: number): NormalizedR
     const status = Number.isFinite(parsedStatus) ? parsedStatus : DEFAULT_STATUS;
     const parsedPriority = Number((value as RouteConfig).priority);
     const priority = Number.isFinite(parsedPriority) ? parsedPriority : fallbackPriority;
+    const analyticsId = typeof value.analyticsId === "string" && value.analyticsId.trim()
+      ? value.analyticsId.trim()
+      : undefined;
 
-    return { type, target, appendPath, status, priority };
+    return { analyticsId, type, target, appendPath, status, priority };
   }
 
   return null;

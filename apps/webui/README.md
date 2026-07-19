@@ -59,6 +59,38 @@ This project provides two editing modes:
 
 6. Open [http://localhost:3000](http://localhost:3000) or **your domain**, log in with a GitHub account that has write access to the repository, and start editing `redirects.json`.
 
+## Short-link analytics
+
+The analytics feature uses standard PostgreSQL and does not depend on a vendor-specific database API. A free hosted PostgreSQL database such as [Neon](https://neon.com/pricing) is suitable for a small deployment; [Supabase](https://supabase.com/pricing) can use the same schema and application code. Prefer the provider's pooled connection URL when one is available.
+
+1. Create a PostgreSQL database and add these values to the WebUI environment:
+
+   ```dotenv
+   DATABASE_URL="postgresql://user:password@host/database?sslmode=require"
+   ANALYTICS_INGEST_SECRET="replace-with-a-separate-strong-secret"
+   ANALYTICS_SOURCE_ID="i0c.cc"
+   ```
+
+2. Apply the checked-in migrations from the repository root:
+
+   ```bash
+   pnpm analytics:migrate
+   ```
+
+3. Configure every runtime deployment to send signed events to the WebUI:
+
+   ```dotenv
+   ANALYTICS_ENDPOINT="https://your-webui.example/api/analytics/events"
+   ANALYTICS_WRITE_KEY="the-same-value-as-ANALYTICS_INGEST_SECRET"
+   ANALYTICS_SOURCE_ID="i0c.cc"
+   ```
+
+After GitHub sign-in, analytics are available at `/<locale>/analytics`. The ingestion endpoint rejects stale or invalid signatures, and query endpoints require an authenticated WebUI session.
+
+Object-form rules use a stable per-rule `analyticsId`, so renaming a short path does not split future history while that ID is retained. Compact string rules use a deterministic legacy identity; converting one to object form starts a new stable identity. The runtime sends the matched path, rule type, result, coarse request and device classes, country code, referrer domain, provider, and latency. It does not send IP addresses, full user-agent strings, query strings, or full referrer URLs.
+
+Keep the database URL and signing secret server-only. Free-plan quotas and inactivity policies can change, so check the provider's current limits before production use.
+
 ## Deploy
 
 Deploy this package from the monorepo with these Vercel settings:

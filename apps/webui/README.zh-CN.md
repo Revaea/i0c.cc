@@ -57,6 +57,38 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
 
 6. 打开 [http://localhost:3000](http://localhost:3000) 或 **你的域名**，使用拥有仓库写入权限的 GitHub 账号登录后即可编辑 `redirects.json`。
 
+## 短链接统计
+
+统计功能使用标准 PostgreSQL，不依赖特定厂商的数据库 API。对于小型部署，可以使用 [Neon](https://neon.com/pricing) 等免费托管 PostgreSQL；[Supabase](https://supabase.com/pricing) 也可以直接使用同一套数据库结构和应用代码。如果服务商提供连接池地址，建议优先使用。
+
+1. 创建 PostgreSQL 数据库，并在 WebUI 环境中配置：
+
+   ```dotenv
+   DATABASE_URL="postgresql://user:password@host/database?sslmode=require"
+   ANALYTICS_INGEST_SECRET="replace-with-a-separate-strong-secret"
+   ANALYTICS_SOURCE_ID="i0c.cc"
+   ```
+
+2. 在仓库根目录执行已提交的数据库迁移：
+
+   ```bash
+   pnpm analytics:migrate
+   ```
+
+3. 配置每个 Runtime 部署，将签名后的事件发送到 WebUI：
+
+   ```dotenv
+   ANALYTICS_ENDPOINT="https://your-webui.example/api/analytics/events"
+   ANALYTICS_WRITE_KEY="the-same-value-as-ANALYTICS_INGEST_SECRET"
+   ANALYTICS_SOURCE_ID="i0c.cc"
+   ```
+
+使用 GitHub 登录后，可以在 `/<locale>/analytics` 查看统计。事件接收端会拒绝过期或签名无效的请求，查询接口则要求已通过 WebUI 身份验证的会话。
+
+对象形式的规则使用稳定的 `analyticsId`，因此只要保留该 ID，修改短链路径也不会切断后续统计历史。字符串简写规则使用确定性的兼容标识；将其转换为对象形式后会开始使用新的稳定标识。Runtime 会发送匹配路径、规则类型、结果、粗粒度请求和设备分类、国家代码、来源域名、平台及延迟，但不会发送 IP、完整 User-Agent、查询参数或完整来源 URL。
+
+数据库地址和签名密钥必须仅保存在服务端。免费方案的额度和休眠策略可能变化，生产使用前请检查服务商的最新限制。
+
 ## 部署
 
 在 monorepo 中部署这个包时，Vercel 使用下面的设置：

@@ -37,6 +37,8 @@ export function resolveRuntimeOptions(options: HandlerOptions): ResolvedRuntime 
     fetchImpl,
     fetchInit: options.fetchInit,
     envBindings: options.envBindings,
+    provider: options.provider ?? "unknown",
+    country: options.country,
     waitUntil: options.waitUntil,
     now
   };

@@ -61,6 +61,20 @@ For local reference, copy [.env.example](.env.example) and adjust the values for
 
 If repo, branch, or path are provided, the handler automatically constructs the raw GitHub URL. With no environment overrides, the defaults remain `Revaea/i0c.cc`, branch `data`, file `redirects.json`.
 
+### Configure analytics delivery
+
+Analytics delivery is disabled unless all three variables below are set:
+
+- `ANALYTICS_ENDPOINT`: HTTPS URL of the WebUI collector, normally ending in `/api/analytics/events`. Loopback HTTP URLs are accepted for local development only.
+- `ANALYTICS_WRITE_KEY`: Long random secret used to sign each request. Set the WebUI collector's `ANALYTICS_INGEST_SECRET` to the same value.
+- `ANALYTICS_SOURCE_ID`: Stable logical site or ruleset identifier, such as `i0c.cc`. Use the same value across Cloudflare, Vercel, and Netlify when their traffic belongs in one dashboard.
+
+Matched redirect and proxy responses are delivered asynchronously when the platform exposes `waitUntil`. Collector failures are logged and never change the redirect response. Each request is signed with HMAC-SHA256 in `X-Analytics-Signature`; the signed timestamp is sent in `X-Analytics-Timestamp`.
+
+The event contains the configured rule path and analytics ID, response status, latency, provider, two-letter country code when available, referrer hostname, coarse request class, and coarse device type. Request classification prefers `Sec-CH-UA-Mobile` and may inspect the user agent locally as a fallback. It never sends IP addresses, the full user agent, the full referrer, query strings, destination URLs, or unmatched requests. Existing rules without an `analyticsId` receive a deterministic legacy identifier at runtime. Explicit object rules saved through the WebUI persist a UUID for future aggregation; string shortcuts continue using their legacy identifier until converted to object form.
+
+Custom adapters that enable analytics should also pass `provider`, optional `country`, and the platform's `waitUntil` through `HandlerOptions`.
+
 ### `redirects.json` quick reference
 
 You can also deploy the [WebUI panel](../webui) to edit `redirects.json` online.
@@ -69,6 +83,7 @@ Provide a `Slots` object in `redirects.json` to define routing rules. The table 
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
+| `analyticsId` | UUID string | generated or derived | Stable analytics identity. Keep it unchanged when editing the path or destination. |
 | `type` | string | `prefix` | Route mode: `prefix` for prefix redirects, `exact` for exact matches, `proxy` for reverse proxying. |
 | `target` | string | `""` | Destination URL. Use exactly one of `target`, `to`, or `url`. |
 | `to` / `url` | string | `""` | Alias fields. Use exactly one of `target`, `to`, or `url`. |

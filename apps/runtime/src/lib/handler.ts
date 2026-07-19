@@ -13,17 +13,46 @@
  */
 
 import { loadConfig, resolveRuntimeOptions } from "@handlers/loader";
+import { scheduleMatchedAnalytics } from "@handlers/analytics";
 import { applyTemplate, appendOriginalQuery, buildCompiledList, collectProxyRaceCandidates, flattenSlots, getSlotSource, resolvePrefixTarget } from "@handlers/matcher";
 import { generateRobots, generateSitemapXml, isRobotsAllowed } from "@handlers/seo";
-import { HandlerOptions, RouteValueEntry } from "@handlers/types";
+import { HandlerOptions, NormalizedRule, ResolvedRuntime, RouteValueEntry } from "@handlers/types";
 import { serveFavicon } from "@handlers/favicon-serve";
 import { HTTPS_REDIRECT_STATUS } from "@handlers/constants";
 import { needsHttpsRedirect, respondUsingRule, shouldFallbackProxy } from "@handlers/response";
 import { inferEffectivePath, isLikelyStaticAssetPath, normalisePath, safeDecode } from "@handlers/utils";
 import { notFoundPageHtml } from "@handlers/templates";
 
+function finalizeMatchedResponse(
+  request: Request,
+  response: Response,
+  rule: NormalizedRule,
+  path: string,
+  isStaticAssetPath: boolean,
+  startedAt: number,
+  runtime: ResolvedRuntime
+): Response {
+  try {
+    scheduleMatchedAnalytics({
+      request,
+      response,
+      rule,
+      path,
+      isStaticAssetPath,
+      startedAt,
+      completedAt: runtime.now(),
+      runtime
+    });
+  } catch (error) {
+    console.error("[Analytics] Failed to prepare matched event", error);
+  }
+
+  return response;
+}
+
 export async function handleRedirectRequest(request: Request, options: HandlerOptions = {}): Promise<Response> {
   const runtime = resolveRuntimeOptions(options);
+  const startedAt = runtime.now();
 
   try {
     const url = new URL(request.url);
@@ -119,13 +148,21 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
               if (shouldFallbackProxy(response)) {
                 throw new Error(`proxy ${response.status}`);
               }
-              return response;
+              return { response, rule, base };
             })();
           });
 
           try {
-            const raced = await Promise.any(tasks);
-            return raced;
+            const winner = await Promise.any(tasks);
+            return finalizeMatchedResponse(
+              request,
+              winner.response,
+              winner.rule,
+              winner.base,
+              isStaticAssetPath,
+              startedAt,
+              runtime
+            );
           } catch {
             index = scanEnd - 1;
             continue;
@@ -142,7 +179,7 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
         if (shouldFallbackProxy(response)) continue;
       }
 
-      return response;
+      return finalizeMatchedResponse(request, response, rule, base, isStaticAssetPath, startedAt, runtime);
     }
 
     {

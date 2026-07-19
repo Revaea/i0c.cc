@@ -61,6 +61,20 @@
 
 如果提供了仓库、分支或路径，运行时会自动拼出 raw.githubusercontent.com 地址。未设置任何变量时，默认值为仓库 `Revaea/i0c.cc`、分支 `data`、文件 `redirects.json`。
 
+### 配置统计事件投递
+
+只有同时设置下面三个变量时才会启用统计事件投递：
+
+- `ANALYTICS_ENDPOINT`：WebUI 收集端的 HTTPS 地址，通常以 `/api/analytics/events` 结尾。仅本地开发可使用回环地址的 HTTP URL。
+- `ANALYTICS_WRITE_KEY`：用于为每次请求签名的长随机密钥。WebUI 收集端的 `ANALYTICS_INGEST_SECRET` 必须设置为相同值。
+- `ANALYTICS_SOURCE_ID`：稳定的逻辑站点或规则集标识，例如 `i0c.cc`。如果 Cloudflare、Vercel、Netlify 的流量应汇总到同一个面板，请使用相同的值。
+
+平台提供 `waitUntil` 时，匹配成功的重定向和代理响应会异步投递统计事件。收集端故障只会记录日志，不会改变重定向响应。每次请求都使用 HMAC-SHA256 签名，签名放在 `X-Analytics-Signature`，签名时间戳放在 `X-Analytics-Timestamp`。
+
+事件仅包含配置中的规则路径和统计 ID、响应状态、延迟、平台、可用时的两位国家代码、来源站点域名、粗粒度请求分类和设备类型。请求分类优先读取 `Sec-CH-UA-Mobile`，必要时只在边缘端本地读取 User-Agent 做粗分类。事件不会发送 IP、完整 User-Agent、完整来源地址、查询参数、目标地址，也不会记录未匹配请求。旧规则没有 `analyticsId` 时，runtime 会生成确定性的兼容 ID。通过 WebUI 保存的显式对象规则会持久化 UUID；字符串简写规则在转换成对象格式前继续使用兼容 ID。
+
+自定义适配器启用统计后，还应通过 `HandlerOptions` 传入 `provider`、可选的 `country` 和平台提供的 `waitUntil`。
+
 ### `redirects.json` 配置速查
 
 也可以部署 [WebUI 面板](../webui) 在线编辑 `redirects.json`。
@@ -69,6 +83,7 @@
 
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
+| `analyticsId` | UUID 字符串 | 自动生成或推导 | 稳定的统计身份。修改路径或目标地址时应保持不变。 |
 | `type` | string | `prefix` | 路由模式：`prefix` 前缀重定向，`exact` 精确匹配，`proxy` 反向代理。 |
 | `target` | string | `""` | 目标地址，`target`、`to`、`url` 三选一。 |
 | `to` / `url` | string | `""` | `target` 的别名字段，`target`、`to`、`url` 三选一。 |

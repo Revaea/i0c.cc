@@ -13,11 +13,14 @@
  */
 
 export type RouteType = "prefix" | "exact" | "proxy";
+export type AnalyticsProvider = "cloudflare" | "vercel" | "netlify" | "unknown";
+export type AnalyticsRequestClass = "human" | "link_preview" | "crawler" | "monitor" | "asset" | "unknown";
 
 export type RouteValue = string | RouteConfig;
 export type RouteValueEntry = RouteValue | RouteValue[];
 
 export interface RouteConfig {
+  analyticsId?: string;
   type?: string;
   target?: string;
   to?: string;
@@ -28,6 +31,7 @@ export interface RouteConfig {
 }
 
 export interface NormalizedRule {
+  analyticsId?: string;
   type: RouteType;
   target: string;
   appendPath: boolean;
@@ -70,6 +74,8 @@ export interface HandlerOptions {
   fetchImpl?: typeof fetch;
   fetchInit?: RequestInit;
   envBindings?: Record<string, unknown>;
+  provider?: AnalyticsProvider;
+  country?: string;
   waitUntil?(promise: Promise<unknown>): void;
   now?: () => number;
 }
@@ -81,6 +87,8 @@ export interface ResolvedRuntime {
   fetchImpl: typeof fetch;
   fetchInit?: RequestInit;
   envBindings?: Record<string, unknown>;
+  provider: AnalyticsProvider;
+  country?: string;
   waitUntil?: (promise: Promise<unknown>) => void;
   now: () => number;
 }

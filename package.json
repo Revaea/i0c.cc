@@ -24,6 +24,7 @@
     "webui:build": "pnpm --filter i0c.cc-webui build",
     "webui:start": "pnpm --filter i0c.cc-webui start",
     "webui:lint": "pnpm --filter i0c.cc-webui lint",
+    "analytics:migrate": "pnpm --filter i0c.cc-webui analytics:migrate",
     "data:validate": "pnpm --filter i0c.cc-webui validate:redirects"
   }
 }

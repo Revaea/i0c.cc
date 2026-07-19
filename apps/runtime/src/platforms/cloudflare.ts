@@ -13,7 +13,13 @@ const worker = {
   async fetch(request: Request, env: unknown, ctx: ExecutionContext): Promise<Response> {
     const waitUntil = ctx && typeof ctx.waitUntil === "function" ? (promise: Promise<unknown>) => ctx.waitUntil(promise) : undefined;
     const configUrl = resolveConfigUrlFromBindings(env && typeof env === "object" ? (env as Record<string, unknown>) : undefined);
-    const options: HandlerOptions = { ...baseOptions, waitUntil };
+    const country = (request as Request & { cf?: { country?: string } }).cf?.country;
+    const options: HandlerOptions = {
+      ...baseOptions,
+      provider: "cloudflare",
+      country,
+      waitUntil
+    };
     if (configUrl) {
       options.configUrl = configUrl;
     }

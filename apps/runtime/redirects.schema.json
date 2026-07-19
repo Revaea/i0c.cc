@@ -57,6 +57,11 @@
       "type": "object",
       "description": "Explicit redirect or proxy configuration.",
       "properties": {
+        "analyticsId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Stable identifier used to aggregate analytics across path or target edits."
+        },
         "type": {
           "type": "string",
           "enum": ["prefix", "exact", "proxy"],

@@ -1,0 +1,35 @@
+import { NextResponse } from "next/server";
+
+import { isAnalyticsRequestAuthenticated } from "@/lib/analytics/auth";
+import { getAnalyticsOverview, isAnalyticsConfigured } from "@/lib/analytics/queries";
+import { analyticsRanges, type AnalyticsRange } from "@/lib/analytics/types";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function parseRange(request: Request): AnalyticsRange | null {
+  const value = new URL(request.url).searchParams.get("range") ?? "30d";
+  return analyticsRanges.find((range) => range === value) ?? null;
+}
+
+export async function GET(request: Request) {
+  if (!await isAnalyticsRequestAuthenticated(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const range = parseRange(request);
+  if (!range) {
+    return NextResponse.json({ error: "Range must be one of 7d, 30d, or 90d" }, { status: 400 });
+  }
+
+  if (!isAnalyticsConfigured()) {
+    return NextResponse.json({ error: "Analytics is not configured" }, { status: 503 });
+  }
+
+  try {
+    return NextResponse.json(await getAnalyticsOverview(range));
+  } catch (error) {
+    console.error("Failed to query analytics summary", error);
+    return NextResponse.json({ error: "Analytics summary could not be loaded" }, { status: 500 });
+  }
+}
