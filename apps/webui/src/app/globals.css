@@ -33,6 +33,11 @@
   --font-sans: var(--font-inter);
 }
 
+html,
+[data-layout-region="sidebar-content"] {
+  scrollbar-gutter: stable;
+}
+
 * {
   box-sizing: border-box;
 }

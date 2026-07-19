@@ -12,12 +12,10 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 
+import { useAppLayout } from "@/components/ui/app-layout-provider";
 import { AppHeader } from "@/components/ui/app-header";
 import { Button } from "@/components/ui/button";
-import {
-  layoutWidthLimits,
-  type AppLayoutMode,
-} from "@/components/ui/layout-switcher";
+import { layoutWidthLimits } from "@/components/ui/layout-switcher";
 
 interface AppShellProps {
   children: ReactNode;
@@ -35,45 +33,22 @@ const focusableSelector = [
 
 const minSidebarWidth = layoutWidthLimits.sidebar.min;
 const maxSidebarWidth = layoutWidthLimits.sidebar.max;
-const defaultSidebarWidth = 320;
-const minContentWidth = layoutWidthLimits.content.min;
-const maxContentWidth = layoutWidthLimits.content.max;
-const defaultContentWidth = 1152;
-const defaultLayoutMode: AppLayoutMode = "original";
-const sidebarWidthStorageKey = "i0c.cc:webui:sidebar-width";
-const contentWidthStorageKey = "i0c.cc:webui:content-width";
-const layoutModeStorageKey = "i0c.cc:webui:layout-mode";
 
 function clampSidebarWidth(width: number): number {
   return Math.min(maxSidebarWidth, Math.max(minSidebarWidth, width));
 }
 
-function clampContentWidth(width: number): number {
-  return Math.min(maxContentWidth, Math.max(minContentWidth, width));
-}
-
-function isAppLayoutMode(value: string | null): value is AppLayoutMode {
-  return value === "full" || value === "sidebar" || value === "both" || value === "original";
-}
-
-function persistLayoutPreference(key: string, value: string | number): void {
-  try {
-    window.localStorage.setItem(key, String(value));
-  } catch {
-    // Local storage can be unavailable in restricted browser contexts.
-  }
-}
-
 export function AppShell({ children, navigation }: AppShellProps) {
   const tHeader = useTranslations("header");
   const tCommon = useTranslations("common");
+  const {
+    isLayoutTransitioning,
+    layoutPreferences,
+    previewSidebarWidth,
+  } = useAppLayout();
+  const { contentWidth, mode: layoutMode, sidebarWidth } = layoutPreferences;
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
-  const [layoutMode, setLayoutMode] = useState<AppLayoutMode>(defaultLayoutMode);
-  const [sidebarWidth, setSidebarWidth] = useState(defaultSidebarWidth);
-  const [contentWidth, setContentWidth] = useState(defaultContentWidth);
-  const [isLayoutTransitioning, setIsLayoutTransitioning] = useState(false);
-  const sidebarWidthRef = useRef(defaultSidebarWidth);
-  const layoutTransitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sidebarWidthRef = useRef(sidebarWidth);
   const drawerRef = useRef<HTMLElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const resizeSessionRef = useRef<{
@@ -86,39 +61,12 @@ export function AppShell({ children, navigation }: AppShellProps) {
     return () => {
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
-      if (layoutTransitionTimerRef.current) {
-        clearTimeout(layoutTransitionTimerRef.current);
-      }
     };
   }, []);
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      try {
-        const storedWidth = Number(window.localStorage.getItem(sidebarWidthStorageKey));
-        if (Number.isFinite(storedWidth) && storedWidth > 0) {
-          const nextWidth = clampSidebarWidth(storedWidth);
-          sidebarWidthRef.current = nextWidth;
-          setSidebarWidth(nextWidth);
-        }
-
-        const storedContentWidth = Number(window.localStorage.getItem(contentWidthStorageKey));
-        if (Number.isFinite(storedContentWidth) && storedContentWidth > 0) {
-          const nextContentWidth = clampContentWidth(storedContentWidth);
-          setContentWidth(nextContentWidth);
-        }
-
-        const storedLayoutMode = window.localStorage.getItem(layoutModeStorageKey);
-        if (isAppLayoutMode(storedLayoutMode)) {
-          setLayoutMode(storedLayoutMode);
-        }
-      } catch {
-        // Keep the defaults when local storage is unavailable.
-      }
-    });
-
-    return () => cancelAnimationFrame(frame);
-  }, []);
+    sidebarWidthRef.current = sidebarWidth;
+  }, [sidebarWidth]);
 
   useEffect(() => {
     const desktopQuery = window.matchMedia("(min-width: 1024px)");
@@ -223,7 +171,7 @@ export function AppShell({ children, navigation }: AppShellProps) {
 
     const nextWidth = clampSidebarWidth(session.startWidth + event.clientX - session.startX);
     sidebarWidthRef.current = nextWidth;
-    setSidebarWidth(nextWidth);
+    previewSidebarWidth(nextWidth);
   };
 
   const finishSidebarResize = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -232,7 +180,7 @@ export function AppShell({ children, navigation }: AppShellProps) {
       return;
     }
 
-    persistLayoutPreference(sidebarWidthStorageKey, sidebarWidthRef.current);
+    layoutPreferences.onSidebarWidthChange(sidebarWidthRef.current);
     resizeSessionRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -250,39 +198,7 @@ export function AppShell({ children, navigation }: AppShellProps) {
     const direction = event.key === "ArrowRight" ? 1 : -1;
     const nextWidth = clampSidebarWidth(sidebarWidthRef.current + direction * 16);
     sidebarWidthRef.current = nextWidth;
-    setSidebarWidth(nextWidth);
-    persistLayoutPreference(sidebarWidthStorageKey, nextWidth);
-  };
-
-  const handleSidebarWidthChange = (width: number) => {
-    const nextWidth = clampSidebarWidth(width);
-    sidebarWidthRef.current = nextWidth;
-    setSidebarWidth(nextWidth);
-    persistLayoutPreference(sidebarWidthStorageKey, nextWidth);
-  };
-
-  const handleContentWidthChange = (width: number) => {
-    const nextWidth = clampContentWidth(width);
-    setContentWidth(nextWidth);
-    persistLayoutPreference(contentWidthStorageKey, nextWidth);
-  };
-
-  const handleLayoutModeChange = (mode: AppLayoutMode) => {
-    if (mode === layoutMode) {
-      return;
-    }
-
-    if (layoutTransitionTimerRef.current) {
-      clearTimeout(layoutTransitionTimerRef.current);
-    }
-
-    setIsLayoutTransitioning(true);
-    setLayoutMode(mode);
-    persistLayoutPreference(layoutModeStorageKey, mode);
-    layoutTransitionTimerRef.current = setTimeout(() => {
-      setIsLayoutTransitioning(false);
-      layoutTransitionTimerRef.current = null;
-    }, 320);
+    layoutPreferences.onSidebarWidthChange(nextWidth);
   };
 
   const layoutGutter = layoutMode === "original"
@@ -313,14 +229,7 @@ export function AppShell({ children, navigation }: AppShellProps) {
           isOpen: isNavigationOpen,
           onToggle: () => setIsNavigationOpen((isOpen) => !isOpen),
         }}
-        layoutPreferences={{
-          contentWidth,
-          mode: layoutMode,
-          onContentWidthChange: handleContentWidthChange,
-          onModeChange: handleLayoutModeChange,
-          onSidebarWidthChange: handleSidebarWidthChange,
-          sidebarWidth,
-        }}
+        layoutPreferences={layoutPreferences}
       />
 
       <aside
