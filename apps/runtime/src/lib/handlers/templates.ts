@@ -1,89 +1,203 @@
 /**
  * @file templates.ts
  * @description
- * [EN] 404 Not Found Page HTML.
- * A lightweight, responsive error page styled with Tailwind CSS (via CDN).
+ * [EN] Self-contained 404 page shared by every runtime adapter.
  *
- * [CN] 404 未找到页面 HTML。
- * 一个轻量级、响应式的错误页面，通过 CDN 使用 Tailwind CSS 进行样式设置。
+ * [CN] 所有 Runtime 适配器共用的独立 404 页面。
  *
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
- */ 
+ */
 
-export const notFoundPageHtml = `
-<!DOCTYPE html>
+export const notFoundPageHtml = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 - Page Not Found</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#ffffff">
+    <title>404 · Page not found</title>
     <style>
-      body { font-family: 'Inter', sans-serif; background-color: #f8fafc; /* slate-50 */ }
-      
-      @keyframes panel-in {
-        from { opacity: 0; transform: scale(0.95) translateY(10px); }
-        to { opacity: 1; transform: scale(1) translateY(0); }
-      }
-      @keyframes fade-left {
-        from { opacity: 0; transform: translateX(-10px); }
-        to { opacity: 1; transform: translateX(0); }
-      }
-      @keyframes fade-up {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+      :root {
+        color-scheme: light;
+        --canvas: #ffffff;
+        --panel: #ffffff;
+        --ink: #172033;
+        --muted: #667085;
+        --line: #e1e5eb;
+        --accent: #3157d5;
+        --accent-strong: #2545b8;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
-      .animate-panel-in {
-        animation: panel-in 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      * {
+        box-sizing: border-box;
       }
-      .animate-fade-left {
-        animation: fade-left 420ms ease-out forwards;
+
+      html {
+        background: var(--canvas);
       }
-      .animate-fade-up {
-        animation: fade-up 420ms ease-out forwards;
+
+      body {
+        min-height: 100vh;
+        min-height: 100dvh;
+        margin: 0;
+        background: var(--canvas);
+        color: var(--ink);
       }
-      
-      .delay-120 { animation-delay: 120ms; }
-      .delay-160 { animation-delay: 160ms; }
-      .delay-240 { animation-delay: 240ms; }
-      
-      .opacity-0-start { opacity: 0; }
+
+      .page {
+        display: flex;
+        min-height: 100vh;
+        min-height: 100dvh;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1.5rem;
+      }
+
+      .panel-shell {
+        width: 100%;
+        max-width: 28rem;
+      }
+
+      .panel {
+        padding: 2rem;
+        border: 1px solid var(--line);
+        border-radius: 1rem;
+        background: var(--panel);
+        animation: panel-in 420ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .brand-row {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 1rem;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--muted);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.4em;
+        text-transform: uppercase;
+      }
+
+      .brand-mark {
+        width: 2rem;
+        height: 0.25rem;
+        border-radius: 9999px;
+        background: var(--accent);
+      }
+
+      .home-link svg {
+        width: 1rem;
+        height: 1rem;
+      }
+
+      h1 {
+        margin: 1.5rem 0 0;
+        color: var(--ink);
+        font-size: 1.875rem;
+        font-weight: 600;
+        line-height: 2.25rem;
+      }
+
+      p {
+        margin: 0.75rem 0 0;
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.5rem;
+      }
+
+      .home-link {
+        display: inline-flex;
+        width: 100%;
+        height: 2.5rem;
+        margin-top: 2rem;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        border: 1px solid var(--accent);
+        border-radius: 0.75rem;
+        background: var(--accent);
+        color: #ffffff;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: background-color 150ms ease, border-color 150ms ease;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .home-link:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      @media (hover: hover) {
+        .home-link:hover {
+          border-color: var(--accent-strong);
+          background: var(--accent-strong);
+        }
+      }
+
+      @media (max-width: 639px) {
+        .panel {
+          padding: 1.5rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .panel {
+          animation: none;
+        }
+
+        .home-link {
+          transition: none;
+        }
+      }
+
+      @keyframes panel-in {
+        0% {
+          opacity: 0;
+          transform: translateY(14px) scale(0.985);
+          filter: blur(10px);
+        }
+        60%,
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          filter: blur(0);
+        }
+      }
     </style>
   </head>
-  <body class="flex items-center justify-center min-h-screen p-4 text-slate-900">
-    <div class="w-full max-w-md">
-      
-      <div class="rounded-3xl border border-slate-200 bg-white p-10 shadow-lg animate-panel-in will-change-transform">
-        
-        <div class="flex items-center justify-between gap-4">
-          <div class="opacity-0-start animate-fade-left delay-120 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.4em] text-slate-500">
-            <span class="h-1 w-8 rounded-full bg-slate-900"></span>
-            i0c.cc
+  <body>
+    <main class="page">
+      <div class="panel-shell">
+        <section class="panel" aria-labelledby="not-found-title">
+          <div class="brand-row">
+            <div class="brand">
+              <span class="brand-mark" aria-hidden="true"></span>
+              i0c.cc
+            </div>
           </div>
 
-          <div class="opacity-0-start animate-fade-left delay-120 text-slate-300">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-          </div>
-        </div>
+          <h1 id="not-found-title">404 · Page not found</h1>
+          <p>The page you requested does not exist or may have moved.</p>
 
-        <h1 class="opacity-0-start animate-fade-up delay-160 mt-8 text-3xl font-semibold text-slate-900">
-          404 Not Found
-        </h1>
-        
-        <p class="opacity-0-start animate-fade-up delay-160 mt-3 text-sm text-slate-500 leading-relaxed">
-          The link you are trying to access does not exist or has been moved.
-        </p>
-
-        <a href="/" class="opacity-0-start animate-fade-up delay-240 mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 hover:shadow-md active:scale-95 duration-200">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          Return Home
-        </a>
-
+          <a class="home-link" href="/">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <path d="M9 22V12h6v10"></path>
+            </svg>
+            Return home
+          </a>
+        </section>
       </div>
-
-    </div>
+    </main>
   </body>
 </html>
 `;
