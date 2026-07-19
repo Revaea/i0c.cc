@@ -7,6 +7,11 @@
     "signInTitle": "登录配置控制台",
     "signInWithGithub": "使用 GitHub 登录"
   },
+  "notFound": {
+    "title": "404 · 页面未找到",
+    "description": "你访问的页面不存在或可能已被移动。",
+    "returnHome": "返回首页"
+  },
   "header": {
     "console": "i0c.cc 控制台",
     "workspaceLabel": "重定向管理",

@@ -7,6 +7,11 @@
     "signInTitle": "Sign in to the config console",
     "signInWithGithub": "Sign in with GitHub"
   },
+  "notFound": {
+    "title": "404 · Page not found",
+    "description": "The page you requested does not exist or may have moved.",
+    "returnHome": "Return home"
+  },
   "header": {
     "console": "i0c.cc Console",
     "workspaceLabel": "Redirect operations",
