@@ -11,9 +11,6 @@ export type RouteEntriesCatalogProps = {
   className?: string;
   hideHeader?: boolean;
   title?: string;
-  variant?: "plain" | "collapsible";
-  wrapperClassName?: string;
-  collapsibleContentClassName?: string;
   onAddRule?: () => void;
   addRuleLabel?: string;
   onRemoveEntry?: (entryId: string) => void;
@@ -25,9 +22,6 @@ export function RouteEntriesCatalog({
   className,
   hideHeader,
   title,
-  variant = "plain",
-  wrapperClassName,
-  collapsibleContentClassName,
   onAddRule,
   addRuleLabel,
   onRemoveEntry,
@@ -44,7 +38,7 @@ export function RouteEntriesCatalog({
   const addLabel = addRuleLabel ?? tEntries("addRule");
   const deleteLabel = tEntries("deleteRule");
   const locateLabel = tEntries("locate");
-  const allowToggle = variant === "plain" && !hideHeader;
+  const allowToggle = !hideHeader;
   const showList = !allowToggle || entriesExpanded;
 
   const renderEntryIcon = (key: string) => {
@@ -125,26 +119,24 @@ export function RouteEntriesCatalog({
                 </Button>
               ) : null}
 
-              {variant === "plain" ? (
-                <Button
-                  onClick={() => setEntriesExpanded((value) => !value)}
-                  size="icon-sm"
-                  variant="ghost"
-                  title={entriesExpanded ? tEntries("collapse") : tEntries("expand")}
-                  aria-label={entriesExpanded ? tEntries("collapse") : tEntries("expand")}
+              <Button
+                onClick={() => setEntriesExpanded((value) => !value)}
+                size="icon-sm"
+                variant="ghost"
+                title={entriesExpanded ? tEntries("collapse") : tEntries("expand")}
+                aria-label={entriesExpanded ? tEntries("collapse") : tEntries("expand")}
+              >
+                <svg
+                  className={"h-4 w-4 text-muted transition-transform " + (entriesExpanded ? "rotate-180" : "")}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
                 >
-                  <svg
-                    className={"h-4 w-4 text-muted transition-transform " + (entriesExpanded ? "rotate-180" : "")}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    aria-hidden="true"
-                  >
-                    <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </Button>
-              ) : null}
+                  <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </Button>
             </div>
           </div>
         </div>
@@ -224,70 +216,6 @@ export function RouteEntriesCatalog({
       ) : null}
     </div>
   );
-
-if (variant === "collapsible") {
-    return (
-      <div className={wrapperClassName}>
-        <details className="group relative rounded-2xl border border-slate-200 bg-white shadow-lg">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
-            <span className="flex items-center gap-2 text-sm font-semibold text-slate-900">{headerTitle}</span>
-            <span className="flex items-center gap-2 text-xs text-slate-600">
-              <span className="rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-500">
-                {entries.length}
-              </span>
-              {onAddRule ? (
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    onAddRule();
-                  }}
-                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 6v12m6-6H6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  {addLabel}
-                </button>
-              ) : null}
-              <svg
-                className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-          </summary>
-          
-          <div
-            className={[
-              "absolute left-0 right-0 top-full z-10 mt-2 hidden group-open:block",
-              "rounded-2xl border border-slate-200 bg-white shadow-lg overflow-hidden",
-              "p-1",
-              collapsibleContentClassName, 
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            <div className="max-h-[40vh] overflow-y-auto rounded-xl scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
-              <RouteEntriesCatalog
-                entries={entries}
-                hideHeader
-                title={headerTitle}
-                className={["!p-2", className].filter(Boolean).join(" ")}
-                onRemoveEntry={onRemoveEntry}
-                showLocateButton={showLocateButton}
-              />
-            </div>
-          </div>
-        </details>
-      </div>
-    );
-  }
 
   return list;
 }
