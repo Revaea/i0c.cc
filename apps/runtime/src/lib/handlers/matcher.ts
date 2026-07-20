@@ -16,7 +16,7 @@ import { DEFAULT_STATUS } from "./constants";
 import type { AnalyticsLinkMatchKind, CompiledEntry, NormalizedRule, RedirectsConfig, RouteConfig, RouteType, RouteValue, RouteValueEntry, SlotBranch } from "./types";
 import { coerceRouteValues, isRecord, toRouteArray } from "./utils";
 
-export interface ResolvedRuleTarget {
+interface ResolvedRuleTarget {
   matchKind: AnalyticsLinkMatchKind;
   targetUrl: string;
 }

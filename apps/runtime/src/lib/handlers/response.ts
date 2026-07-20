@@ -63,10 +63,6 @@ function assertSafeProxyUrl(url: URL): void {
   }
 }
 
-export function needsHttpsRedirect(url: URL): boolean {
-  return url.protocol !== "https:" || url.hostname.startsWith("www.");
-}
-
 export function shouldFallbackProxy(response: Response): boolean {
   return response.status === 404 || response.status >= 500;
 }
@@ -85,7 +81,7 @@ export async function respondUsingRule(
   return redirectResponse(targetUrl, rule.status);
 }
 
-export async function proxyRequest(
+async function proxyRequest(
   request: Request,
   targetUrl: string,
   runtime: ResolvedRuntime,
@@ -255,7 +251,7 @@ export async function proxyRequest(
   });
 }
 
-export function redirectResponse(location: string, status: number): Response {
+function redirectResponse(location: string, status: number): Response {
   return new Response(null, {
     status: status || DEFAULT_STATUS,
     headers: {
