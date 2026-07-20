@@ -174,8 +174,9 @@ These rules apply whenever a workflow is added or modified:
 ## Git Branch Selection
 
 - Follow an explicit maintainer instruction about whether to use the current branch, create a branch, or open a pull request.
+- Keep small, self-contained, low-risk, directly reviewable changes on the current branch by default. Do not create a branch or pull request for them unless the maintainer explicitly requests one.
+- Treat a small follow-up correction to just-completed or just-merged work as part of that same maintenance boundary; apply it on the current branch instead of opening a dedicated cleanup branch.
 - Do not create a branch solely because a tracked file will change.
-- A change may remain on the current branch only when it is small, self-contained, low risk, directly reviewable, and no branch or pull request was requested.
 - A change is not low risk when it alters public runtime behavior, security boundaries, dependencies, lockfiles, workflows, releases, deployments, generated artifacts, shared configuration, external data, or more than one project owner.
 - Create a branch before feature development, public behavior changes, security fixes, dependency or lockfile updates, workflow or release changes, multi-project work, destructive migrations, long-running maintenance, or pull-request work.
 - Branch prefixes belong to the acting tool, not to the repository as a universal namespace.
