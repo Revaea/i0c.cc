@@ -21,6 +21,8 @@ interface ResolvedRuleTarget {
   targetUrl: string;
 }
 
+const compiledListCache = new WeakMap<SlotBranch, CompiledEntry[]>();
+
 export function getSlotSource(config: RedirectsConfig | null): SlotBranch | null {
   if (!config) {
     return null;
@@ -87,6 +89,19 @@ export function buildCompiledList(rulesIn: Record<string, RouteValueEntry>): Com
     return a.order - b.order;
   });
   return list;
+}
+
+export function getCompiledList(source: SlotBranch): CompiledEntry[] {
+  const cached = compiledListCache.get(source);
+  if (cached) {
+    return cached;
+  }
+
+  const rules: Record<string, RouteValueEntry> = {};
+  flattenSlots(source, rules);
+  const compiled = buildCompiledList(rules);
+  compiledListCache.set(source, compiled);
+  return compiled;
 }
 
 function normaliseRule(value: RouteValue, fallbackPriority: number): NormalizedRule | null {

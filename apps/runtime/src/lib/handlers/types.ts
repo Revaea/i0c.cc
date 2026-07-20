@@ -81,7 +81,7 @@ export interface RedirectsConfig {
 }
 
 export interface MemoryCacheEntry {
-  text: string;
+  config: RedirectsConfig;
   expiresAt: number;
 }
 

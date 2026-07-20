@@ -15,9 +15,20 @@ import test from "node:test";
 
 import {
   buildCompiledList,
+  getCompiledList,
   resolveCompiledTarget
 } from "../../src/lib/handlers/matcher";
 import type { RouteConfig } from "../../src/lib/handlers/types";
+
+test("reuses compiled routes for the same slot tree", () => {
+  const slots = {
+    Main: {
+      "/docs": "https://example.com/docs"
+    }
+  };
+
+  assert.equal(getCompiledList(slots), getCompiledList(slots));
+});
 
 test("appends prefix paths before a target query and fragment", () => {
   const [entry] = buildCompiledList({

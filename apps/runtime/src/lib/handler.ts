@@ -24,8 +24,8 @@ import { dispatchRouteRequest } from "@handlers/dispatcher";
 import { serveFavicon } from "@handlers/favicon-serve";
 import { loadConfig, resolveRuntimeOptions } from "@handlers/loader";
 import {
-  buildCompiledList,
   flattenSlots,
+  getCompiledList,
   getSlotSource
 } from "@handlers/matcher";
 import { generateRobots, generateSitemapXml, isRobotsAllowed } from "@handlers/seo";
@@ -112,10 +112,7 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
       return clearAttributionCookie(response, analytics.hasAttributionCookie);
     }
 
-    const rawRules: Record<string, RouteValueEntry> = {};
-    flattenSlots(slotSource, rawRules);
-    
-    const compiledList = buildCompiledList(rawRules);
+    const compiledList = getCompiledList(slotSource);
     const decodedPath = safeDecode(path);
 
     effectivePath = inferEffectivePath(decodedPath, request.headers, compiledList);

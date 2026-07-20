@@ -18,6 +18,7 @@ import { DEFAULT_CACHE_TTL_SECONDS } from "./constants";
 import { HandlerOptions, MemoryCacheEntry, RedirectsConfig, ResolvedRuntime } from "./types";
 
 const memoryCache = new Map<string, MemoryCacheEntry>();
+const inFlightLoads = new Map<string, Promise<RedirectsConfig | null>>();
 
 export function resolveRuntimeOptions(options: HandlerOptions): ResolvedRuntime {
   const fetchImpl: typeof fetch =
@@ -47,15 +48,31 @@ export function resolveRuntimeOptions(options: HandlerOptions): ResolvedRuntime 
 }
 
 export async function loadConfig(runtime: ResolvedRuntime): Promise<RedirectsConfig | null> {
-  const { configUrl, cache, cacheTtlSeconds, fetchImpl, fetchInit, now, waitUntil } = runtime;
+  const { configUrl, now } = runtime;
 
   const memo = memoryCache.get(configUrl);
   if (memo && memo.expiresAt > now()) {
-    const parsed = safeParseJson<RedirectsConfig>(memo.text, "memory parse");
-    if (parsed) {
-      return parsed;
+    return memo.config;
+  }
+
+  const inFlight = inFlightLoads.get(configUrl);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  const load = loadConfigFresh(runtime);
+  inFlightLoads.set(configUrl, load);
+  try {
+    return await load;
+  } finally {
+    if (inFlightLoads.get(configUrl) === load) {
+      inFlightLoads.delete(configUrl);
     }
   }
+}
+
+async function loadConfigFresh(runtime: ResolvedRuntime): Promise<RedirectsConfig | null> {
+  const { configUrl, cache, cacheTtlSeconds, fetchImpl, fetchInit, now, waitUntil } = runtime;
 
   if (cache) {
     try {
@@ -65,7 +82,10 @@ export async function loadConfig(runtime: ResolvedRuntime): Promise<RedirectsCon
         const text = await cached.text();
         const parsed = safeParseJson<RedirectsConfig>(text, "cached parse");
         if (parsed) {
-          memoryCache.set(configUrl, { text, expiresAt: now() + cacheTtlSeconds * 1000 });
+          memoryCache.set(configUrl, {
+            config: parsed,
+            expiresAt: now() + cacheTtlSeconds * 1000
+          });
           return parsed;
         }
       }
@@ -80,7 +100,10 @@ export async function loadConfig(runtime: ResolvedRuntime): Promise<RedirectsCon
       const text = await response.text();
       const parsed = safeParseJson<RedirectsConfig>(text, "config parse");
       if (parsed) {
-        memoryCache.set(configUrl, { text, expiresAt: now() + cacheTtlSeconds * 1000 });
+        memoryCache.set(configUrl, {
+          config: parsed,
+          expiresAt: now() + cacheTtlSeconds * 1000
+        });
         if (cache) {
           const cacheResponse = new Response(text, {
             headers: {
@@ -108,10 +131,7 @@ export async function loadConfig(runtime: ResolvedRuntime): Promise<RedirectsCon
 
   const fallback = memoryCache.get(configUrl);
   if (fallback) {
-    const parsed = safeParseJson<RedirectsConfig>(fallback.text, "memory fallback");
-    if (parsed) {
-      return parsed;
-    }
+    return fallback.config;
   }
 
   return null;
