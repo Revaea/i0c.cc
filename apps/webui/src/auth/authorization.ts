@@ -3,6 +3,7 @@ import "server-only";
 import type { JWT } from "next-auth/jwt";
 import { getToken } from "next-auth/jwt";
 import { getServerSession } from "next-auth/next";
+import type { NextRequest } from "next/server";
 
 import {
   isWebUiPublicReadOnly,
@@ -78,7 +79,7 @@ export async function getWebUiManagementSessionAuthorization(): Promise<WebUiMan
 }
 
 async function getAuthenticatedRequestAuthorization(
-  request: Request,
+  request: NextRequest,
 ): Promise<WebUiManagementRequestAuthorization> {
   const secret = process.env.NEXTAUTH_SECRET?.trim();
   if (!secret) {
@@ -87,7 +88,7 @@ async function getAuthenticatedRequestAuthorization(
 
   let token: JWT | null;
   try {
-    token = await getToken({ req: request as unknown as never, secret });
+    token = await getToken({ req: request, secret });
   } catch {
     return { status: "unauthenticated" };
   }
@@ -107,7 +108,7 @@ async function getAuthenticatedRequestAuthorization(
 }
 
 export async function getWebUiReadRequestAuthorization(
-  request: Request,
+  request: NextRequest,
 ): Promise<WebUiReadRequestAuthorization> {
   const authorization = await getAuthenticatedRequestAuthorization(request);
   if (authorization.status === "authorized") {
@@ -129,7 +130,7 @@ export async function getWebUiReadRequestAuthorization(
 }
 
 export async function getWebUiManagementRequestAuthorization(
-  request: Request,
+  request: NextRequest,
 ): Promise<WebUiManagementRequestAuthorization> {
   return getAuthenticatedRequestAuthorization(request);
 }

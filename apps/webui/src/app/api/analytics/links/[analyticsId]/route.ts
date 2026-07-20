@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 import {
   createWebUiAuthorizationErrorResponse,
@@ -34,7 +34,7 @@ function isValidAnalyticsId(value: string): boolean {
   return /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value);
 }
 
-export async function GET(request: Request, context: RouteContext) {
+export async function GET(request: NextRequest, context: RouteContext) {
   const authorization = await getWebUiReadRequestAuthorization(request);
   if (authorization.status !== "authorized") {
     return createWebUiAuthorizationErrorResponse(authorization.status);

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 import {
   createWebUiAuthorizationErrorResponse,
@@ -29,7 +29,7 @@ function parseScope(request: Request, range: AnalyticsRange): AnalyticsQueryScop
   };
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const authorization = await getWebUiReadRequestAuthorization(request);
   if (authorization.status !== "authorized") {
     return createWebUiAuthorizationErrorResponse(authorization.status);

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import {
@@ -8,7 +8,7 @@ import {
 } from "@/auth/authorization";
 import { getRedirectConfig, listRedirectHistory, updateRedirectConfig } from "@/lib/github";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const authorization = await getWebUiReadRequestAuthorization(request);
   if (authorization.status !== "authorized") {
     return createWebUiAuthorizationErrorResponse(authorization.status);
@@ -48,7 +48,7 @@ const updateSchema = z.object({
   sourceUrl: z.string().min(8).max(2048).optional()
 });
 
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   const authorization = await getWebUiManagementRequestAuthorization(request);
   if (authorization.status !== "authorized") {
     return createWebUiAuthorizationErrorResponse(authorization.status);
