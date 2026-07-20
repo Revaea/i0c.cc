@@ -4,30 +4,14 @@ import {
   createWebUiAuthorizationErrorResponse,
   getWebUiReadRequestAuthorization,
 } from "@/auth/authorization";
+import { parseAnalyticsQueryScope } from "@/lib/analytics/query-input";
 import { getAnalyticsDetail, isAnalyticsConfigured } from "@/lib/analytics/queries";
-import {
-  analyticsRanges,
-  type AnalyticsQueryScope,
-  type AnalyticsRange,
-} from "@/lib/analytics/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 interface RouteContext {
   params: Promise<{ analyticsId: string }>;
-}
-
-function parseRange(request: Request): AnalyticsRange | null {
-  const value = new URL(request.url).searchParams.get("range") ?? "30d";
-  return analyticsRanges.find((range) => range === value) ?? null;
-}
-
-function parseScope(request: Request, range: AnalyticsRange): AnalyticsQueryScope {
-  return {
-    range,
-    entryDomain: new URL(request.url).searchParams.get("entryDomain") ?? "all",
-  };
 }
 
 function isValidAnalyticsId(value: string): boolean {
@@ -40,8 +24,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return createWebUiAuthorizationErrorResponse(authorization.status);
   }
 
-  const range = parseRange(request);
-  if (!range) {
+  const scope = parseAnalyticsQueryScope(request.nextUrl.searchParams);
+  if (!scope) {
     return NextResponse.json({ error: "Range must be one of 1d, 7d, 30d, or 90d" }, { status: 400 });
   }
 
@@ -55,7 +39,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    const detail = await getAnalyticsDetail(analyticsId, parseScope(request, range));
+    const detail = await getAnalyticsDetail(analyticsId, scope);
     if (!detail) {
       return NextResponse.json({ error: "Analytics link was not found" }, { status: 404 });
     }
