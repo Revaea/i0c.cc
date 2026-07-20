@@ -226,7 +226,20 @@ const analyticsRuntimeEventV2Schema = analyticsEventV2CommonSchema
     probeCategory: probeCategorySchema,
   })
   .strict()
-  .superRefine(validateV2Classification);
+  .superRefine((event, context) => {
+    validateV2Classification(event, context);
+
+    const isUnmatchedOutcome =
+      event.matchOutcome === "not_found" || event.matchOutcome === "proxy_exhausted";
+    const expectedMatchKind = isUnmatchedOutcome ? "unmatched" : "system";
+    if (event.matchKind !== expectedMatchKind) {
+      context.addIssue({
+        code: "custom",
+        path: ["matchKind"],
+        message: "matchKind does not match matchOutcome",
+      });
+    }
+  });
 
 export const analyticsEventSchema = z.union([
   analyticsLinkEventV2Schema,

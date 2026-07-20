@@ -113,6 +113,26 @@ test("rejects inconsistent V2 bot classifications", () => {
   assert.equal(parsed.success, false);
 });
 
+test("rejects inconsistent Runtime match classifications", () => {
+  const unmatchedAsSystem = analyticsEventSchema.safeParse({
+    ...baseEvent,
+    eventKind: "runtime",
+    matchKind: "system",
+    matchOutcome: "not_found",
+    sampleRate: 0.1
+  });
+  const systemAsUnmatched = analyticsEventSchema.safeParse({
+    ...baseEvent,
+    eventKind: "runtime",
+    matchKind: "unmatched",
+    matchOutcome: "internal_error",
+    sampleRate: 0.1
+  });
+
+  assert.equal(unmatchedAsSystem.success, false);
+  assert.equal(systemAsUnmatched.success, false);
+});
+
 test("continues to normalize legacy V1 link events", () => {
   const parsed = analyticsEventSchema.parse({
     eventId: "f5a4d47d-cd9d-4e3d-9bee-4f98b4e7e356",
