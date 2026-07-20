@@ -6,7 +6,7 @@ import {
   getWebUiManagementRequestAuthorization,
   getWebUiReadRequestAuthorization,
 } from "@/auth/authorization";
-import { getRedirectConfig, listRedirectHistory, updateRedirectConfig } from "@/lib/github";
+import { getRedirectConfig, updateRedirectConfig } from "@/lib/github";
 
 export async function GET(request: NextRequest) {
   const authorization = await getWebUiReadRequestAuthorization(request);
@@ -27,14 +27,8 @@ export async function GET(request: NextRequest) {
     : authorization.accessToken;
 
   try {
-    const [config, history] = await Promise.all([
-      getRedirectConfig(accessToken, { sourceUrl }),
-      authorization.isReadOnly
-        ? Promise.resolve([])
-        : listRedirectHistory(accessToken, 10, { sourceUrl }),
-    ]);
-
-    return NextResponse.json({ config, history });
+    const config = await getRedirectConfig(accessToken, { sourceUrl });
+    return NextResponse.json({ config });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
