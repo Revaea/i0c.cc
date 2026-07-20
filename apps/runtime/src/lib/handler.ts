@@ -115,7 +115,7 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
     const compiledList = getCompiledList(slotSource);
     const decodedPath = safeDecode(path);
 
-    effectivePath = inferEffectivePath(decodedPath, request.headers, compiledList);
+    effectivePath = inferEffectivePath(decodedPath, request.headers, url.origin, compiledList);
     const isStaticAssetPath = isLikelyStaticAssetPath(effectivePath);
     const dispatch = await dispatchRouteRequest({
       request,
