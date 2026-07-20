@@ -59,16 +59,16 @@ function mapBreakdown(
 
 function mapAutomationBreakdown(
   items: AnalyticsAutomationDimensionPoint[],
-  totalRequests: number,
+  totalObservedRequests: number,
   kind: keyof AnalyticsBreakdowns,
 ): AnalyticsBreakdownItem[] {
   return items.map((item) => ({
     code: kind === "countries" ? item.key.toUpperCase() : undefined,
     key: item.key,
     label: item.label ?? undefined,
-    value: item.estimatedRequests,
-    observedValue: item.observedRequests,
-    share: safeRatio(item.estimatedRequests, totalRequests),
+    value: item.observedRequests,
+    estimatedValue: item.estimatedRequests,
+    share: safeRatio(item.observedRequests, totalObservedRequests),
   }))
 }
 
@@ -264,8 +264,8 @@ function mapAutomationTrend(data: AnalyticsAutomationOverview): AnalyticsAutomat
 export function toAutomationViewModel(
   data: AnalyticsAutomationOverview,
 ): AnalyticsAutomationViewModel {
-  const totalEstimated = data.totals.estimatedRequests
-  const providerBreakdown = mapAutomationBreakdown(data.providers, totalEstimated, "providers")
+  const totalObserved = data.totals.observedRequests
+  const providerBreakdown = mapAutomationBreakdown(data.providers, totalObserved, "providers")
 
   return {
     scope: mapScope(data.scope),
@@ -298,10 +298,10 @@ export function toAutomationViewModel(
       providers: providerBreakdown,
       entryDomains: mapAutomationBreakdown(
         data.entryDomains,
-        totalEstimated,
+        totalObserved,
         "entryDomains",
       ),
-      ...mapBotBreakdowns(data.botBreakdowns, totalEstimated),
+      ...mapBotBreakdowns(data.botBreakdowns, totalObserved),
     },
     quality: {
       coverageStart: data.series.find((point) => point.observedRequests > 0)?.timestamp ?? null,

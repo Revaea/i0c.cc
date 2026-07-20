@@ -46,7 +46,7 @@ export interface AnalyticsBreakdownItem {
   key: string
   label?: string
   value: number
-  observedValue?: number
+  estimatedValue?: number
   share: number
   code?: string
 }
