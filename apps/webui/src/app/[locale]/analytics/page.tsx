@@ -1,6 +1,6 @@
 import type { Session } from "next-auth"
 import { getServerSession } from "next-auth/next"
-import { getTranslations } from "next-intl/server"
+import { getTranslations, setRequestLocale } from "next-intl/server"
 
 import { authOptions } from "@/auth/config"
 import { AnalyticsOverviewDashboard } from "@/components/analytics/analytics-dashboard"
@@ -43,6 +43,7 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
   }
 
   const [{ locale }, query] = await Promise.all([params, searchParams])
+  setRequestLocale(locale)
   const t = await getTranslations({ locale, namespace: "analytics" })
   const range = parseAnalyticsRange(query.range)
   const entryDomain = Array.isArray(query.entryDomain)
@@ -78,14 +79,14 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
           basePath={basePath}
           links={overview.links}
           range={range}
-          entryDomain={overview.scope.entryDomain}
+          scope={overview.scope}
         />
       }
     >
       <AnalyticsPageHeader
+        entryDomain={overview.scope.entryDomain}
         range={range}
         rangeBasePath={basePath}
-        scope={overview.scope}
       />
       {overview.hasData ? (
         <AnalyticsOverviewDashboard

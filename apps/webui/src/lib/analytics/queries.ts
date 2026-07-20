@@ -681,6 +681,7 @@ async function getLinkSummaries(
     LEFT JOIN current_stats ON current_stats.analytics_id = link.analytics_id
     LEFT JOIN previous_stats ON previous_stats.analytics_id = link.analytics_id
     WHERE link.source_id = ${sourceId}
+      AND (${scope.entryDomain === "all"} OR current_stats.analytics_id IS NOT NULL)
     ORDER BY
       COALESCE(current_stats.clicks, 0) DESC,
       COALESCE(current_stats.requests, 0) DESC,

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
+import { sidebarItemClassName } from "@/components/ui/sidebar-item";
 import type { RedirectGroup } from "@/composables/redirects-groups/model";
 
 export type SidebarProps = {
@@ -76,11 +77,10 @@ export function GroupTree({
       return (
         <li key={group.id} className="space-y-2">
           <div
-            className={`flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 transition ${
-              selected
-                ? "bg-accent-soft text-accent-strong"
-                : "hover:bg-panel"
-            }`}
+            className={sidebarItemClassName({
+              className: "justify-between",
+              isSelected: selected,
+            })}
             style={{ paddingLeft: `${8 + depth * 12}px` }}
           >
             <button

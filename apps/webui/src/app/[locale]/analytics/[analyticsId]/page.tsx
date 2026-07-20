@@ -1,6 +1,6 @@
 import type { Session } from "next-auth"
 import { getServerSession } from "next-auth/next"
-import { getTranslations } from "next-intl/server"
+import { getTranslations, setRequestLocale } from "next-intl/server"
 
 import { authOptions } from "@/auth/config"
 import {
@@ -55,6 +55,7 @@ export default async function AnalyticsDetailPage({
   }
 
   const [{ locale, analyticsId }, query] = await Promise.all([params, searchParams])
+  setRequestLocale(locale)
   const t = await getTranslations({ locale, namespace: "analytics" })
   const range = parseAnalyticsRange(query.range)
   const entryDomain = Array.isArray(query.entryDomain)
@@ -85,13 +86,20 @@ export default async function AnalyticsDetailPage({
     getAnalyticsNavigation(queryScope),
   ])
   const navigationLinks = toRankedLinks(navigation.links)
+  const navigationScope = {
+    entryDomain: navigation.scope.entryDomain,
+    availableEntryDomains: navigation.scope.availableEntryDomains.map((option) => ({
+      value: option.value,
+      requestCount: option.requests,
+    })),
+  }
   const routeNavigation = (
     <AnalyticsRouteNavigation
       activeAnalyticsId={analyticsId}
       basePath={overviewPath}
       links={navigationLinks}
       range={range}
-      entryDomain={navigation.scope.entryDomain}
+      scope={navigationScope}
     />
   )
   const overviewActionHref = buildAnalyticsHref(overviewPath, {
@@ -103,15 +111,9 @@ export default async function AnalyticsDetailPage({
     return (
       <AnalyticsShell navigation={routeNavigation}>
         <AnalyticsPageHeader
+          entryDomain={navigationScope.entryDomain}
           range={range}
           rangeBasePath={detailPath}
-          scope={{
-            entryDomain: navigation.scope.entryDomain,
-            availableEntryDomains: navigation.scope.availableEntryDomains.map((option) => ({
-              value: option.value,
-              requestCount: option.requests,
-            })),
-          }}
         />
         <AnalyticsStatePanel
           title={t("states.notFoundTitle")}
@@ -127,9 +129,9 @@ export default async function AnalyticsDetailPage({
   return (
     <AnalyticsShell navigation={routeNavigation}>
       <AnalyticsPageHeader
+        entryDomain={detail.scope.entryDomain}
         range={range}
         rangeBasePath={detailPath}
-        scope={detail.scope}
       />
       {detail.hasData ? (
         <AnalyticsDetailDashboard data={detail} locale={locale} />
