@@ -4,7 +4,7 @@
 
 在线预览：
 
-- 主域名：https://api.i0c.cc
+- Cloudflare 域名：https://i0c.cc、https://www.i0c.cc、https://api.i0c.cc
 - Vercel 部署：https://vc.i0c.cc
 - Netlify 部署：https://nf.i0c.cc
 
@@ -67,13 +67,24 @@
 
 - `ANALYTICS_ENDPOINT`：WebUI 收集端的 HTTPS 地址，通常以 `/api/analytics/events` 结尾。仅本地开发可使用回环地址的 HTTP URL。
 - `ANALYTICS_WRITE_KEY`：用于为每次请求签名的长随机密钥。WebUI 收集端的 `ANALYTICS_INGEST_SECRET` 必须设置为相同值。
-- `ANALYTICS_SOURCE_ID`：稳定的逻辑站点或规则集标识，例如 `i0c.cc`。如果 Cloudflare、Vercel、Netlify 的流量应汇总到同一个面板，请使用相同的值。
+- `ANALYTICS_SOURCE_ID`：稳定的基础域名和统计命名空间，例如 `i0c.cc`。如果 Cloudflare、Vercel、Netlify 的流量应汇总到同一个面板，请使用相同的小写值。
 
-平台提供 `waitUntil` 时，匹配成功的重定向和代理响应会异步投递统计事件。收集端故障只会记录日志，不会改变重定向响应。每次请求都使用 HMAC-SHA256 签名，签名放在 `X-Analytics-Signature`，签名时间戳放在 `X-Analytics-Timestamp`。
+匹配成功的重定向和代理事件会全量发送；未匹配和系统结果按 10% 抽样，使任意机器人和探测流量可以分析，又不必上报每个 404。Cloudflare、Vercel、Netlify 分别使用平台的后台执行能力。收集端故障只会记录日志，不会改变重定向响应；当前属于尽力投递，没有重试队列。每次请求都使用 HMAC-SHA256 签名，签名放在 `X-Analytics-Signature`，签名时间戳放在 `X-Analytics-Timestamp`。
 
-事件仅包含配置中的规则路径和统计 ID、响应状态、延迟、平台、可用时的两位国家代码、来源站点域名、粗粒度请求分类和设备类型。请求分类优先读取 `Sec-CH-UA-Mobile`，必要时只在边缘端本地读取 User-Agent 做粗分类。事件不会发送 IP、完整 User-Agent、完整来源地址、查询参数、目标地址，也不会记录未匹配请求。旧规则没有 `analyticsId` 时，runtime 会生成确定性的兼容 ID。通过 WebUI 保存的显式对象规则会持久化 UUID；字符串简写规则在转换成对象格式前继续使用兼容 ID。
+事件会分别记录实际入口域名和适配器平台。入口域名必须是配置的 source 域名或其子域名，其他域名归为 `unknown`。浏览器来源域名、签名渠道 ID 和验证后的内部短链接来源保持为相互独立的归因维度。受控短链接续跳使用短期签名 `_i0c_via` token，并在规则处理前删除。
+
+分类只在边缘端本地生成受控的流量、机器人、置信度、资源、设备、匹配、结果和探测类别。因此，即使机器人访问 `redirects.json` 之外的路径，也能进入抽样 Runtime 分析。事件不会发送 IP、完整 User-Agent、完整来源 URL、查询参数、目标地址或原始未匹配路径。匹配事件只包含配置中的规则路径和稳定统计 ID。旧规则没有 `analyticsId` 时，Runtime 会生成确定性的兼容 ID。通过 WebUI 保存的显式对象规则会持久化 UUID；字符串简写规则在转换成对象格式前继续使用兼容 ID。
+
+计数口径、归因 token、抽样、隐私限制、迁移顺序和验收场景详见 [统计架构文档](../../docs/analytics.zh-CN.md)。
 
 自定义适配器启用统计后，还应通过 `HandlerOptions` 传入 `provider`、可选的 `country` 和平台提供的 `waitUntil`。
+
+在仓库根目录运行契约测试和平台构建：
+
+```bash
+pnpm runtime:test
+pnpm runtime:build
+```
 
 ### `redirects.json` 配置速查
 

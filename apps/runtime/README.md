@@ -4,7 +4,7 @@ Universal redirect runtime for fetch-compatible edge platforms: Cloudflare Worke
 
 Live previews:
 
-- Primary domain: https://api.i0c.cc
+- Cloudflare domains: https://i0c.cc, https://www.i0c.cc, https://api.i0c.cc
 - Vercel deployment: https://vc.i0c.cc
 - Netlify deployment: https://nf.i0c.cc
 
@@ -67,13 +67,24 @@ Analytics delivery is disabled unless all three variables below are set:
 
 - `ANALYTICS_ENDPOINT`: HTTPS URL of the WebUI collector, normally ending in `/api/analytics/events`. Loopback HTTP URLs are accepted for local development only.
 - `ANALYTICS_WRITE_KEY`: Long random secret used to sign each request. Set the WebUI collector's `ANALYTICS_INGEST_SECRET` to the same value.
-- `ANALYTICS_SOURCE_ID`: Stable logical site or ruleset identifier, such as `i0c.cc`. Use the same value across Cloudflare, Vercel, and Netlify when their traffic belongs in one dashboard.
+- `ANALYTICS_SOURCE_ID`: Stable base hostname and statistics namespace, such as `i0c.cc`. Use the same lowercase value across Cloudflare, Vercel, and Netlify when their traffic belongs in one dashboard.
 
-Matched redirect and proxy responses are delivered asynchronously when the platform exposes `waitUntil`. Collector failures are logged and never change the redirect response. Each request is signed with HMAC-SHA256 in `X-Analytics-Signature`; the signed timestamp is sent in `X-Analytics-Timestamp`.
+Matched redirect and proxy events are sent at full rate. Unmatched and system outcomes are sampled at 10% so arbitrary bot and probe traffic can be analyzed without sending every 404. Cloudflare, Vercel, and Netlify use their platform background-execution mechanism; collector failures are logged and never change the redirect response. Delivery is best effort and currently has no retry queue. Each request is signed with HMAC-SHA256 in `X-Analytics-Signature`; the signed timestamp is sent in `X-Analytics-Timestamp`.
 
-The event contains the configured rule path and analytics ID, response status, latency, provider, two-letter country code when available, referrer hostname, coarse request class, and coarse device type. Request classification prefers `Sec-CH-UA-Mobile` and may inspect the user agent locally as a fallback. It never sends IP addresses, the full user agent, the full referrer, query strings, destination URLs, or unmatched requests. Existing rules without an `analyticsId` receive a deterministic legacy identifier at runtime. Explicit object rules saved through the WebUI persist a UUID for future aggregation; string shortcuts continue using their legacy identifier until converted to object form.
+The event records the actual entry hostname and adapter provider separately. Entry hostnames must be the configured source hostname or one of its subdomains; other hosts become `unknown`. Browser referrer hostnames, signed campaign IDs, and verified internal short-link sources remain separate attribution dimensions. Controlled short-link hops use a short-lived signed `_i0c_via` token that is removed before rule processing.
+
+Classification locally derives bounded traffic, bot, confidence, resource, device, match, outcome, and probe categories. This makes robots that request paths outside `redirects.json` visible in sampled Runtime analysis. Events never send IP addresses, full User-Agent strings, full referrer URLs, query strings, destination URLs, or raw unmatched paths. Matched events contain only the configured rule path and stable analytics ID. Existing rules without an `analyticsId` receive a deterministic legacy identifier at runtime. Explicit object rules saved through the WebUI persist a UUID for future aggregation; string shortcuts continue using their legacy identifier until converted to object form.
+
+See [../../docs/analytics.md](../../docs/analytics.md) for counting semantics, attribution tokens, sampling, privacy limits, migration order, and acceptance scenarios.
 
 Custom adapters that enable analytics should also pass `provider`, optional `country`, and the platform's `waitUntil` through `HandlerOptions`.
+
+Run the contract tests and provider build from the repository root:
+
+```bash
+pnpm runtime:test
+pnpm runtime:build
+```
 
 ### `redirects.json` quick reference
 

@@ -78,16 +78,26 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
 3. 配置每个 Runtime 部署，将签名后的事件发送到 WebUI：
 
    ```dotenv
-   ANALYTICS_ENDPOINT="https://your-webui.example/api/analytics/events"
+   ANALYTICS_ENDPOINT="https://u.i0c.cc/api/analytics/events"
    ANALYTICS_WRITE_KEY="the-same-value-as-ANALYTICS_INGEST_SECRET"
    ANALYTICS_SOURCE_ID="i0c.cc"
    ```
 
-使用 GitHub 登录后，可以在 `/<locale>/analytics` 查看统计。事件接收端会拒绝过期或签名无效的请求，查询接口则要求已通过 WebUI 身份验证的会话。
+`ANALYTICS_SOURCE_ID` 必须是共享的基础域名，而不是平台名称。使用 `i0c.cc` 时，`i0c.cc`、`www.i0c.cc`、`api.i0c.cc`、`vc.i0c.cc`、`nf.i0c.cc` 可以分别统计，无需再维护一份域名列表。命名空间之外的域名会存为 `unknown`。
 
-对象形式的规则使用稳定的 `analyticsId`，因此只要保留该 ID，修改短链路径也不会切断后续统计历史。字符串简写规则使用确定性的兼容标识；将其转换为对象形式后会开始使用新的稳定标识。Runtime 会发送匹配路径、规则类型、结果、粗粒度请求和设备分类、国家代码、来源域名、平台及延迟，但不会发送 IP、完整 User-Agent、查询参数或完整来源 URL。
+使用 GitHub 登录后，可以在 `/<locale>/analytics` 查看统计。入口域名筛选会一致作用于总数、趋势、路由、国家或地区、设备、平台、来源域名、渠道、内部来源和自动化分析。`/<locale>/analytics/automation` 会把已声明机器人、疑似自动化和未匹配 Runtime 请求的观测值与抽样估算值分开展示。
+
+事件接收端兼容 V1，并严格校验 V2 的 link 与 Runtime 事件。过期、签名无效、正文过大、分类不一致或 source 错误的事件都会被拒绝。查询接口与渠道链接接口要求已经通过 WebUI 身份验证的会话。
+
+对象形式的规则使用稳定的 `analyticsId`，因此只要保留该 ID，修改短链路径也不会切断后续统计历史。字符串简写规则使用确定性的兼容标识；将其转换为对象形式后会开始使用新的稳定标识。匹配事件全量采集；未匹配和系统 Runtime 事件按 10% 抽样，并同时显示观测值和估算值。
+
+Runtime 会发送匹配流量对应的配置规则路径、入口域名、平台、结果、受控的流量与机器人分类、国家代码、来源域名和延迟，但不会发送 IP、完整 User-Agent、查询参数、目标地址、完整来源 URL 或原始未匹配路径。浏览器来源、显式签名渠道和验证后的内部短链接来源属于相互独立的维度。
+
+需要生成渠道链接时，已登录的客户端可以调用 `POST /api/analytics/campaigns`，传入 Runtime 地址、统计 ID、渠道 ID 和 1–365 天有效期。返回的签名 `_i0c_via` 参数会绑定精确域名和归一化路径，并由 Runtime 在规则处理前删除。
 
 数据库地址和签名密钥必须仅保存在服务端。免费方案的额度和休眠策略可能变化，生产使用前请检查服务商的最新限制。
+
+完整事件契约、归因行为、数据库迁移顺序、隐私限制、投递保证和验收场景详见 [统计架构文档](../../docs/analytics.zh-CN.md)。迁移属于明确的外部写入，WebUI 构建不会自动执行迁移。
 
 ## 部署
 
