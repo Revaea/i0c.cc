@@ -32,6 +32,7 @@ export type RouteEntryEditorProps = {
   level?: number;
   allowArray?: boolean;
   pathKey?: string;
+  isReadOnly?: boolean;
 };
 
 export function RouteEntryEditor({ 
@@ -39,7 +40,8 @@ export function RouteEntryEditor({
   onChange, 
   level = 0, 
   allowArray = true, 
-  pathKey = "" 
+  pathKey = "",
+  isReadOnly = false,
 }: RouteEntryEditorProps) {
   const t = useTranslations("routeEntry");
 
@@ -67,7 +69,7 @@ export function RouteEntryEditor({
 
   const setMode = useCallback(
     (nextMode: RouteMode) => {
-      if (nextMode === mode) return;
+      if (isReadOnly || nextMode === mode) return;
       if (nextMode === "string") {
         const cached = stringDraftRef.current;
         if (cached.trim() !== "") {
@@ -138,7 +140,7 @@ export function RouteEntryEditor({
         return;
       }
     },
-    [arrayValue, configValue, mode, onChange, stringValue]
+    [arrayValue, configValue, isReadOnly, mode, onChange, stringValue]
   );
 
   const containerClassName = level > 0 ? "mt-3 rounded-xl border border-line bg-panel-muted p-4" : "";
@@ -151,6 +153,7 @@ export function RouteEntryEditor({
         <div className="grid grid-cols-3 gap-1 rounded-xl bg-panel-muted p-1">
           <Button
             onClick={() => setMode("string")}
+            disabled={isReadOnly}
             className="w-full whitespace-nowrap"
             size="sm"
             variant={mode === "string" ? "primary" : "ghost"}
@@ -160,6 +163,7 @@ export function RouteEntryEditor({
 
           <Button
             onClick={() => setMode("object")}
+            disabled={isReadOnly}
             className="w-full whitespace-nowrap"
             size="sm"
             variant={mode === "object" ? "primary" : "ghost"}
@@ -170,6 +174,7 @@ export function RouteEntryEditor({
           {allowArray ? (
             <Button
               onClick={() => setMode("array")}
+              disabled={isReadOnly}
               className="w-full whitespace-nowrap"
               size="sm"
               variant={mode === "array" ? "primary" : "ghost"}
@@ -190,6 +195,7 @@ export function RouteEntryEditor({
               value={stringValue}
               onChange={(e) => onChange(e.target.value)}
               placeholder={t("targetPlaceholder")}
+              readOnly={isReadOnly}
               className={formControlClassName({ className: "flex-1" })}
             />
             {pathKey && <QRCodeButton pathKey={pathKey} />}
@@ -209,32 +215,34 @@ export function RouteEntryEditor({
             <Card key={index} elevation="flat" padding="sm">
               <div className="flex items-center justify-between gap-3">
                 <p className={fieldLabelClassName}>{t("ruleItem", { index: index + 1 })}</p>
-                <Button
-                  onClick={() => {
-                    if (!window.confirm(t("confirmDeleteRule"))) return;
-                    const next = arrayValue.slice();
-                    if (next.length <= 1) {
-                      next[0] = "";
+                {isReadOnly ? null : (
+                  <Button
+                    onClick={() => {
+                      if (!window.confirm(t("confirmDeleteRule"))) return;
+                      const next = arrayValue.slice();
+                      if (next.length <= 1) {
+                        next[0] = "";
+                        onChange(next);
+                        return;
+                      }
+                      next.splice(index, 1);
                       onChange(next);
-                      return;
-                    }
-                    next.splice(index, 1);
-                    onChange(next);
-                  }}
-                  size="icon"
-                  variant="danger"
-                  title={t("deleteRule")}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2">
-                    <path
-                      d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path d="M10 11v6" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </Button>
+                    }}
+                    size="icon"
+                    variant="danger"
+                    title={t("deleteRule")}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2">
+                      <path
+                        d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path d="M10 11v6" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </Button>
+                )}
               </div>
               <div className="mt-3">
                 <RouteEntryEditor
@@ -242,6 +250,7 @@ export function RouteEntryEditor({
                   allowArray={false}
                   level={level + 1}
                   pathKey={pathKey}
+                  isReadOnly={isReadOnly}
                   onChange={(nextItem) => {
                     const safeNext = Array.isArray(nextItem) ? "" : nextItem;
                     const next = arrayValue.slice();
@@ -253,16 +262,18 @@ export function RouteEntryEditor({
             </Card>
           ))}
 
-          <Button
-            onClick={() => onChange([...(arrayValue ?? []), ""])}
-            size="sm"
-            variant="secondary"
-          >
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2">
-              <path d="M12 6v12m6-6H6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            {t("addRuleItem")}
-          </Button>
+          {isReadOnly ? null : (
+            <Button
+              onClick={() => onChange([...(arrayValue ?? []), ""])}
+              size="sm"
+              variant="secondary"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2">
+                <path d="M12 6v12m6-6H6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {t("addRuleItem")}
+            </Button>
+          )}
         </div>
       ) : null}
 
@@ -285,6 +296,7 @@ export function RouteEntryEditor({
                     <LabelWithTooltip label={t("typeLabel")} tooltip={t("typeTooltip")} />
                     <DropdownSelect
                       value={(configValue.type as string | undefined) ?? "prefix"}
+                      disabled={isReadOnly}
                       onChange={(next) => {
                         const nextConfig: Record<string, unknown> = { ...configValue, type: next };
                         if (next === "proxy") delete nextConfig.status;
@@ -308,6 +320,7 @@ export function RouteEntryEditor({
                         <input
                           type="checkbox"
                           checked={configValue.appendPath !== false}
+                          disabled={isReadOnly}
                           onChange={(e) => onChange({ ...configValue, appendPath: e.target.checked })}
                           className="h-4 w-4 rounded border-line-strong accent-accent"
                         />
@@ -324,6 +337,7 @@ export function RouteEntryEditor({
                       <DropdownSelect
                         className="w-28 shrink-0"
                         value={getDestinationKey(configValue)}
+                        disabled={isReadOnly}
                         onChange={(next) => {
                           const nextKey = next as DestinationKey;
                           const currentKey = getDestinationKey(configValue);
@@ -343,6 +357,7 @@ export function RouteEntryEditor({
                           onChange(setExclusiveDestination(configValue, nextKey, e.target.value));
                         }}
                         placeholder="https://example.com"
+                        readOnly={isReadOnly}
                         className={formControlClassName({ className: "flex-1" })}
                       />
                       {pathKey && <QRCodeButton pathKey={pathKey} />}
@@ -366,6 +381,7 @@ export function RouteEntryEditor({
                           onChange({ ...nextConfig, status: next });
                         }}
                         placeholder="301"
+                        readOnly={isReadOnly}
                         className={formControlClassName({
                           className: "w-full " + (statusInvalid ? "border-rose-300" : ""),
                         })}
@@ -390,6 +406,7 @@ export function RouteEntryEditor({
                         onChange({ ...nextConfig, priority: next });
                       }}
                       placeholder="0"
+                      readOnly={isReadOnly}
                       className={formControlClassName({
                         className: "w-full " + (priorityInvalid ? "border-rose-300" : ""),
                       })}
