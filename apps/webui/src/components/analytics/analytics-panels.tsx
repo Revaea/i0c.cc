@@ -3,15 +3,13 @@ import { useTranslations } from "next-intl"
 
 import { cardClassName } from "@/components/ui/card"
 
+import { AnalyticsTrendChart } from "./analytics-trend-chart"
+import { DeviceDateTime } from "./device-date-time"
 import {
   formatChangeRate,
   formatCount,
-  formatDate,
-  formatDay,
-  formatHour,
   formatPercent,
 } from "./format"
-import { AnalyticsTrendChart } from "./analytics-trend-chart"
 import { buildAnalyticsHref } from "./links"
 import type {
   AnalyticsAutomationLink,
@@ -204,18 +202,12 @@ export function TrendChart({
   const resolvedSecondaryLabel = secondaryLabel ?? t("metrics.totalRequests")
   const resolvedAccessibleTitle = accessibleTitle ?? t("trend.accessibleTitle")
   const isHourly = range === 1
-  const chartData = points.map((point) => {
-    const label = point.label
-      ?? (isHourly ? formatDate(point.timestamp, locale) : formatDay(point.timestamp, locale))
-
-    return {
-      timestamp: point.timestamp,
-      label,
-      axisLabel: isHourly ? formatHour(point.timestamp, locale) : label,
-      primaryValue: point.estimatedEntryNavigations,
-      secondaryValue: point.totalRequests,
-    }
-  })
+  const chartData = points.map((point) => ({
+    timestamp: point.timestamp,
+    label: point.label,
+    primaryValue: point.estimatedEntryNavigations,
+    secondaryValue: point.totalRequests,
+  }))
 
   return (
     <section className={cardClassName({ elevation: "flat", padding: "md", className: "sm:p-6" })}>
@@ -249,38 +241,16 @@ export function TrendChart({
             locale={locale}
             chartId={chartId}
             accessibleTitle={resolvedAccessibleTitle}
-            accessibleDescription={t("trend.accessibleDescription", {
-              start: chartData[0].label,
-              end: chartData[chartData.length - 1].label,
+            accessibleDescriptionTemplate={t("trend.accessibleDescription", {
+              start: "{start}",
+              end: "{end}",
             })}
+            granularity={isHourly ? "hour" : "day"}
             primaryLabel={resolvedPrimaryLabel}
             secondaryLabel={resolvedSecondaryLabel}
+            tableCaption={t("trend.tableCaption")}
+            timeColumnLabel={t(isHourly ? "trend.time" : "trend.date")}
           />
-
-          <table className="sr-only">
-            <caption>{t("trend.tableCaption")}</caption>
-            <thead>
-              <tr>
-                <th scope="col">{t(isHourly ? "trend.time" : "trend.date")}</th>
-                <th scope="col">{resolvedPrimaryLabel}</th>
-                <th scope="col">{resolvedSecondaryLabel}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {points.map((point) => (
-                <tr key={point.timestamp}>
-                  <th scope="row">
-                    {point.label
-                      ?? (isHourly
-                        ? formatDate(point.timestamp, locale)
-                        : formatDay(point.timestamp, locale))}
-                  </th>
-                  <td>{point.estimatedEntryNavigations}</td>
-                  <td>{point.totalRequests}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
     </section>
@@ -778,12 +748,21 @@ export function DataQualityPanel({ quality, locale }: DataQualityPanelProps) {
   const t = useTranslations("analytics")
   const coverage =
     quality.coverageStart && quality.coverageEnd
-      ? `${formatDate(quality.coverageStart, locale)} – ${formatDate(quality.coverageEnd, locale)}`
+      ? (
+          <>
+            <DeviceDateTime locale={locale} value={quality.coverageStart} />
+            {" – "}
+            <DeviceDateTime locale={locale} value={quality.coverageEnd} />
+          </>
+        )
       : t("quality.notAvailable")
 
   const items = [
     { label: t("quality.observedWindow"), value: coverage },
-    { label: t("quality.latestEvent"), value: formatDate(quality.lastEventAt, locale) },
+    {
+      label: t("quality.latestEvent"),
+      value: <DeviceDateTime locale={locale} value={quality.lastEventAt} />,
+    },
     {
       label: t("quality.unknownGeography"),
       value:
