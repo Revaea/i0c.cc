@@ -98,6 +98,10 @@ async function queryAvailableEntryDomains(
         entry_domain
       FROM link_stats_hourly_domain
       WHERE source_id = ${sourceId}
+        AND bucket_start >= (
+          DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'
+          - INTERVAL '89 days'
+        )
 
       UNION
 
@@ -105,6 +109,10 @@ async function queryAvailableEntryDomains(
         entry_domain
       FROM runtime_stats_hourly
       WHERE source_id = ${sourceId}
+        AND bucket_start >= (
+          DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'
+          - INTERVAL '89 days'
+        )
     )
     SELECT
       entry_domain
