@@ -45,6 +45,13 @@ export interface DispatchRouteResult {
   hasProxyExhaustion: boolean;
 }
 
+async function discardProxyResponse(response: Response): Promise<void> {
+  try {
+    await response.body?.cancel();
+  } catch {
+  }
+}
+
 export async function dispatchRouteRequest({
   request,
   runtime,
@@ -92,6 +99,7 @@ export async function dispatchRouteRequest({
               candidate.base
             );
             if (shouldFallbackProxy(response)) {
+              await discardProxyResponse(response);
               throw new Error(`proxy ${response.status}`);
             }
             return {
@@ -120,6 +128,7 @@ export async function dispatchRouteRequest({
     const response = await respondUsingRule(requestClone, rule, targetUrl, runtime, base);
 
     if (rule.type === "proxy" && shouldFallbackProxy(response)) {
+      await discardProxyResponse(response);
       hasProxyExhaustion = true;
       continue;
     }

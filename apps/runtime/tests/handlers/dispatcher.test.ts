@@ -99,12 +99,17 @@ test("prefers literal and parameter routes over broader patterns", async () => {
 
 test("falls through failed proxies in priority order", async () => {
   const requests: string[] = [];
+  let discardedResponses = 0;
   const runtime = createRuntime(async (input) => {
     const request = input instanceof Request ? input : new Request(input);
     requests.push(request.url);
 
     return request.url.startsWith("https://first.example/")
-      ? new Response("missing", { status: 404 })
+      ? new Response(new ReadableStream({
+          cancel() {
+            discardedResponses += 1;
+          }
+        }), { status: 404 })
       : new Response("fallback", { status: 200 });
   });
   const compiledList = buildCompiledList({
@@ -131,6 +136,7 @@ test("falls through failed proxies in priority order", async () => {
   assert.equal(await result.match.response.text(), "fallback");
   assert.equal(result.match.rule.target, "https://second.example");
   assert.equal(result.hasProxyExhaustion, true);
+  assert.equal(discardedResponses, 1);
 });
 
 test("races static asset proxies and returns a successful candidate", async () => {
