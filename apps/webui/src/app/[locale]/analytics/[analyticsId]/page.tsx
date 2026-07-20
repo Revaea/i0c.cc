@@ -85,7 +85,6 @@ export default async function AnalyticsDetailPage({
     entryDomain: scope.entryDomain,
     availableEntryDomains: scope.availableEntryDomains.map((option) => ({
       value: option.value,
-      requestCount: option.requests,
     })),
   }
   const routeNavigation = (

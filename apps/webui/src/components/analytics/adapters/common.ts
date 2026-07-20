@@ -40,7 +40,6 @@ export function mapScope(scope: AnalyticsScope): AnalyticsScopeViewModel {
     entryDomain: scope.entryDomain,
     availableEntryDomains: scope.availableEntryDomains.map((option) => ({
       value: option.value,
-      requestCount: option.requests,
     })),
   }
 }

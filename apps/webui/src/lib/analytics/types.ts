@@ -15,8 +15,6 @@ export interface AnalyticsQueryScope {
 
 export interface AnalyticsEntryDomainOption {
   value: string;
-  requests: number;
-  entryRequests: number;
 }
 
 export interface AnalyticsScope {

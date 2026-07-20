@@ -12,12 +12,9 @@ import type {
   AnalyticsRange,
   AnalyticsScope,
 } from "../types";
-import { toNumber, type DatabaseNumber } from "./database-values";
 
 interface EntryDomainRow {
   entry_domain: string;
-  requests: DatabaseNumber;
-  entry_requests: DatabaseNumber;
 }
 
 interface QueryRange {
@@ -96,38 +93,27 @@ async function queryAvailableEntryDomains(
 ): Promise<AnalyticsEntryDomainOption[]> {
   const sql = getDatabase();
   const rows = await sql<EntryDomainRow[]>`
-    WITH entry_domain_totals AS (
+    WITH entry_domains AS (
       SELECT
-        entry_domain,
-        SUM(requests)::DOUBLE PRECISION AS requests,
-        SUM(entry_requests)::DOUBLE PRECISION AS entry_requests
+        entry_domain
       FROM link_stats_hourly_domain
       WHERE source_id = ${sourceId}
-      GROUP BY entry_domain
 
-      UNION ALL
+      UNION
 
       SELECT
-        entry_domain,
-        SUM(estimated_requests) AS requests,
-        SUM(entry_estimated_requests) AS entry_requests
+        entry_domain
       FROM runtime_stats_hourly
       WHERE source_id = ${sourceId}
-      GROUP BY entry_domain
     )
     SELECT
-      entry_domain,
-      SUM(requests) AS requests,
-      SUM(entry_requests) AS entry_requests
-    FROM entry_domain_totals
-    GROUP BY entry_domain
+      entry_domain
+    FROM entry_domains
     ORDER BY entry_domain ASC
   `;
 
   return rows.map((row) => ({
     value: row.entry_domain,
-    requests: toNumber(row.requests),
-    entryRequests: toNumber(row.entry_requests),
   }));
 }
 
