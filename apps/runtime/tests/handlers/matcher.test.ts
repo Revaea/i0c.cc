@@ -2,10 +2,10 @@
  * @file matcher.test.ts
  * @description
  * [EN] Route target resolution regression tests.
- * Verifies that appended paths and incoming queries preserve target query and fragment boundaries.
+ * Verifies compiled route reuse, literal matching, and target query and fragment boundaries.
  *
  * [CN] 路由目标解析回归测试。
- * 验证拼接路径和来访查询参数时不会破坏目标查询参数与片段边界。
+ * 验证编译路由复用、字面量匹配以及目标查询参数与片段边界。
  *
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
@@ -28,6 +28,23 @@ test("reuses compiled routes for the same slot tree", () => {
   };
 
   assert.equal(getCompiledList(slots), getCompiledList(slots));
+});
+
+test("treats asterisks inside route segments as literals", () => {
+  const [entry] = buildCompiledList({
+    "/files/release*notes": {
+      type: "exact",
+      target: "https://example.com/release-notes",
+      appendPath: false
+    }
+  });
+
+  assert.ok(entry);
+  assert.equal(
+    resolveCompiledTarget(entry, "/files/release*notes", "")?.targetUrl,
+    "https://example.com/release-notes"
+  );
+  assert.equal(resolveCompiledTarget(entry, "/files/releasenotes", ""), null);
 });
 
 test("appends prefix paths before a target query and fragment", () => {

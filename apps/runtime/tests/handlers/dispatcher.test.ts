@@ -55,6 +55,48 @@ test("dispatches an exact redirect with match metadata", async () => {
   assert.equal(result.hasProxyExhaustion, false);
 });
 
+test("prefers literal and parameter routes over broader patterns", async () => {
+  const compiledList = buildCompiledList({
+    "/users/:identifier": {
+      type: "exact",
+      target: "https://parameter.example/:identifier",
+      appendPath: false
+    },
+    "/users/me": {
+      type: "exact",
+      target: "https://literal.example/profile",
+      appendPath: false
+    },
+    "/users/*": {
+      type: "exact",
+      target: "https://wildcard.example/$1",
+      appendPath: false
+    }
+  });
+
+  const literal = await dispatchRouteRequest({
+    request: new Request("https://i0c.cc/users/me"),
+    runtime: createRuntime(),
+    compiledList,
+    effectivePath: "/users/me",
+    search: "",
+    isStaticAssetPath: false
+  });
+  const parameter = await dispatchRouteRequest({
+    request: new Request("https://i0c.cc/users/someone"),
+    runtime: createRuntime(),
+    compiledList,
+    effectivePath: "/users/someone",
+    search: "",
+    isStaticAssetPath: false
+  });
+
+  assert.equal(literal.match?.response.headers.get("location"), "https://literal.example/profile");
+  assert.equal(literal.match?.matchKind, "exact");
+  assert.equal(parameter.match?.response.headers.get("location"), "https://parameter.example/someone");
+  assert.equal(parameter.match?.matchKind, "parameterized");
+});
+
 test("falls through failed proxies in priority order", async () => {
   const requests: string[] = [];
   const runtime = createRuntime(async (input) => {

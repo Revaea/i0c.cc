@@ -23,6 +23,32 @@ interface ResolvedRuleTarget {
 
 const compiledListCache = new WeakMap<SlotBranch, CompiledEntry[]>();
 
+function getRouteSegmentRank(segment: string): number {
+  if (segment === "*") {
+    return 0;
+  }
+  if (segment.startsWith(":")) {
+    return 1;
+  }
+  return 2;
+}
+
+function compareRouteSpecificity(left: string, right: string): number {
+  const leftSegments = left.split("/").filter(Boolean);
+  const rightSegments = right.split("/").filter(Boolean);
+  const sharedLength = Math.min(leftSegments.length, rightSegments.length);
+
+  for (let index = 0; index < sharedLength; index += 1) {
+    const leftRank = getRouteSegmentRank(leftSegments[index]);
+    const rightRank = getRouteSegmentRank(rightSegments[index]);
+    if (leftRank !== rightRank) {
+      return rightRank - leftRank;
+    }
+  }
+
+  return rightSegments.length - leftSegments.length;
+}
+
 export function getSlotSource(config: RedirectsConfig | null): SlotBranch | null {
   if (!config) {
     return null;
@@ -80,8 +106,9 @@ export function buildCompiledList(rulesIn: Record<string, RouteValueEntry>): Com
   }
 
   list.sort((a, b) => {
-    if (b.base.length !== a.base.length) {
-      return b.base.length - a.base.length;
+    const specificity = compareRouteSpecificity(a.base, b.base);
+    if (specificity !== 0) {
+      return specificity;
     }
     if (a.rule.priority !== b.rule.priority) {
       return a.rule.priority - b.rule.priority;
@@ -156,7 +183,7 @@ export function compilePattern(pattern: string): Pick<CompiledEntry, "regex" | "
       regexStr += "([^/]+)";
       isParam = true;
     } else {
-      regexStr += part.replace(/([.+?^=!:${}()|[\]\\])/g, "\\$1");
+      regexStr += part.replace(/([.*+?^=!:${}()|[\]\\])/g, "\\$1");
     }
   }
 
