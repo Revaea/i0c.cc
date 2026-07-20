@@ -212,7 +212,7 @@ export async function updateRedirectConfig(accessToken: string, input: UpdateRed
     method: "PUT",
     headers: buildHeaders(token),
     body: JSON.stringify({
-      message: message ?? "Update redirects via WebUI",
+      message: message ?? "chore(redirects): update config",
       content: Buffer.from(content, "utf-8").toString("base64"),
       sha,
       branch: target.branch

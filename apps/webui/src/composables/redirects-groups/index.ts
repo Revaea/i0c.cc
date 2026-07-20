@@ -35,7 +35,7 @@ export function useRedirectsGroups() {
     fallbackLoadErrorText: tGroups("loadFail"),
     fallbackSaveErrorText: tGroups("saveFail"),
     saveOkText: tGroups("saveOk"),
-    commitMessage: "Update groups via WebUI",
+    commitMessage: "chore(redirects): update config",
   });
 
   const loadConfig = configFile.load;
