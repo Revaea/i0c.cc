@@ -1,135 +1,4 @@
 {
-  "meta": {
-    "title": "i0c.cc Config Console",
-    "description": "Manage redirects.json via WebUI"
-  },
-  "auth": {
-    "signInTitle": "Sign in to the config console",
-    "signInWithGithub": "Sign in with GitHub"
-  },
-  "notFound": {
-    "title": "404 · Page not found",
-    "description": "The page you requested does not exist or may have moved.",
-    "returnHome": "Return home"
-  },
-  "header": {
-    "console": "i0c.cc Console",
-    "workspaceLabel": "Redirect operations",
-    "openNavigation": "Open navigation",
-    "closeNavigation": "Close navigation",
-    "resizeNavigation": "Resize navigation",
-    "hideGroups": "Hide groups",
-    "showGroups": "Show groups",
-    "githubUser": "GitHub user",
-    "signedIn": "Signed in",
-    "signOut": "Sign out",
-    "primaryNavigation": "Primary navigation",
-    "rules": "Rules",
-    "analytics": "Analytics",
-    "layout": "Layout",
-    "layoutHelp": "Adjust the desktop layout for different screens and working styles.",
-    "layoutFull": "Expand all",
-    "layoutSidebarAdjustable": "Expand with adjustable sidebar",
-    "layoutBothAdjustable": "Expand with adjustable sidebar and content",
-    "layoutOriginal": "Original width",
-    "sidebarWidth": "Sidebar width",
-    "contentWidth": "Content max width",
-    "language": "Language",
-    "english": "English",
-    "chinese": "中文"
-  },
-  "common": {
-    "close": "Close"
-  },
-  "groups": {
-    "manager": "Group manager",
-    "addGroup": "New group",
-    "root": "Root",
-    "rootTitle": "Root (rules written directly under slots)",
-    "empty": "No groups yet",
-    "cannotLoad": "Failed to load groups",
-    "group": "Group",
-    "selectHint": "Select a group on the right",
-    "undo": "Undo",
-    "redo": "Redo",
-    "saving": "Saving...",
-    "save": "Save changes",
-    "viewCommit": "View commit",
-    "saveOk": "Saved",
-    "configUrl": "Config URL",
-    "configUrlPlaceholder": "Paste a GitHub .json file URL (https://...)",
-    "configUrlInvalid": "Please enter a valid https URL.",
-    "configUrlTypeHint": "The URL must point to a .json file.",
-    "loadConfig": "Load",
-    "expandAll": "Expand",
-    "collapseAll": "Collapse",
-    "saveFail": "Save failed",
-    "loadFail": "Failed to load config",
-    "previewFailWithMessage": "// Preview generation failed: {message}",
-    "previewFailUnknown": "// Preview generation failed",
-    "newGroup": "New group",
-    "unnamed": "Unnamed group",
-    "addChild": "New sub-group",
-    "maxDepthHint": "Recommended max depth: {count}",
-    "rename": "Rename",
-    "delete": "Delete",
-    "confirmDelete": "Delete group “{label}”?\nThis will also delete its sub-groups and rules."
-  },
-  "entries": {
-    "description": "Edit redirects rules in this group",
-    "addRule": "New rule",
-    "emptyTitle": "No rules in this group yet",
-    "emptyHint": "Click the button to add one",
-    "pathKey": "Path key",
-    "pathKeyPlaceholder": "/foo or /bar/baz",
-    "confirmDeleteRule": "Delete this rule?",
-    "deleteRule": "Delete rule",
-    "locate": "Locate",
-    "expand": "Expand",
-    "collapse": "Collapse"
-  },
-  "editor": {
-    "entries": "Entries",
-    "rules": "Rules",
-    "json": "JSON",
-    "jsonPreferred": "Saving will use this JSON",
-    "editAndSave": "Edit rules and save",
-    "tipParse": "Tip: Switching back to Rules will use the parsed content.",
-    "unknownError": "Unknown error",
-    "jsonParseFail": "Failed to parse JSON",
-    "jsonFormatError": "Invalid JSON: {message}",
-    "schemaLoadFail": "Failed to load schema: {message}",
-    "schemaValidateFailUnknown": "Schema validation failed: unknown error",
-    "schemaValidateFail": "Schema validation failed:\n{lines}{more}",
-    "schemaValidateMore": "\n… and {count} more"
-  },
-  "routeEntry": {
-      "ruleType": "Rule type",
-      "quick": "Quick",
-      "detail": "Advanced",
-      "multi": "Multiple",
-      "target": "Target",
-      "targetPlaceholder": "https://example.com or /path",
-      "noRuleItems": "No rule items yet. Click the button below to add one.",
-      "ruleItem": "Rule item {index}",
-      "confirmDeleteRule": "Delete this rule?",
-      "deleteRule": "Delete rule",
-      "addRuleItem": "Add rule item",
-      "typeLabel": "Type",
-      "typeTooltip": "prefix: Prefix matching\nexact: Exact path matching\nproxy: Reverse proxy",
-      "appendPath": "appendPath",
-      "appendPathHint": "Append remaining path",
-      "targetLabel": "Target",
-      "targetTooltip": "Supports target, to, url fields\nFunctionally identical",
-      "statusLabel": "Status",
-      "statusTooltip": "HTTP Redirect Status Code\ne.g. 301, 302",
-      "statusInvalid": "Must be a 3-digit status (e.g. 301, 302).",
-      "priorityLabel": "Priority",
-      "priorityTooltip": "Matching Priority\nSmaller number = higher priority",
-      "priorityInvalid": "Must be an integer (e.g. 0, 10, -1).",
-      "analyticsIdLabel": "Analytics ID",
-      "analyticsIdTooltip": "Stable identifier used to attribute requests after a path or target changes."
-    },
   "analytics": {
     "navigation": {
       "overview": "Overview",
@@ -157,6 +26,75 @@
       "entryDomain": "Entry domain",
       "allDomains": "All domains",
       "unknownDomain": "Unknown domain"
+    },
+    "labels": {
+      "linkTypes": {
+        "redirect": "Redirect",
+        "proxy": "Proxy"
+      },
+      "devices": {
+        "desktop": "Desktop",
+        "mobile": "Mobile",
+        "tablet": "Tablet",
+        "bot": "Bot"
+      },
+      "providers": {
+        "cloudflare": "Cloudflare",
+        "vercel": "Vercel",
+        "netlify": "Netlify"
+      },
+      "trafficClasses": {
+        "browserLike": "Browser-like",
+        "declaredBot": "Declared bot",
+        "suspectedAutomation": "Suspected automation"
+      },
+      "botCategories": {
+        "none": "None",
+        "search": "Search crawler",
+        "aiCrawler": "AI crawler",
+        "socialPreview": "Social preview",
+        "monitor": "Monitor",
+        "automation": "Automation tool",
+        "securityProbe": "Security probe"
+      },
+      "botConfidences": {
+        "none": "None",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "resourceClasses": {
+        "document": "Document",
+        "asset": "Asset",
+        "api": "API",
+        "other": "Other"
+      },
+      "matchKinds": {
+        "exact": "Exact",
+        "parameterized": "Parameterized",
+        "prefix": "Prefix",
+        "catchAll": "Catch-all",
+        "unmatched": "Unmatched",
+        "system": "System"
+      },
+      "outcomes": {
+        "matched": "Matched",
+        "notFound": "Not found",
+        "proxyExhausted": "Proxy attempts exhausted",
+        "configUnavailable": "Configuration unavailable",
+        "internalError": "Internal error"
+      },
+      "probes": {
+        "none": "None",
+        "wordpress": "WordPress",
+        "envFile": "Environment file",
+        "admin": "Admin path",
+        "vcs": "Version-control file",
+        "pathTraversal": "Path traversal",
+        "scanner": "Scanner",
+        "other": "Other"
+      },
+      "classifierVersion": "Classifier v{version}"
     },
     "metrics": {
       "title": "Key metrics",
@@ -281,11 +219,5 @@
         "emptyDescription": "Declared bots, suspected automation, and unmatched requests will appear after the runtime reports them."
       }
     }
-  },
-  "qrCode": {
-    "openQRCode": "Generate QR code",
-    "faviconAlt": "Favicon",
-    "faviconLabel": "Favicon Logo",
-    "download": "Download QR code"
   }
 }

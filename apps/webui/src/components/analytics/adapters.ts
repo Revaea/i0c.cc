@@ -42,42 +42,6 @@ function safeRatio(numerator: number, denominator: number) {
   return denominator > 0 ? Math.min(1, Math.max(0, numerator / denominator)) : 0
 }
 
-function titleCase(value: string) {
-  return value
-    .replaceAll("_", " ")
-    .replaceAll("-", " ")
-    .replace(/\b\w/g, (character) => character.toUpperCase())
-}
-
-function formatBreakdownLabel(value: string, kind: keyof AnalyticsBreakdowns) {
-  const normalized = value.trim()
-  if (!normalized || ["unknown", "(not set)", "null"].includes(normalized.toLowerCase())) {
-    return "Unknown"
-  }
-
-  if (kind === "countries" && /^[a-z]{2}$/i.test(normalized)) {
-    return normalized.toUpperCase()
-  }
-
-  if (kind === "referrers" && ["direct", "none"].includes(normalized.toLowerCase())) {
-    return "Direct"
-  }
-
-  const shouldTitleCase = [
-    "devices",
-    "providers",
-    "trafficClasses",
-    "botCategories",
-    "botConfidences",
-    "resourceClasses",
-    "matchKinds",
-    "outcomes",
-    "probes",
-  ].includes(kind)
-
-  return shouldTitleCase ? titleCase(normalized) : normalized
-}
-
 function mapBreakdown(
   items: AnalyticsDimensionPoint[],
   totalRequests: number,
@@ -85,7 +49,8 @@ function mapBreakdown(
 ): AnalyticsBreakdownItem[] {
   return items.map((item) => ({
     code: kind === "countries" ? item.key.toUpperCase() : undefined,
-    label: formatBreakdownLabel(item.label ?? item.key, kind),
+    key: item.key,
+    label: item.label ?? undefined,
     value: item.requests,
     share: safeRatio(item.requests, totalRequests),
   }))
@@ -97,7 +62,9 @@ function mapAutomationBreakdown(
   kind: keyof AnalyticsBreakdowns,
 ): AnalyticsBreakdownItem[] {
   return items.map((item) => ({
-    label: formatBreakdownLabel(item.label ?? item.key, kind),
+    code: kind === "countries" ? item.key.toUpperCase() : undefined,
+    key: item.key,
+    label: item.label ?? undefined,
     value: item.estimatedRequests,
     observedValue: item.observedRequests,
     share: safeRatio(item.estimatedRequests, totalRequests),

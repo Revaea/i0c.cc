@@ -430,10 +430,14 @@ function TrendChange({ value, locale }: { value?: number | null; locale: string 
 
 function LinkKindBadge({ kind }: { kind?: string }) {
   const t = useTranslations("analytics")
+  const labels: Record<string, string> = {
+    redirect: t("labels.linkTypes.redirect"),
+    proxy: t("labels.linkTypes.proxy"),
+  }
 
   return (
     <span className="inline-flex rounded-full border border-line bg-panel-muted px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
-      {kind || t("detail.linkKind")}
+      {kind ? labels[kind] ?? kind : t("detail.linkKind")}
     </span>
   )
 }
@@ -614,16 +618,117 @@ export function AutomationLinkRanking({
   )
 }
 
+type AnalyticsBreakdownKind = keyof AnalyticsBreakdowns
+
+function useAnalyticsLabelFormatter(locale: string) {
+  const t = useTranslations("analytics")
+  const regionNames = new Intl.DisplayNames([locale], { type: "region" })
+  const dimensionLabels: Partial<
+    Record<AnalyticsBreakdownKind, Record<string, string>>
+  > = {
+    devices: {
+      desktop: t("labels.devices.desktop"),
+      mobile: t("labels.devices.mobile"),
+      tablet: t("labels.devices.tablet"),
+      bot: t("labels.devices.bot"),
+    },
+    providers: {
+      cloudflare: t("labels.providers.cloudflare"),
+      vercel: t("labels.providers.vercel"),
+      netlify: t("labels.providers.netlify"),
+    },
+    trafficClasses: {
+      browser_like: t("labels.trafficClasses.browserLike"),
+      declared_bot: t("labels.trafficClasses.declaredBot"),
+      suspected_automation: t("labels.trafficClasses.suspectedAutomation"),
+    },
+    botCategories: {
+      none: t("labels.botCategories.none"),
+      search: t("labels.botCategories.search"),
+      ai_crawler: t("labels.botCategories.aiCrawler"),
+      social_preview: t("labels.botCategories.socialPreview"),
+      monitor: t("labels.botCategories.monitor"),
+      automation: t("labels.botCategories.automation"),
+      security_probe: t("labels.botCategories.securityProbe"),
+    },
+    botConfidences: {
+      none: t("labels.botConfidences.none"),
+      low: t("labels.botConfidences.low"),
+      medium: t("labels.botConfidences.medium"),
+      high: t("labels.botConfidences.high"),
+    },
+    resourceClasses: {
+      document: t("labels.resourceClasses.document"),
+      asset: t("labels.resourceClasses.asset"),
+      api: t("labels.resourceClasses.api"),
+      other: t("labels.resourceClasses.other"),
+    },
+    matchKinds: {
+      exact: t("labels.matchKinds.exact"),
+      parameterized: t("labels.matchKinds.parameterized"),
+      prefix: t("labels.matchKinds.prefix"),
+      catch_all: t("labels.matchKinds.catchAll"),
+      unmatched: t("labels.matchKinds.unmatched"),
+      system: t("labels.matchKinds.system"),
+    },
+    outcomes: {
+      matched: t("labels.outcomes.matched"),
+      not_found: t("labels.outcomes.notFound"),
+      proxy_exhausted: t("labels.outcomes.proxyExhausted"),
+      config_unavailable: t("labels.outcomes.configUnavailable"),
+      internal_error: t("labels.outcomes.internalError"),
+    },
+    probes: {
+      none: t("labels.probes.none"),
+      wordpress: t("labels.probes.wordpress"),
+      env_file: t("labels.probes.envFile"),
+      admin: t("labels.probes.admin"),
+      vcs: t("labels.probes.vcs"),
+      path_traversal: t("labels.probes.pathTraversal"),
+      scanner: t("labels.probes.scanner"),
+      other: t("labels.probes.other"),
+    },
+  }
+
+  return (item: AnalyticsBreakdownItem, kind: AnalyticsBreakdownKind) => {
+    const normalizedKey = item.key.trim()
+    const lookupKey = normalizedKey.toLowerCase()
+
+    if (!normalizedKey || ["unknown", "(not set)", "null"].includes(lookupKey)) {
+      return t("breakdowns.unknown")
+    }
+
+    if (kind === "countries" && /^[a-z]{2}$/i.test(normalizedKey)) {
+      const countryCode = normalizedKey.toUpperCase()
+      return regionNames.of(countryCode) ?? countryCode
+    }
+
+    if (kind === "referrers" && ["direct", "none"].includes(lookupKey)) {
+      return t("breakdowns.direct")
+    }
+
+    if (kind === "classifierVersions") {
+      return t("labels.classifierVersion", { version: normalizedKey })
+    }
+
+    const fallbackLabel = item.label?.trim() || normalizedKey
+    return dimensionLabels[kind]?.[lookupKey] ?? fallbackLabel
+  }
+}
+
 function BreakdownCard({
   title,
   items,
   locale,
+  kind,
 }: {
   title: string
   items: AnalyticsBreakdownItem[]
   locale: string
+  kind: AnalyticsBreakdownKind
 }) {
   const t = useTranslations("analytics")
+  const formatLabel = useAnalyticsLabelFormatter(locale)
 
   return (
     <article className={cardClassName({ elevation: "flat", padding: "md" })}>
@@ -633,15 +738,10 @@ function BreakdownCard({
       ) : (
         <ol className="mt-5 space-y-4">
           {items.slice(0, 5).map((item) => {
-            const displayLabel =
-              item.label === "Unknown"
-                ? t("breakdowns.unknown")
-                : item.label === "Direct"
-                  ? t("breakdowns.direct")
-                  : item.label
+            const displayLabel = formatLabel(item, kind)
 
             return (
-              <li key={`${item.code ?? item.label}-${item.label}`}>
+              <li key={`${item.code ?? item.key}-${item.key}`}>
                 <div className="flex items-center justify-between gap-3 text-xs">
                   <span className="min-w-0 truncate font-medium text-ink">{displayLabel}</span>
                   <span className="shrink-0 text-right tabular-nums text-muted">
@@ -686,12 +786,12 @@ export function BreakdownGrid({ breakdowns, locale }: BreakdownGridProps) {
         <p className="mt-1 text-sm text-muted">{t("breakdowns.description")}</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <BreakdownCard title={t("breakdowns.countries")} items={breakdowns.countries} locale={locale} />
-        <BreakdownCard title={t("breakdowns.referrers")} items={breakdowns.referrers} locale={locale} />
-        <BreakdownCard title={t("breakdowns.devices")} items={breakdowns.devices} locale={locale} />
-        <BreakdownCard title={t("breakdowns.providers")} items={breakdowns.providers} locale={locale} />
-        <BreakdownCard title={t("breakdowns.campaigns")} items={breakdowns.campaigns} locale={locale} />
-        <BreakdownCard title={t("breakdowns.upstreamLinks")} items={breakdowns.upstreamLinks} locale={locale} />
+        <BreakdownCard title={t("breakdowns.countries")} items={breakdowns.countries} locale={locale} kind="countries" />
+        <BreakdownCard title={t("breakdowns.referrers")} items={breakdowns.referrers} locale={locale} kind="referrers" />
+        <BreakdownCard title={t("breakdowns.devices")} items={breakdowns.devices} locale={locale} kind="devices" />
+        <BreakdownCard title={t("breakdowns.providers")} items={breakdowns.providers} locale={locale} kind="providers" />
+        <BreakdownCard title={t("breakdowns.campaigns")} items={breakdowns.campaigns} locale={locale} kind="campaigns" />
+        <BreakdownCard title={t("breakdowns.upstreamLinks")} items={breakdowns.upstreamLinks} locale={locale} kind="upstreamLinks" />
       </div>
     </section>
   )
@@ -703,21 +803,21 @@ export function BotBreakdownGrid({
   includeDelivery = false,
 }: BreakdownGridProps & { includeDelivery?: boolean }) {
   const t = useTranslations("analytics")
-  const cards: Array<[string, AnalyticsBreakdownItem[]]> = [
-    [t("automation.breakdowns.trafficClasses"), breakdowns.trafficClasses],
-    [t("automation.breakdowns.categories"), breakdowns.botCategories],
-    [t("automation.breakdowns.confidences"), breakdowns.botConfidences],
-    [t("automation.breakdowns.classifierVersions"), breakdowns.classifierVersions],
-    [t("automation.breakdowns.resourceClasses"), breakdowns.resourceClasses],
-    [t("automation.breakdowns.matchKinds"), breakdowns.matchKinds],
-    [t("automation.breakdowns.outcomes"), breakdowns.outcomes],
-    [t("automation.breakdowns.probes"), breakdowns.probes],
+  const cards: Array<[string, AnalyticsBreakdownKind, AnalyticsBreakdownItem[]]> = [
+    [t("automation.breakdowns.trafficClasses"), "trafficClasses", breakdowns.trafficClasses],
+    [t("automation.breakdowns.categories"), "botCategories", breakdowns.botCategories],
+    [t("automation.breakdowns.confidences"), "botConfidences", breakdowns.botConfidences],
+    [t("automation.breakdowns.classifierVersions"), "classifierVersions", breakdowns.classifierVersions],
+    [t("automation.breakdowns.resourceClasses"), "resourceClasses", breakdowns.resourceClasses],
+    [t("automation.breakdowns.matchKinds"), "matchKinds", breakdowns.matchKinds],
+    [t("automation.breakdowns.outcomes"), "outcomes", breakdowns.outcomes],
+    [t("automation.breakdowns.probes"), "probes", breakdowns.probes],
   ]
 
   if (includeDelivery) {
     cards.unshift(
-      [t("automation.breakdowns.entryDomains"), breakdowns.entryDomains],
-      [t("breakdowns.providers"), breakdowns.providers],
+      [t("automation.breakdowns.entryDomains"), "entryDomains", breakdowns.entryDomains],
+      [t("breakdowns.providers"), "providers", breakdowns.providers],
     )
   }
 
@@ -730,8 +830,14 @@ export function BotBreakdownGrid({
         <p className="mt-1 text-sm text-muted">{t("automation.breakdowns.description")}</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {cards.map(([title, items]) => (
-          <BreakdownCard key={title} title={title} items={items} locale={locale} />
+        {cards.map(([title, kind, items]) => (
+          <BreakdownCard
+            key={kind}
+            title={title}
+            items={items}
+            locale={locale}
+            kind={kind}
+          />
         ))}
       </div>
     </section>

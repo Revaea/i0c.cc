@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "title": "i0c.cc Config Console",
+    "description": "Manage redirects.json via WebUI"
+  },
+  "auth": {
+    "signInTitle": "Sign in to the config console",
+    "signInWithGithub": "Sign in with GitHub"
+  },
+  "notFound": {
+    "title": "404 · Page not found",
+    "description": "The page you requested does not exist or may have moved.",
+    "returnHome": "Return home"
+  },
+  "header": {
+    "console": "i0c.cc Console",
+    "workspaceLabel": "Redirect operations",
+    "openNavigation": "Open navigation",
+    "closeNavigation": "Close navigation",
+    "resizeNavigation": "Resize navigation",
+    "hideGroups": "Hide groups",
+    "showGroups": "Show groups",
+    "githubUser": "GitHub user",
+    "signedIn": "Signed in",
+    "signOut": "Sign out",
+    "primaryNavigation": "Primary navigation",
+    "rules": "Rules",
+    "analytics": "Analytics",
+    "layout": "Layout",
+    "layoutHelp": "Adjust the desktop layout for different screens and working styles.",
+    "layoutFull": "Expand all",
+    "layoutSidebarAdjustable": "Expand with adjustable sidebar",
+    "layoutBothAdjustable": "Expand with adjustable sidebar and content",
+    "layoutOriginal": "Original width",
+    "sidebarWidth": "Sidebar width",
+    "contentWidth": "Content max width",
+    "language": "Language",
+    "english": "English",
+    "chinese": "中文"
+  },
+  "common": {
+    "close": "Close"
+  },
+  "qrCode": {
+    "openQRCode": "Generate QR code",
+    "faviconAlt": "Favicon",
+    "faviconLabel": "Favicon Logo",
+    "download": "Download QR code"
+  }
+}
