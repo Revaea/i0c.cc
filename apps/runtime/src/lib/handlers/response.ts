@@ -18,9 +18,23 @@ import { NormalizedRule, ResolvedRuntime } from "./types";
 const SENSITIVE_FORWARD_HEADERS = [
   "cookie",
   "authorization",
+  "client-ip",
+  "fastly-client-ip",
+  "fly-client-ip",
+  "forwarded",
+  "forwarded-for",
   "proxy-authorization",
-  "x-forwarded-for",
+  "true-client-ip",
+  "x-client-ip",
+  "x-cluster-client-ip",
+  "x-envoy-external-address",
   "x-real-ip"
+] as const;
+const SENSITIVE_FORWARD_HEADER_PREFIXES = [
+  "cf-",
+  "x-forwarded-",
+  "x-nf-",
+  "x-vercel-"
 ] as const;
 const MAX_PROXY_REDIRECTS = 5;
 
@@ -115,8 +129,8 @@ async function proxyRequest(
   runtime: ResolvedRuntime,
   basePath: string = ""
 ): Promise<Response> {
-  const originalHost = request.headers.get("host") ?? "";
   const originalUrl = new URL(request.url);
+  const originalHost = originalUrl.host;
   const targetUrlObj = new URL(targetUrl);
   try {
     assertSafeProxyUrl(targetUrlObj);
@@ -149,17 +163,17 @@ async function proxyRequest(
     }
 
     headers.delete("host");
-    headers.delete("cf-connecting-ip");
-    headers.delete("cf-ipcountry");
-    headers.delete("cf-ray");
-    headers.delete("cf-visitor");
-
     for (const name of SENSITIVE_FORWARD_HEADERS) {
       headers.delete(name);
     }
+    for (const name of [...headers.keys()]) {
+      if (SENSITIVE_FORWARD_HEADER_PREFIXES.some((prefix) => name.startsWith(prefix))) {
+        headers.delete(name);
+      }
+    }
 
     // Re-assert forwarding headers after stripping user-controlled versions.
-    headers.set("x-forwarded-host", request.headers.get("host") ?? "");
+    headers.set("x-forwarded-host", originalHost);
     headers.set("x-forwarded-proto", "https");
 
     headers.set("origin", currentUrlObj.origin);

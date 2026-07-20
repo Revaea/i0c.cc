@@ -110,6 +110,62 @@ test("keeps public IPv6 and ordinary hostnames available", async () => {
   ]);
 });
 
+test("strips credentials and platform client metadata before proxying", async () => {
+  let forwarded: Request | undefined;
+  const runtime = createRuntime(async (input) => {
+    forwarded = input instanceof Request ? input : new Request(input);
+    return new Response(null, { status: 204 });
+  });
+  const request = new Request("https://i0c.cc/proxy", {
+    headers: {
+      Authorization: "Bearer secret",
+      "CF-Connecting-IP": "203.0.113.10",
+      "CF-IPCountry": "US",
+      Cookie: "session=secret",
+      Forwarded: "for=203.0.113.10",
+      Host: "attacker.example",
+      "Proxy-Authorization": "Basic secret",
+      "True-Client-IP": "203.0.113.10",
+      "X-Nf-Client-Connection-IP": "203.0.113.10",
+      "X-Real-IP": "203.0.113.10",
+      "X-Vercel-IP-Country": "US",
+      "X-Forwarded-For": "203.0.113.10",
+      "X-Forwarded-Host": "attacker.example",
+      "X-Forwarded-Proto": "http",
+      "X-Request-ID": "request-1"
+    }
+  });
+
+  const response = await respondUsingRule(
+    request,
+    proxyRule,
+    "https://example.com/upstream",
+    runtime,
+    "/proxy"
+  );
+
+  assert.equal(response.status, 204);
+  assert.ok(forwarded);
+  for (const name of [
+    "authorization",
+    "cf-connecting-ip",
+    "cf-ipcountry",
+    "cookie",
+    "forwarded",
+    "proxy-authorization",
+    "true-client-ip",
+    "x-nf-client-connection-ip",
+    "x-real-ip",
+    "x-vercel-ip-country",
+    "x-forwarded-for"
+  ]) {
+    assert.equal(forwarded.headers.get(name), null, name);
+  }
+  assert.equal(forwarded.headers.get("x-forwarded-host"), "i0c.cc");
+  assert.equal(forwarded.headers.get("x-forwarded-proto"), "https");
+  assert.equal(forwarded.headers.get("x-request-id"), "request-1");
+});
+
 test("returns a gateway error for malformed upstream redirects", async (context) => {
   context.mock.method(console, "error", () => undefined);
   const runtime = createRuntime(async () => new Response(null, {
