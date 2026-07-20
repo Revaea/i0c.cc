@@ -91,22 +91,30 @@ export function buildCompiledList(rulesIn: Record<string, RouteValueEntry>): Com
 
 function normaliseRule(value: RouteValue, fallbackPriority: number): NormalizedRule | null {
   if (typeof value === "string") {
-    return { type: "prefix", target: value, appendPath: true, status: DEFAULT_STATUS, priority: fallbackPriority };
+    return value
+      ? { type: "prefix", target: value, appendPath: true, status: DEFAULT_STATUS, priority: fallbackPriority }
+      : null;
   }
 
   if (value && typeof value === "object") {
     const type: RouteType = value.type === "exact" ? "exact" : value.type === "proxy" ? "proxy" : "prefix";
-    const target = value.target ?? value.to ?? value.url ?? "";
-    const appendPath = value.appendPath !== undefined ? Boolean(value.appendPath) : true;
+    const targetValue = value.target ?? value.to ?? value.url;
+    if (typeof targetValue !== "string" || !targetValue) {
+      return null;
+    }
+
+    const appendPath = typeof value.appendPath === "boolean" ? value.appendPath : true;
     const parsedStatus = Number(value.status);
-    const status = Number.isFinite(parsedStatus) ? parsedStatus : DEFAULT_STATUS;
+    const status = Number.isInteger(parsedStatus) && parsedStatus >= 200 && parsedStatus <= 599
+      ? parsedStatus
+      : DEFAULT_STATUS;
     const parsedPriority = Number((value as RouteConfig).priority);
-    const priority = Number.isFinite(parsedPriority) ? parsedPriority : fallbackPriority;
+    const priority = Number.isSafeInteger(parsedPriority) ? parsedPriority : fallbackPriority;
     const analyticsId = typeof value.analyticsId === "string" && value.analyticsId.trim()
       ? value.analyticsId.trim()
       : undefined;
 
-    return { analyticsId, type, target, appendPath, status, priority };
+    return { analyticsId, type, target: targetValue, appendPath, status, priority };
   }
 
   return null;

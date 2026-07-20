@@ -99,7 +99,7 @@ Provide a `Slots` object in `redirects.json` to define routing rules. The table 
 | `target` | string | `""` | Destination URL. Use exactly one of `target`, `to`, or `url`. |
 | `to` / `url` | string | `""` | Alias fields. Use exactly one of `target`, `to`, or `url`. |
 | `appendPath` | boolean | `true` | Whether to append the remaining path when using `prefix` or `proxy` mode. Not applicable to `exact`. |
-| `status` | number | `302` | HTTP status code for non-proxy responses. Do not set for `proxy`. |
+| `status` | number | `302` | HTTP status code from 200 through 599 for non-proxy responses. Do not set for `proxy`. |
 | `priority` | number | by order | Determines rule precedence for the same path. Smaller numbers are matched first. |
 
 - Keys must start with `/` and can use colon parameters such as `:id` or the `*` wildcard. Captures can be referenced in the target with `$1`, `:id`, and so on.
