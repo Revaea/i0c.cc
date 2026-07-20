@@ -18,7 +18,7 @@ import {
   classifyAnalyticsProbe,
   classifyAnalyticsResource,
   classifyAnalyticsTraffic
-} from "./analytics-classification";
+} from "../../src/lib/handlers/analytics-classification";
 
 test("classifies declared bots even when they request an unmatched path", () => {
   const request = new Request("https://i0c.cc/not-a-rule", {

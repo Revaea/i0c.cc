@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsup --config tsup.config.ts && node scripts/post-build.mjs",
-    "test": "tsx --test src/lib/handlers/analytics-attribution.test.ts src/lib/handlers/analytics-classification.test.ts src/lib/handlers/analytics-contract.test.ts src/lib/handlers/analytics-resilience.test.ts",
+    "test": "tsx --test tests/analytics/*.test.ts",
     "dev:cf": "wrangler dev",
     "deploy:cf": "wrangler deploy",
     "build:vc": "pnpm build",

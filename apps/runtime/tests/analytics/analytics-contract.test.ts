@@ -16,7 +16,7 @@ import test from "node:test";
 import {
   analyticsEventSchema,
   normalizeAnalyticsEvent
-} from "../../../../webui/src/lib/analytics/event-schema";
+} from "../../../webui/src/lib/analytics/event-schema";
 
 const baseEvent = {
   schemaVersion: 2,

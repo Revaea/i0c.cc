@@ -16,9 +16,9 @@ import test from "node:test";
 import {
   finalizeMatchedAnalytics,
   finalizeRuntimeAnalytics
-} from "./analytics";
-import type { AnalyticsRequestContext } from "./analytics";
-import type { NormalizedRule, ResolvedRuntime } from "./types";
+} from "../../src/lib/handlers/analytics";
+import type { AnalyticsRequestContext } from "../../src/lib/handlers/analytics";
+import type { NormalizedRule, ResolvedRuntime } from "../../src/lib/handlers/types";
 
 const request = new Request("https://i0c.cc/r", {
   headers: { Accept: "text/html" }
