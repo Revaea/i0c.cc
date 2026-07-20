@@ -1,14 +1,8 @@
-import {
-  AutomationLinkRanking,
-  AutomationMetricCards,
-  AutomationTrendChart,
-  BotBreakdownGrid,
-  BreakdownGrid,
-  DataQualityPanel,
-  LinkRanking,
-  MetricCards,
-  TrendChart,
-} from "./analytics-panels"
+import { BotBreakdownGrid, BreakdownGrid } from "./breakdown-grid"
+import { DataQualityPanel } from "./data-quality-panel"
+import { AutomationLinkRanking, LinkRanking } from "./link-ranking"
+import { AutomationMetricCards, MetricCards } from "./metric-cards"
+import { AutomationTrendChart, TrendChart } from "./trend-panel"
 import type {
   AnalyticsAutomationViewModel,
   AnalyticsDetailViewModel,
