@@ -15,7 +15,7 @@ const migrationsDirectory = join(scriptDirectory, "..", "migrations");
 const sql = postgres(databaseUrl, {
   max: 1,
   idle_timeout: 5,
-  connect_timeout: 10,
+  connect_timeout: 30,
   prepare: false,
 });
 
