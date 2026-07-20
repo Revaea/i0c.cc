@@ -5,6 +5,10 @@ import {
   createDeterministicAnalyticsId,
   ensureAnalyticsId,
 } from "../src/composables/editor/route-utils";
+import {
+  buildConfig,
+  parseInitialContent,
+} from "../src/composables/redirects-groups/serialization";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -30,4 +34,32 @@ test("preserves an existing analytics ID", async () => {
   };
 
   assert.equal(await ensureAnalyticsId(config, "unused-seed"), config);
+});
+
+test("persists hydrated analytics IDs through config serialization", async () => {
+  const source = JSON.stringify({
+    Slots: {
+      Main: {
+        "/": {
+          type: "proxy",
+          target: "https://example.com",
+        },
+        "/fallback": [
+          {
+            type: "redirect",
+            target: "https://example.net",
+          },
+          "https://example.org",
+        ],
+      },
+    },
+  });
+  const parsed = await parseInitialContent(source);
+  const saved = buildConfig(parsed.rootGroup, parsed.baseConfig, parsed.slotsKey);
+  const reloaded = await parseInitialContent(JSON.stringify(saved));
+
+  assert.deepEqual(
+    buildConfig(reloaded.rootGroup, reloaded.baseConfig, reloaded.slotsKey),
+    saved,
+  );
 });
