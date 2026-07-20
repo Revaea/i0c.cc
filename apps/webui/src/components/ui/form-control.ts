@@ -19,7 +19,7 @@ export function formControlClassName({
 }: FormControlClassNameOptions = {}): string {
   return [
     "min-w-0 border border-line bg-panel text-ink outline-none transition",
-    "placeholder:text-slate-400 hover:border-line-strong focus:border-accent focus:ring-3 focus:ring-blue-100",
+    "placeholder:text-muted hover:border-line-strong focus:border-accent focus:ring-3 focus:ring-accent-soft",
     "disabled:cursor-not-allowed disabled:bg-panel-muted disabled:text-muted disabled:opacity-70",
     sizeClassNames[size],
     className,

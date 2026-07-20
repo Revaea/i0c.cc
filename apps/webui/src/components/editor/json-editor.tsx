@@ -193,19 +193,19 @@ export function JsonEditor({
 
       <div
         className={
-          "flex w-full overflow-hidden rounded-xl border bg-panel focus-within:border-accent focus-within:ring-3 focus-within:ring-blue-100 "
+          "flex w-full overflow-hidden rounded-xl border bg-panel focus-within:border-accent focus-within:ring-3 focus-within:ring-accent-soft "
           + (jsonFormatError ? "border-amber-200" : jsonError ? "border-rose-200" : "border-line")
         }
       >
         <div
-          className="select-none border-r border-line bg-panel-muted px-3 py-3 text-right font-mono text-xs leading-5 text-slate-400"
+          className="select-none border-r border-line bg-panel-muted px-3 py-3 text-right font-mono text-xs leading-5 text-muted"
         >
           {lineNumbers.map((line) => (
             <div
               key={line}
               className={
                 "h-5 "
-                + (line === activeLine ? "bg-accent-soft text-accent" : "text-slate-400")
+                + (line === activeLine ? "bg-accent-soft text-accent" : "text-muted")
               }
             >
               {line}
