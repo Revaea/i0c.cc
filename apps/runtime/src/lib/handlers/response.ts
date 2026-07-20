@@ -44,14 +44,31 @@ function isPrivateIPv4(hostname: string): boolean {
   return false;
 }
 
-function isLikelyLocalhost(hostname: string): boolean {
+function normalizeHostname(hostname: string): string {
   const host = hostname.toLowerCase();
-  if (host === "localhost" || host === "127.0.0.1" || host === "::1") return true;
+  return host.startsWith("[") && host.endsWith("]")
+    ? host.slice(1, -1)
+    : host;
+}
+
+function isPrivateIPv6(hostname: string): boolean {
+  const host = normalizeHostname(hostname);
+  if (!host.includes(":")) return false;
+  if (host === "::" || host === "::1" || host.startsWith("::ffff:")) return true;
+
+  const firstHextet = Number.parseInt(host.split(":", 1)[0], 16);
+  return (
+    (firstHextet >= 0xfc00 && firstHextet <= 0xfdff) ||
+    (firstHextet >= 0xfe80 && firstHextet <= 0xfebf)
+  );
+}
+
+function isLikelyLocalhost(hostname: string): boolean {
+  const host = normalizeHostname(hostname);
+  if (host === "localhost" || host === "127.0.0.1") return true;
   // block common internal hostnames
   if (host.endsWith(".localhost")) return true;
-  // IPv6 unique local / link-local (best-effort)
-  if (host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80:")) return true;
-  return false;
+  return isPrivateIPv6(host);
 }
 
 function assertSafeProxyUrl(url: URL): void {
