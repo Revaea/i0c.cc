@@ -6,6 +6,7 @@ const branch = process.env.GITHUB_TARGET_BRANCH ?? "data";
 const configPath = process.env.GITHUB_CONFIG_PATH ?? "redirects.json";
 
 const apiBase = "https://api.github.com";
+const publicConfigRevalidateSeconds = 60;
 
 type RepoTarget = {
   owner: string;
@@ -166,7 +167,9 @@ export async function getRedirectConfig(
   const url = buildContentsUrl(target);
   const response = await fetch(`${url}?ref=${encodeURIComponent(target.branch)}`, {
     headers: buildHeaders(accessToken),
-    cache: "no-store"
+    ...(accessToken
+      ? { cache: "no-store" as const }
+      : { next: { revalidate: publicConfigRevalidateSeconds } })
   });
 
   if (!response.ok) {
