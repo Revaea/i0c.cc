@@ -13,6 +13,7 @@ import {
 import { AppSectionNavigation } from "@/components/ui/app-section-navigation"
 import { AppShell } from "@/components/ui/app-shell"
 import { buttonClassName } from "@/components/ui/button"
+import { sidebarItemClassName } from "@/components/ui/sidebar-item"
 
 interface AnalyticsShellProps {
   children: ReactNode
@@ -20,9 +21,9 @@ interface AnalyticsShellProps {
 }
 
 interface AnalyticsPageHeaderProps {
+  entryDomain?: string
   range: AnalyticsRange
   rangeBasePath: string
-  scope?: AnalyticsScopeViewModel
 }
 
 interface AnalyticsRouteNavigationProps {
@@ -30,7 +31,7 @@ interface AnalyticsRouteNavigationProps {
   basePath: string
   links: AnalyticsRankedLink[]
   range: AnalyticsRange
-  entryDomain: string
+  scope: AnalyticsScopeViewModel
   isAutomationActive?: boolean
 }
 
@@ -61,21 +62,71 @@ export function AnalyticsShell({ children, navigation }: AnalyticsShellProps) {
 }
 
 export function AnalyticsPageHeader({
+  entryDomain = "all",
   range,
   rangeBasePath,
-  scope,
 }: AnalyticsPageHeaderProps) {
   return (
     <div className="mb-6 flex flex-wrap justify-end gap-3 border-b border-line pb-5">
-      {scope ? (
-        <EntryDomainFilter range={range} basePath={rangeBasePath} scope={scope} />
-      ) : null}
       <RangeFilter
         range={range}
         basePath={rangeBasePath}
-        entryDomain={scope?.entryDomain ?? "all"}
+        entryDomain={entryDomain}
       />
     </div>
+  )
+}
+
+function EntryDomainNavigation({
+  basePath,
+  range,
+  scope,
+}: {
+  basePath: string
+  range: AnalyticsRange
+  scope: AnalyticsScopeViewModel
+}) {
+  const t = useTranslations("analytics")
+  const options = [
+    { value: "all", label: t("filters.allDomains") },
+    ...scope.availableEntryDomains.map((option) => ({
+      value: option.value,
+      label: option.value === "unknown" ? t("filters.unknownDomain") : option.value,
+    })),
+  ]
+
+  return (
+    <section className="border-t border-line pt-5">
+      <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+        {t("filters.entryDomain")}
+      </p>
+      <nav aria-label={t("filters.entryDomain")} className="space-y-1">
+        {options.map((option) => {
+          const isActive = option.value === scope.entryDomain
+
+          return (
+            <Link
+              key={option.value}
+              href={buildAnalyticsHref(basePath, {
+                entryDomain: option.value,
+                range,
+              })}
+              aria-current={isActive ? "page" : undefined}
+              className={sidebarItemClassName({
+                className: "min-w-0",
+                isSelected: isActive,
+              })}
+            >
+              <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 shrink-0 text-muted" aria-hidden="true">
+                <circle cx="10" cy="10" r="6.5" stroke="currentColor" strokeWidth="1.6" />
+                <path d="M3.8 10h12.4M10 3.5c1.6 1.8 2.4 4 2.4 6.5s-.8 4.7-2.4 6.5M10 3.5C8.4 5.3 7.6 7.5 7.6 10s.8 4.7 2.4 6.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              </svg>
+              <span className="min-w-0 flex-1 truncate">{option.label}</span>
+            </Link>
+          )
+        })}
+      </nav>
+    </section>
   )
 }
 
@@ -84,91 +135,90 @@ export function AnalyticsRouteNavigation({
   basePath,
   links,
   range,
-  entryDomain,
+  scope,
   isAutomationActive = false,
 }: AnalyticsRouteNavigationProps) {
   const t = useTranslations("analytics")
+  const entryDomain = scope.entryDomain
 
   return (
-    <section className="border-t border-line pt-5">
-      <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-        {t("navigation.routes")}
-      </p>
-      <nav aria-label={t("navigation.routes")} className="space-y-1">
-        <Link
-          href={buildAnalyticsHref(basePath, { entryDomain, range })}
-          aria-current={!activeAnalyticsId && !isAutomationActive ? "page" : undefined}
-          className={buttonClassName({
-            className: "w-full justify-start",
-            size: "sm",
-            variant: !activeAnalyticsId && !isAutomationActive ? "selected" : "ghost",
+    <div className="space-y-5">
+      <EntryDomainNavigation basePath={basePath} range={range} scope={scope} />
+      <section className="border-t border-line pt-5">
+        <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+          {t("navigation.routes")}
+        </p>
+        <nav aria-label={t("navigation.routes")} className="space-y-1">
+          <Link
+            href={buildAnalyticsHref(basePath, { entryDomain, range })}
+            aria-current={!activeAnalyticsId && !isAutomationActive ? "page" : undefined}
+            className={sidebarItemClassName({
+              isSelected: !activeAnalyticsId && !isAutomationActive,
+            })}
+          >
+            <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 shrink-0 text-muted" aria-hidden="true">
+              <path
+                d="M4 15V9m6 6V5m6 10v-3"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="truncate">{t("navigation.overview")}</span>
+          </Link>
+
+          <Link
+            href={buildAnalyticsHref(`${basePath}/automation`, { entryDomain, range })}
+            aria-current={isAutomationActive ? "page" : undefined}
+            className={sidebarItemClassName({
+              isSelected: isAutomationActive,
+            })}
+          >
+            <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 shrink-0 text-muted" aria-hidden="true">
+              <path d="M6 8V6.5a4 4 0 0 1 8 0V8M4.5 8h11v7.5h-11V8Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M8 12h.01M12 12h.01" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+            <span className="truncate">{t("navigation.automation")}</span>
+          </Link>
+
+          {links.map((link) => {
+            const isActive = link.analyticsId === activeAnalyticsId
+
+            return (
+              <Link
+                key={link.analyticsId}
+                href={buildAnalyticsHref(
+                  `${basePath}/${encodeURIComponent(link.analyticsId)}`,
+                  { entryDomain, range },
+                )}
+                aria-current={isActive ? "page" : undefined}
+                className={sidebarItemClassName({
+                  className: "min-w-0",
+                  isSelected: isActive,
+                })}
+                title={link.path}
+              >
+                <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 shrink-0 text-muted" aria-hidden="true">
+                  <path
+                    d="M6.5 10a3.5 3.5 0 0 1 3.5-3.5h2.5a3.5 3.5 0 1 1 0 7H11"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M13.5 10A3.5 3.5 0 0 1 10 13.5H7.5a3.5 3.5 0 1 1 0-7H9"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className="min-w-0 flex-1 truncate">{link.path}</span>
+              </Link>
+            )
           })}
-        >
-          <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
-            <path
-              d="M4 15V9m6 6V5m6 10v-3"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-            />
-          </svg>
-          <span className="truncate">{t("navigation.overview")}</span>
-        </Link>
-
-        <Link
-          href={buildAnalyticsHref(`${basePath}/automation`, { entryDomain, range })}
-          aria-current={isAutomationActive ? "page" : undefined}
-          className={buttonClassName({
-            className: "w-full justify-start",
-            size: "sm",
-            variant: isAutomationActive ? "selected" : "ghost",
-          })}
-        >
-          <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
-            <path d="M6 8V6.5a4 4 0 0 1 8 0V8M4.5 8h11v7.5h-11V8Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M8 12h.01M12 12h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
-          <span className="truncate">{t("navigation.automation")}</span>
-        </Link>
-
-        {links.map((link) => {
-          const isActive = link.analyticsId === activeAnalyticsId
-
-          return (
-            <Link
-              key={link.analyticsId}
-              href={buildAnalyticsHref(
-                `${basePath}/${encodeURIComponent(link.analyticsId)}`,
-                { entryDomain, range },
-              )}
-              aria-current={isActive ? "page" : undefined}
-              className={buttonClassName({
-                className: "w-full min-w-0 justify-start",
-                size: "sm",
-                variant: isActive ? "selected" : "ghost",
-              })}
-              title={link.path}
-            >
-              <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 shrink-0" aria-hidden="true">
-                <path
-                  d="M6.5 10a3.5 3.5 0 0 1 3.5-3.5h2.5a3.5 3.5 0 1 1 0 7H11"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M13.5 10A3.5 3.5 0 0 1 10 13.5H7.5a3.5 3.5 0 1 1 0-7H9"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <span className="min-w-0 flex-1 truncate font-mono">{link.path}</span>
-            </Link>
-          )
-        })}
-      </nav>
-    </section>
+        </nav>
+      </section>
+    </div>
   )
 }
 
@@ -203,55 +253,6 @@ export function RangeFilter({
             })}
           >
             {t("range.days", { count: option })}
-          </Link>
-        )
-      })}
-    </div>
-  )
-}
-
-export function EntryDomainFilter({
-  range,
-  basePath,
-  scope,
-}: {
-  range: AnalyticsRange
-  basePath: string
-  scope: AnalyticsScopeViewModel
-}) {
-  const t = useTranslations("analytics")
-  const options = [
-    { value: "all", label: t("filters.allDomains") },
-    ...scope.availableEntryDomains.map((option) => ({
-      value: option.value,
-      label: option.value === "unknown" ? t("filters.unknownDomain") : option.value,
-    })),
-  ]
-
-  return (
-    <div
-      className="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-panel-muted p-1"
-      role="group"
-      aria-label={t("filters.entryDomain")}
-    >
-      {options.map((option) => {
-        const isActive = option.value === scope.entryDomain
-
-        return (
-          <Link
-            key={option.value}
-            href={buildAnalyticsHref(basePath, {
-              entryDomain: option.value,
-              range,
-            })}
-            aria-current={isActive ? "page" : undefined}
-            className={buttonClassName({
-              className: "shrink-0",
-              size: "sm",
-              variant: isActive ? "primary" : "ghost",
-            })}
-          >
-            {option.label}
           </Link>
         )
       })}

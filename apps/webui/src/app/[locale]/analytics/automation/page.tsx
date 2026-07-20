@@ -1,6 +1,6 @@
 import type { Session } from "next-auth"
 import { getServerSession } from "next-auth/next"
-import { getTranslations } from "next-intl/server"
+import { getTranslations, setRequestLocale } from "next-intl/server"
 
 import { authOptions } from "@/auth/config"
 import {
@@ -55,6 +55,7 @@ export default async function AnalyticsAutomationPage({
   }
 
   const [{ locale }, query] = await Promise.all([params, searchParams])
+  setRequestLocale(locale)
   const t = await getTranslations({ locale, namespace: "analytics" })
   const range = parseAnalyticsRange(query.range)
   const entryDomain = Array.isArray(query.entryDomain)
@@ -90,15 +91,15 @@ export default async function AnalyticsAutomationPage({
           basePath={basePath}
           links={toRankedLinks(navigation.links)}
           range={range}
-          entryDomain={automation.scope.entryDomain}
+          scope={automation.scope}
           isAutomationActive
         />
       }
     >
       <AnalyticsPageHeader
+        entryDomain={automation.scope.entryDomain}
         range={range}
         rangeBasePath={automationPath}
-        scope={automation.scope}
       />
       {automation.hasData ? (
         <AnalyticsAutomationDashboard

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { GroupTree } from "@/components/ui/sidebar";
+import { sidebarItemClassName } from "@/components/ui/sidebar-item";
 import type { RedirectGroup } from "@/composables/redirects-groups/model";
 
 export type ManagerSidebarBodyProps = {
@@ -90,16 +91,14 @@ export function ManagerSidebarBody({
           type="button"
           data-navigation-close="true"
           onClick={() => onSelectGroup(rootGroup.id)}
-          className={
-            "mt-2 flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent " +
-            (selectedGroupId === rootGroup.id
-              ? "bg-accent-soft text-accent-strong"
-              : "text-ink hover:bg-panel")
-          }
+          className={sidebarItemClassName({
+            className: "mt-2 justify-between",
+            isSelected: selectedGroupId === rootGroup.id,
+          })}
           title={tGroups("rootTitle")}
         >
           <span className="inline-flex min-w-0 items-center gap-2">
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2">
+            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-muted" stroke="currentColor" strokeWidth="2">
               <path
                 d="M3 7a2 2 0 0 1 2-2h6l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"
                 strokeLinecap="round"
