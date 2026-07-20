@@ -8,11 +8,13 @@ declare module "next-auth" {
      * The token itself must never be sent to the client.
      */
     hasAccessToken?: boolean;
+    isAuthorized?: boolean;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
     accessToken?: string;
+    githubUserId?: string;
   }
 }

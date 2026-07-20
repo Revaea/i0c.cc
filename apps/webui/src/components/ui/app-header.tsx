@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { signOut, useSession } from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
@@ -22,7 +22,7 @@ export type AppHeaderProps = {
 export function AppHeader({ layoutPreferences, navigationToggle }: AppHeaderProps) {
   const t = useTranslations("header");
 
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const navigationToggleLabel = navigationToggle?.isOpen
     ? t("closeNavigation")
     : t("openNavigation");
@@ -75,10 +75,10 @@ export function AppHeader({ layoutPreferences, navigationToggle }: AppHeaderProp
           </div>
         </div>
 
-        {session ? (
-          <div className="flex min-w-0 shrink-0 items-center gap-2 text-sm text-ink sm:gap-3">
-            <LayoutSwitcher {...layoutPreferences} />
-            <LanguageSwitcher />
+        <div className="flex min-w-0 shrink-0 items-center gap-2 text-sm text-ink sm:gap-3">
+          <LayoutSwitcher {...layoutPreferences} />
+          <LanguageSwitcher />
+          {session ? (
             <div className="flex min-w-0 items-center gap-2 border-l border-line pl-2 sm:pl-3">
               {session.user?.image ? (
                 <Image
@@ -121,8 +121,37 @@ export function AppHeader({ layoutPreferences, navigationToggle }: AppHeaderProp
                 </svg>
               </Button>
             </div>
-          </div>
-        ) : null}
+          ) : status === "unauthenticated" ? (
+            <Button
+              onClick={() => signIn("github")}
+              size="icon-lg"
+              aria-label={t("signIn")}
+              title={t("signIn")}
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+                <path
+                  d="M14 7V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M9 12h12"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="m18 9 3 3-3 3"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </Button>
+          ) : null}
+        </div>
       </div>
     </header>
   );

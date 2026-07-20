@@ -40,9 +40,9 @@ function requireAccessToken(token: string | undefined): string {
   return token;
 }
 
-function buildHeaders(accessToken: string): HeadersInit {
+function buildHeaders(accessToken?: string): HeadersInit {
   return {
-    Authorization: `Bearer ${accessToken}`,
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     Accept: "application/vnd.github.v3+json",
     "Content-Type": "application/json"
   } satisfies Record<string, string>;
@@ -170,14 +170,13 @@ function normalizeGitHubErrorBody(status: number, rawBody: string): string {
 }
 
 export async function getRedirectConfig(
-  accessToken: string,
+  accessToken: string | undefined,
   options?: { sourceUrl?: string | null }
 ): Promise<RedirectConfigPayload> {
   const target = resolveTarget(options?.sourceUrl);
   const url = buildContentsUrl(target);
-  const token = requireAccessToken(accessToken);
   const response = await fetch(`${url}?ref=${encodeURIComponent(target.branch)}`, {
-    headers: buildHeaders(token),
+    headers: buildHeaders(accessToken),
     cache: "no-store"
   });
 
@@ -251,19 +250,18 @@ export async function updateRedirectConfig(accessToken: string, input: UpdateRed
 }
 
 export async function listRedirectHistory(
-  accessToken: string,
+  accessToken: string | undefined,
   perPage = 10,
   options?: { sourceUrl?: string | null }
 ): Promise<CommitEntry[]> {
   const target = resolveTarget(options?.sourceUrl);
-  const token = requireAccessToken(accessToken);
   const url = new URL(`${apiBase}/repos/${target.owner}/${target.repo}/commits`);
   url.searchParams.set("path", target.path);
   url.searchParams.set("sha", target.branch);
   url.searchParams.set("per_page", String(perPage));
 
   const response = await fetch(url, {
-    headers: buildHeaders(token),
+    headers: buildHeaders(accessToken),
     cache: "no-store"
   });
 

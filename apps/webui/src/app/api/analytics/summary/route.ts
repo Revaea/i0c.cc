@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { isAnalyticsRequestAuthenticated } from "@/lib/analytics/auth";
+import {
+  createWebUiAuthorizationErrorResponse,
+  getWebUiReadRequestAuthorization,
+} from "@/auth/authorization";
 import { getAnalyticsOverview, isAnalyticsConfigured } from "@/lib/analytics/queries";
 import {
   analyticsRanges,
@@ -24,8 +27,9 @@ function parseScope(request: Request, range: AnalyticsRange): AnalyticsQueryScop
 }
 
 export async function GET(request: Request) {
-  if (!await isAnalyticsRequestAuthenticated(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const authorization = await getWebUiReadRequestAuthorization(request);
+  if (authorization.status !== "authorized") {
+    return createWebUiAuthorizationErrorResponse(authorization.status);
   }
 
   const range = parseRange(request);

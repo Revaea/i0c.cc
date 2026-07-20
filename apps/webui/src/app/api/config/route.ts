@@ -1,33 +1,37 @@
 import { NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { z } from "zod";
 
+import {
+  createWebUiAuthorizationErrorResponse,
+  getWebUiManagementRequestAuthorization,
+  getWebUiReadRequestAuthorization,
+} from "@/auth/authorization";
 import { getRedirectConfig, listRedirectHistory, updateRedirectConfig } from "@/lib/github";
 
-async function requireAccessToken(request: Request): Promise<string | null> {
-  const secret = process.env.NEXTAUTH_SECRET;
-  if (!secret) {
-    // This should be configured for every environment.
-    return null;
-  }
-
-  const token = await getToken({ req: request as unknown as never, secret });
-  const accessToken = (token as { accessToken?: unknown } | null)?.accessToken;
-  return typeof accessToken === "string" && accessToken.length > 0 ? accessToken : null;
-}
-
 export async function GET(request: Request) {
-  const accessToken = await requireAccessToken(request);
-  if (!accessToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const authorization = await getWebUiReadRequestAuthorization(request);
+  if (authorization.status !== "authorized") {
+    return createWebUiAuthorizationErrorResponse(authorization.status);
   }
 
   const sourceUrl = new URL(request.url).searchParams.get("sourceUrl") ?? undefined;
+  if (authorization.isReadOnly && sourceUrl) {
+    return NextResponse.json(
+      { error: "Custom config URLs are unavailable in public read-only mode" },
+      { status: 400 },
+    );
+  }
+
+  const accessToken = authorization.isReadOnly
+    ? undefined
+    : authorization.accessToken;
 
   try {
     const [config, history] = await Promise.all([
       getRedirectConfig(accessToken, { sourceUrl }),
-      listRedirectHistory(accessToken, 10, { sourceUrl })
+      authorization.isReadOnly
+        ? Promise.resolve([])
+        : listRedirectHistory(accessToken, 10, { sourceUrl }),
     ]);
 
     return NextResponse.json({ config, history });
@@ -45,9 +49,9 @@ const updateSchema = z.object({
 });
 
 export async function PUT(request: Request) {
-  const accessToken = await requireAccessToken(request);
-  if (!accessToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const authorization = await getWebUiManagementRequestAuthorization(request);
+  if (authorization.status !== "authorized") {
+    return createWebUiAuthorizationErrorResponse(authorization.status);
   }
 
   const json = await request.json().catch(() => null);
@@ -57,7 +61,7 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const result = await updateRedirectConfig(accessToken, parsed.data);
+    const result = await updateRedirectConfig(authorization.accessToken, parsed.data);
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

@@ -5,7 +5,10 @@
   },
   "auth": {
     "signInTitle": "登录配置控制台",
-    "signInWithGithub": "使用 GitHub 登录"
+    "signInWithGithub": "使用 GitHub 登录",
+    "accessDeniedTitle": "无权访问",
+    "accessDeniedDescription": "当前 GitHub 账号不在此部署允许访问的用户范围内。",
+    "signOutAndReturn": "退出并返回"
   },
   "notFound": {
     "title": "404 · 页面未找到",
@@ -22,6 +25,7 @@
     "showGroups": "展开分组",
     "githubUser": "GitHub 用户",
     "signedIn": "已登录",
+    "signIn": "使用 GitHub 登录",
     "signOut": "退出",
     "primaryNavigation": "主导航",
     "rules": "规则",
