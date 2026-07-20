@@ -110,3 +110,35 @@ test("preserves a runtime response when analytics sampling fails", (context) => 
 
   assert.strictEqual(result, response);
 });
+
+test("uses edge-compatible manual redirects for collector delivery", async () => {
+  let deliveryPromise: Promise<unknown> | undefined;
+  let redirectMode: RequestRedirect | undefined;
+  const runtime = createRuntime({
+    fetchImpl: async (_input, init) => {
+      redirectMode = init?.redirect;
+      return new Response(null, { status: 202 });
+    },
+    waitUntil: (promise) => {
+      deliveryPromise = promise;
+    }
+  });
+  const response = Response.redirect("https://example.com/", 302);
+
+  const result = await finalizeMatchedAnalytics({
+    request,
+    response,
+    rule,
+    routePath: "/r",
+    matchKind: "exact",
+    effectivePath: "/r",
+    startedAt: 0,
+    runtime,
+    analytics: createAnalyticsContext(true)
+  });
+
+  assert.strictEqual(result, response);
+  assert.ok(deliveryPromise);
+  await deliveryPromise;
+  assert.equal(redirectMode, "manual");
+});
