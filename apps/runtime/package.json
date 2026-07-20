@@ -8,8 +8,12 @@
     "url": "https://github.com/Revaea/i0c.cc.git"
   },
   "homepage": "https://github.com/Revaea/i0c.cc",
+  "exports": {
+    "./redirects.schema.json": "./redirects.schema.json"
+  },
   "scripts": {
     "build": "tsup --config tsup.config.ts && node scripts/post-build.mjs",
+    "test": "tsx --test tests/analytics/*.test.ts",
     "dev:cf": "wrangler dev",
     "deploy:cf": "wrangler deploy",
     "build:vc": "pnpm build",
@@ -26,7 +30,11 @@
     "@types/node": "^25.5.0",
     "concurrently": "^9.2.1",
     "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "wrangler": "^4.78.0"
+  },
+  "dependencies": {
+    "@vercel/functions": "^3.7.5"
   }
 }

@@ -10,7 +10,8 @@
   "homepage": "https://github.com/Revaea/i0c.cc",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
-    "check": "pnpm runtime:build && pnpm webui:lint && pnpm webui:build",
+    "check": "pnpm runtime:test && pnpm runtime:build && pnpm webui:lint && pnpm webui:build",
+    "runtime:test": "pnpm --filter i0c-redirect-worker test",
     "runtime:build": "pnpm --filter i0c-redirect-worker build",
     "runtime:dev:cf": "pnpm --filter i0c-redirect-worker dev:cf",
     "runtime:deploy:cf": "pnpm --filter i0c-redirect-worker deploy:cf",
@@ -24,6 +25,7 @@
     "webui:build": "pnpm --filter i0c.cc-webui build",
     "webui:start": "pnpm --filter i0c.cc-webui start",
     "webui:lint": "pnpm --filter i0c.cc-webui lint",
+    "analytics:migrate": "pnpm --filter i0c.cc-webui analytics:migrate",
     "data:validate": "pnpm --filter i0c.cc-webui validate:redirects"
   }
 }

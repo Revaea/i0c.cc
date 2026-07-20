@@ -8,6 +8,7 @@ import {
   isRecord,
   uniqueId
 } from "./model";
+import { ensureAnalyticsId } from "../editor/route-utils";
 
 export type ParsedRedirectConfig = {
   slotsKey: string;
@@ -23,7 +24,13 @@ function parseEntries(source: Record<string, unknown>): RedirectEntry[] {
       return;
     }
 
-    entries.push({ id: uniqueId(), key, value });
+    const hydratedValue = Array.isArray(value)
+      ? value.map((item) => (isRecord(item) ? ensureAnalyticsId(item) : item))
+      : isRecord(value)
+        ? ensureAnalyticsId(value)
+        : value;
+
+    entries.push({ id: uniqueId(), key, value: hydratedValue });
   });
 
   return entries;

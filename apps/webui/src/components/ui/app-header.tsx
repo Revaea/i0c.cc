@@ -1,116 +1,126 @@
 'use client';
 
-import { useTranslations } from "next-intl";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { signOut, useSession } from "next-auth/react";
 
+import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import {
+  LayoutSwitcher,
+  type LayoutPreferences,
+} from "@/components/ui/layout-switcher";
 
 export type AppHeaderProps = {
-  mobileSidebarToggle?: {
+  layoutPreferences: LayoutPreferences;
+  navigationToggle?: {
     isOpen: boolean;
     onToggle: () => void;
   };
 };
 
-export function AppHeader({ mobileSidebarToggle }: AppHeaderProps) {
+export function AppHeader({ layoutPreferences, navigationToggle }: AppHeaderProps) {
   const t = useTranslations("header");
 
   const { data: session } = useSession();
-  const sidebarToggleLabel = mobileSidebarToggle?.isOpen ? t("hideGroups") : t("showGroups");
+  const navigationToggleLabel = navigationToggle?.isOpen
+    ? t("closeNavigation")
+    : t("openNavigation");
 
   return (
-    <header className="sticky top-0 z-[1000] h-16 flex items-center border-b-2 border-slate-200/70 bg-white/80 backdrop-blur shadow-md rounded-b-2xl">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-        <div className="flex min-w-0 items-center gap-3">
-          {mobileSidebarToggle ? (
-            <button
-              type="button"
-              onClick={mobileSidebarToggle.onToggle}
-              aria-pressed={mobileSidebarToggle.isOpen}
-              aria-label={sidebarToggleLabel}
-              title={sidebarToggleLabel}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 lg:hidden"
+    <header className="sticky top-0 z-[1000] flex h-[4.5rem] items-center border-b border-line/90 bg-panel/85 backdrop-blur-xl">
+      <div
+        data-layout-region="header"
+        className="mx-auto flex w-full max-w-[var(--app-header-max-width)] items-center justify-between gap-3 px-4 sm:px-6"
+      >
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+          {navigationToggle ? (
+            <Button
+              id="app-navigation-trigger"
+              onClick={navigationToggle.onToggle}
+              aria-expanded={navigationToggle.isOpen}
+              aria-controls="app-navigation-drawer"
+              aria-label={navigationToggleLabel}
+              title={navigationToggleLabel}
+              size="icon-lg"
+              className="shrink-0 lg:hidden"
             >
-              {mobileSidebarToggle.isOpen ? (
-                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-                  <path
-                    d="M6 6L18 18M18 6L6 18"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-                  <path
-                    d="M4 6H20M4 12H20M4 18H20"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              )}
-            </button>
+              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+                <path
+                  d="M5 7h14M5 12h9M5 17h14"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </Button>
           ) : null}
-          <Image
-            src="/logo.ico"
-            alt="i0c.cc"
-            width={30}
-            height={30}
-            className="rounded-lg border-2 border-slate-200"
-            priority
-          />
-          <span className="truncate text-lg font-semibold text-slate-900">{t("console")}</span>
-          <span className="hidden sm:inline-flex h-5 items-center justify-center rounded-full border border-slate-200 bg-white px-2 text-[11px] font-medium leading-none text-slate-500">
-            Beta
-          </span>
+          <div className="flex min-w-0 items-center gap-3">
+            <Image
+              src="/logo.ico"
+              alt="i0c.cc"
+              width={32}
+              height={32}
+              className="rounded-xl border border-line bg-panel"
+              priority
+            />
+            <div className="min-w-0">
+              <span className="block truncate text-sm font-semibold tracking-tight text-ink sm:text-base">
+                {t("console")}
+              </span>
+              <span className="hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-muted sm:block">
+                {t("workspaceLabel")}
+              </span>
+            </div>
+          </div>
         </div>
 
         {session ? (
-          <div className="flex min-w-0 items-center gap-3 text-sm text-slate-700">
-            {session.user?.image ? (
-              <Image
-                src={session.user.image}
-                alt={session.user.name ?? t("githubUser")}
-                width={28}
-                height={28}
-                className="rounded-full border border-slate-200"
-              />
-            ) : null}
-            <span className="hidden sm:block max-w-[16rem] truncate text-sm text-slate-600">
-              {session.user?.name ?? session.user?.email ?? t("signedIn")}
-            </span>
-            <button
-              type="button"
-              onClick={() => signOut()}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-              aria-label={t("signOut")}
-              title={t("signOut")}
-            >
-              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
-                <path
-                  d="M10 7V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-1"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M15 12H3"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M6 9l-3 3 3 3"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
+          <div className="flex min-w-0 shrink-0 items-center gap-2 text-sm text-ink sm:gap-3">
+            <LayoutSwitcher {...layoutPreferences} />
             <LanguageSwitcher />
+            <div className="flex min-w-0 items-center gap-2 border-l border-line pl-2 sm:pl-3">
+              {session.user?.image ? (
+                <Image
+                  src={session.user.image}
+                  alt={session.user.name ?? t("githubUser")}
+                  width={28}
+                  height={28}
+                  className="rounded-full border border-line"
+                />
+              ) : null}
+              <span className="hidden max-w-[14rem] truncate text-sm text-muted md:block">
+                {session.user?.name ?? session.user?.email ?? t("signedIn")}
+              </span>
+              <Button
+                onClick={() => signOut()}
+                size="icon-lg"
+                aria-label={t("signOut")}
+                title={t("signOut")}
+              >
+                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+                  <path
+                    d="M10 7V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-1"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M15 12H3"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M6 9l-3 3 3 3"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </Button>
+            </div>
           </div>
         ) : null}
       </div>

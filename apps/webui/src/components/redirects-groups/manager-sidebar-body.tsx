@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+
+import { Button } from "@/components/ui/button";
 import { GroupTree } from "@/components/ui/sidebar";
 import type { RedirectGroup } from "@/composables/redirects-groups/model";
 
@@ -39,31 +41,33 @@ export function ManagerSidebarBody({
 
   return (
     <>
-      <div className="bg-white pb-3 border-b border-slate-200 shrink-0">
+      <div className="shrink-0 pb-2">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-slate-900">{tGroups("manager")}</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+            {tGroups("manager")}
+          </h2>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <Button
               onClick={() => onAddGroup(rootGroup.id)}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"
+              size="sm"
+              variant="secondary"
             >
               <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="2">
                 <path d="M12 6v12m6-6H6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               {tGroups("addGroup")}
-            </button>
+            </Button>
 
             {rootGroup.children.length > 0 ? (
-              <button
-                type="button"
+              <Button
                 onClick={() => setGroupsExpanded((value) => !value)}
-                className="hidden lg:inline-flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                size="icon-sm"
+                variant="ghost"
                 title={groupsExpanded ? tGroups("collapseAll") : tGroups("expandAll")}
                 aria-label={groupsExpanded ? tGroups("collapseAll") : tGroups("expandAll")}
               >
                 <svg
-                  className={"h-4 w-4 text-slate-500 transition-transform " + (groupsExpanded ? "rotate-180" : "")}
+                  className={"h-4 w-4 text-muted transition-transform " + (groupsExpanded ? "rotate-180" : "")}
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -72,24 +76,25 @@ export function ManagerSidebarBody({
                 >
                   <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-              </button>
+              </Button>
             ) : null}
           </div>
         </div>
       </div>
 
       <div
-        className="min-h-0 overflow-y-visible pr-1 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent lg:overflow-y-auto lg:max-h-[20vh]"
+        className="min-h-0 overflow-y-visible pr-1 scrollbar-thin scrollbar-thumb-line-strong scrollbar-track-transparent"
         style={{ scrollbarGutter: "stable" }}
       >
         <button
           type="button"
+          data-navigation-close="true"
           onClick={() => onSelectGroup(rootGroup.id)}
           className={
-            "mt-3 flex w-full items-center justify-between gap-2 rounded-2xl border px-3 py-2 text-left " +
+            "mt-2 flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent " +
             (selectedGroupId === rootGroup.id
-              ? "border-slate-300 bg-white text-slate-900"
-              : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white")
+              ? "bg-accent-soft text-accent-strong"
+              : "text-ink hover:bg-panel")
           }
           title={tGroups("rootTitle")}
         >
@@ -103,15 +108,15 @@ export function ManagerSidebarBody({
             </svg>
             <span className="truncate text-sm font-medium">{tGroups("root")}</span>
           </span>
-          <span className="shrink-0 rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-500">
+          <span className="shrink-0 text-xs text-muted">
             {slotsKey}
           </span>
         </button>
 
         {rootGroup.children.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-500">{tGroups("empty")}</p>
+          <p className="mt-4 text-sm text-muted">{tGroups("empty")}</p>
         ) : (
-          <div className={"mt-4 " + (groupsExpanded ? "" : "lg:hidden")}>
+          <div className={"mt-4 " + (groupsExpanded ? "" : "hidden")}>
             <GroupTree
               groups={rootGroup.children}
               selectedGroupId={selectedGroupId}

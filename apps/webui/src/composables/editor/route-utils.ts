@@ -29,8 +29,33 @@ export function getMode(value: unknown): RouteMode {
   return "string";
 }
 
+export function createAnalyticsId(): string {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return "00000000-0000-4000-8000-000000000000".replace(/[08]/g, (character) => {
+    const randomValue = Math.floor(Math.random() * 16);
+    const digit = Number(character);
+    return (digit ^ (randomValue & (15 >> (digit / 4)))).toString(16);
+  });
+}
+
+export function ensureAnalyticsId(config: Record<string, unknown>): Record<string, unknown> {
+  if (typeof config.analyticsId === "string" && config.analyticsId.trim() !== "") {
+    return config;
+  }
+
+  return { ...config, analyticsId: createAnalyticsId() };
+}
+
 export function createEmptyConfig(): Record<string, unknown> {
-  return { type: "prefix", target: "", appendPath: true };
+  return {
+    analyticsId: createAnalyticsId(),
+    type: "prefix",
+    target: "",
+    appendPath: true,
+  };
 }
 
 export function getDestinationKey(config: Record<string, unknown>): DestinationKey {

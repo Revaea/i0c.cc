@@ -59,6 +59,48 @@ This project provides two editing modes:
 
 6. Open [http://localhost:3000](http://localhost:3000) or **your domain**, log in with a GitHub account that has write access to the repository, and start editing `redirects.json`.
 
+## Short-link analytics
+
+The analytics feature uses standard PostgreSQL and does not depend on a vendor-specific database API. A free hosted PostgreSQL database such as [Neon](https://neon.com/pricing) is suitable for a small deployment; [Supabase](https://supabase.com/pricing) can use the same schema and application code. Prefer the provider's pooled connection URL when one is available.
+
+1. Create a PostgreSQL database and add these values to the WebUI environment:
+
+   ```dotenv
+   DATABASE_URL="postgresql://user:password@host/database?sslmode=require"
+   ANALYTICS_INGEST_SECRET="replace-with-a-separate-strong-secret"
+   ANALYTICS_SOURCE_ID="i0c.cc"
+   ```
+
+2. Apply the checked-in migrations from the repository root:
+
+   ```bash
+   pnpm analytics:migrate
+   ```
+
+3. Configure every runtime deployment to send signed events to the WebUI:
+
+   ```dotenv
+   ANALYTICS_ENDPOINT="https://u.i0c.cc/api/analytics/events"
+   ANALYTICS_WRITE_KEY="the-same-value-as-ANALYTICS_INGEST_SECRET"
+   ANALYTICS_SOURCE_ID="i0c.cc"
+   ```
+
+`ANALYTICS_SOURCE_ID` must be the shared base hostname, not a provider name. With `i0c.cc`, `i0c.cc`, `www.i0c.cc`, `api.i0c.cc`, `vc.i0c.cc`, and `nf.i0c.cc` can be reported independently without configuring a second domain list. Hostnames outside that namespace are stored as `unknown`.
+
+After GitHub sign-in, analytics are available at `/<locale>/analytics`. The entry-domain filter applies consistently to totals, trends, routes, geography, devices, providers, referrers, campaigns, internal sources, and automation analysis. `/<locale>/analytics/automation` separates observed values from sampling-adjusted estimates for declared bots, suspected automation, and unmatched Runtime requests.
+
+The ingestion endpoint accepts compatible V1 events and strict V2 link or Runtime events. It rejects stale, invalid, oversized, incorrectly classified, or wrong-source events. Query and campaign-link endpoints require an authenticated WebUI session.
+
+Object-form rules use a stable per-rule `analyticsId`, so renaming a short path does not split future history while that ID is retained. Compact string rules use a deterministic legacy identity; converting one to object form starts a new stable identity. Matched events are collected at full rate; unmatched and system Runtime events are sampled at 10% and displayed with both observed and estimated values.
+
+The Runtime sends the configured rule path for matched traffic, entry domain, provider, result, bounded traffic and bot classifications, country code, referrer hostname, and latency. It does not send IP addresses, full User-Agent strings, query strings, destination URLs, full referrer URLs, or raw unmatched paths. Browser referrers, explicit signed campaigns, and verified internal short-link sources are separate dimensions.
+
+For campaign links, an authenticated client can call `POST /api/analytics/campaigns` with a Runtime URL, analytics ID, campaign ID, and 1–365 day lifetime. The returned signed `_i0c_via` parameter is bound to the exact host and normalized path, then removed by the Runtime before rule processing.
+
+Keep the database URL and signing secret server-only. Free-plan quotas and inactivity policies can change, so check the provider's current limits before production use.
+
+See [../../docs/analytics.md](../../docs/analytics.md) for the complete event contract, attribution behavior, database migration order, privacy limits, delivery guarantees, and acceptance scenarios. Migrations are deliberate external writes and are never run automatically by the WebUI build.
+
 ## Deploy
 
 Deploy this package from the monorepo with these Vercel settings:

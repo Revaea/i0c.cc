@@ -20,7 +20,8 @@
   "include": [
     "src/**/*.ts", 
     "src/**/*.js", 
-    "api/**/*.ts"  
+    "api/**/*.ts",
+    "tests/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }

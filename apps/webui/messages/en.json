@@ -7,13 +7,33 @@
     "signInTitle": "Sign in to the config console",
     "signInWithGithub": "Sign in with GitHub"
   },
+  "notFound": {
+    "title": "404 · Page not found",
+    "description": "The page you requested does not exist or may have moved.",
+    "returnHome": "Return home"
+  },
   "header": {
     "console": "i0c.cc Console",
+    "workspaceLabel": "Redirect operations",
+    "openNavigation": "Open navigation",
+    "closeNavigation": "Close navigation",
+    "resizeNavigation": "Resize navigation",
     "hideGroups": "Hide groups",
     "showGroups": "Show groups",
     "githubUser": "GitHub user",
     "signedIn": "Signed in",
     "signOut": "Sign out",
+    "primaryNavigation": "Primary navigation",
+    "rules": "Rules",
+    "analytics": "Analytics",
+    "layout": "Layout",
+    "layoutHelp": "Adjust the desktop layout for different screens and working styles.",
+    "layoutFull": "Expand all",
+    "layoutSidebarAdjustable": "Expand with adjustable sidebar",
+    "layoutBothAdjustable": "Expand with adjustable sidebar and content",
+    "layoutOriginal": "Original width",
+    "sidebarWidth": "Sidebar width",
+    "contentWidth": "Content max width",
     "language": "Language",
     "english": "English",
     "chinese": "中文"
@@ -106,8 +126,162 @@
       "statusInvalid": "Must be a 3-digit status (e.g. 301, 302).",
       "priorityLabel": "Priority",
       "priorityTooltip": "Matching Priority\nSmaller number = higher priority",
-      "priorityInvalid": "Must be an integer (e.g. 0, 10, -1)."
+      "priorityInvalid": "Must be an integer (e.g. 0, 10, -1).",
+      "analyticsIdLabel": "Analytics ID",
+      "analyticsIdTooltip": "Stable identifier used to attribute requests after a path or target changes."
     },
+  "analytics": {
+    "navigation": {
+      "overview": "Overview",
+      "automation": "Bots and automation",
+      "routes": "Route rules"
+    },
+    "page": {
+      "title": "Short-link analytics",
+      "description": "Understand matched requests without storing IP addresses, full referrers, query strings, or user-agent strings."
+    },
+    "detail": {
+      "eyebrow": "Link analytics",
+      "title": "Short-link details",
+      "description": "Request activity and privacy-preserving dimensions for this tracked link.",
+      "back": "Back to analytics",
+      "trackedLink": "Tracked link",
+      "linkKind": "Link",
+      "analyticsId": "Analytics ID"
+    },
+    "range": {
+      "label": "Analytics period",
+      "days": "{count} days"
+    },
+    "filters": {
+      "entryDomain": "Entry domain",
+      "allDomains": "All domains",
+      "unknownDomain": "Unknown domain"
+    },
+    "metrics": {
+      "title": "Key metrics",
+      "humanClicks": "Estimated human navigations",
+      "humanClicksDescription": "Estimated browser-like navigation requests matched to links",
+      "entryHumanClicks": "Estimated entry navigations",
+      "entryHumanClicksDescription": "Estimated browser-like navigations excluding controlled continuation hops",
+      "totalRequests": "Total requests",
+      "totalRequestsDescription": "All requests matched to tracked links",
+      "entryRequests": "Entry requests",
+      "entryRequestsDescription": "Requests excluding verified short-link continuation hops",
+      "declaredBotShare": "Declared bot share",
+      "declaredBotShareDescription": "Requests whose clients identify as bots or preview agents",
+      "suspectedAutomationShare": "Suspected automation share",
+      "suspectedAutomationShareDescription": "Requests classified as likely automated, not confirmed bots",
+      "botPreviewShare": "Bot + preview share",
+      "botPreviewShareDescription": "Detected bots and link unfurlers",
+      "errors": "Errors",
+      "errorsDescription": "Matched requests ending in an observed error"
+    },
+    "trend": {
+      "title": "Request trend",
+      "description": "Human clicks compared with all observed requests.",
+      "empty": "No requests were observed in this period.",
+      "accessibleTitle": "Human clicks and total requests over time",
+      "accessibleDescription": "A line chart covering {start} through {end}.",
+      "tableCaption": "Analytics trend data",
+      "date": "Date"
+    },
+    "ranking": {
+      "title": "Top short links",
+      "description": "Ranked by human clicks in the selected period.",
+      "empty": "No tracked links have data for this period.",
+      "requestCount": "{count} requests",
+      "tableCaption": "Short links ranked by human clicks",
+      "rank": "Rank",
+      "shortLink": "Short link",
+      "change": "Change",
+      "changeCompared": "{value} vs previous period",
+      "noComparison": "No comparison"
+    },
+    "breakdowns": {
+      "title": "Audience and delivery",
+      "description": "Request-level dimensions, aggregated for privacy.",
+      "countries": "Countries",
+      "referrers": "Referrers",
+      "devices": "Devices",
+      "providers": "Providers",
+      "campaigns": "Explicit campaigns",
+      "upstreamLinks": "Internal source links",
+      "unknown": "Unknown",
+      "direct": "Direct",
+      "empty": "No data available."
+    },
+    "quality": {
+      "title": "Data quality",
+      "description": "Coverage and known limits for interpreting these figures.",
+      "notAvailable": "Not available",
+      "notReported": "Not reported",
+      "observedWindow": "Observed window",
+      "latestEvent": "Latest active day",
+      "unknownGeography": "Unknown geography",
+      "rawEventRetention": "Raw-event retention",
+      "databasePolicy": "Operator managed",
+      "days": "{count} days",
+      "humanClickNote": "Estimated human navigations exclude declared bots, suspected automation, and link previews.",
+      "cacheNote": "Cached permanent redirects may not produce a new edge request for every browser visit."
+    },
+    "states": {
+      "unconfiguredTitle": "Analytics is not configured",
+      "unconfiguredDescription": "Add the database and analytics environment variables, then run the analytics migration to start collecting requests.",
+      "emptyTitle": "No analytics data yet",
+      "emptyDescription": "Requests will appear after the runtime emits its first signed analytics events.",
+      "linkEmptyTitle": "No requests for this link yet",
+      "linkEmptyDescription": "This link is tracked, but no matching requests were observed in the selected period.",
+      "notFoundTitle": "Tracked link not found",
+      "notFoundDescription": "The analytics ID does not exist or is no longer available.",
+      "errorTitle": "Analytics could not be loaded",
+      "errorDescription": "The data service returned an unexpected error. You can retry without losing any changes.",
+      "retry": "Try again",
+      "backToRules": "Back to rules"
+    },
+    "automation": {
+      "observed": "Observed",
+      "estimated": "Estimated",
+      "metrics": {
+        "title": "Automation metrics",
+        "requests": "All traffic",
+        "declaredBots": "Declared bots",
+        "suspectedAutomation": "Suspected automation",
+        "unmatched": "Unmatched requests",
+        "errors": "Errors",
+        "observedValue": "{count} observed"
+      },
+      "trend": {
+        "title": "Automation trend",
+        "description": "Estimated declared-bot and suspected-automation requests over time.",
+        "accessibleTitle": "Declared-bot and suspected-automation requests over time"
+      },
+      "ranking": {
+        "title": "Links most visited by automation",
+        "description": "Tracked links ranked by estimated declared-bot and suspected-automation requests.",
+        "empty": "No automated visits to tracked links were observed in this period.",
+        "tableCaption": "Tracked links ranked by automated requests"
+      },
+      "breakdowns": {
+        "title": "Automation classification",
+        "description": "Bars use estimated values with observed counts shown below. Suspected automation is not a confirmed bot.",
+        "entryDomains": "Entry domains",
+        "trafficClasses": "Traffic classes",
+        "categories": "Bot categories",
+        "confidences": "Classification confidence",
+        "classifierVersions": "Classifier versions",
+        "resourceClasses": "Resource classes",
+        "matchKinds": "Match kinds",
+        "outcomes": "Outcomes",
+        "probes": "Probe categories",
+        "observedValue": "{count} observed"
+      },
+      "states": {
+        "emptyTitle": "No automation analytics yet",
+        "emptyDescription": "Declared bots, suspected automation, and unmatched requests will appear after the runtime reports them."
+      }
+    }
+  },
   "qrCode": {
     "openQRCode": "Generate QR code",
     "faviconAlt": "Favicon",

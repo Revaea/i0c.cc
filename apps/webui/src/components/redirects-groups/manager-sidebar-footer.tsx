@@ -3,6 +3,9 @@
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 
+import { Button } from "@/components/ui/button";
+import { fieldLabelClassName, formControlClassName } from "@/components/ui/form-control";
+
 export type ManagerSidebarFooterProps = {
   canUndo: boolean;
   canRedo: boolean;
@@ -67,7 +70,7 @@ export function ManagerSidebarFooter({
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <div className="text-xs font-medium text-slate-600">{tGroups("configUrl")}</div>
+        <div className={fieldLabelClassName}>{tGroups("configUrl")}</div>
         <div className="flex items-center gap-2">
           <input
             value={configUrlValue}
@@ -78,14 +81,13 @@ export function ManagerSidebarFooter({
               setConfigUrlDraft(e.target.value);
             }}
             placeholder={tGroups("configUrlPlaceholder")}
-            className="h-9 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none"
+            className={formControlClassName({ className: "flex-1", size: "sm" })}
             inputMode="url"
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
           />
-          <button
-            type="button"
+          <Button
             onClick={() => {
               if (!onLoadConfigUrl) {
                 return;
@@ -98,19 +100,16 @@ export function ManagerSidebarFooter({
             disabled={!onLoadConfigUrl || !canLoadConfigUrl || isPending}
             aria-label={tGroups("loadConfig")}
             title={tGroups("loadConfig")}
-            className={
-              "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white " +
-              (!onLoadConfigUrl || !canLoadConfigUrl || isPending
-                ? "cursor-not-allowed text-slate-300"
-                : "text-slate-700 hover:bg-slate-50")
-            }
+            size="icon"
+            variant="secondary"
+            className="shrink-0"
           >
             <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M12 3v10" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M8 10l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </button>
+          </Button>
         </div>
 
         {configUrlHint ? (
@@ -119,11 +118,12 @@ export function ManagerSidebarFooter({
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
+        <Button
           onClick={onUndo}
           disabled={!canUndo || isPending}
-          className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="w-full"
+          size="sm"
+          variant="secondary"
           title={tGroups("undo")}
           aria-label={tGroups("undo")}
         >
@@ -132,13 +132,14 @@ export function ManagerSidebarFooter({
             <path d="M20 20a8 8 0 0 0-8-8H5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           {tGroups("undo")}
-        </button>
+        </Button>
 
-        <button
-          type="button"
+        <Button
           onClick={onRedo}
           disabled={!canRedo || isPending}
-          className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="w-full"
+          size="sm"
+          variant="secondary"
           title={tGroups("redo")}
           aria-label={tGroups("redo")}
         >
@@ -147,27 +148,27 @@ export function ManagerSidebarFooter({
             <path d="M4 20a8 8 0 0 1 8-8h7" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           {tGroups("redo")}
-        </button>
+        </Button>
       </div>
 
-      <button
-        type="button"
+      <Button
         onClick={onSave}
         disabled={isPending}
-        className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+        className="w-full"
+        variant="primary"
       >
         {isPending ? tGroups("saving") : tGroups("save")}
-      </button>
+      </Button>
       
       {resultMessage ? (
-        <p className="text-sm text-slate-600 whitespace-pre-wrap break-words">
+        <p className="whitespace-pre-wrap break-words text-sm text-muted">
           {resultMessage}
           {lastCommitUrl ? (
             <a
               href={lastCommitUrl}
               target="_blank"
               rel="noreferrer"
-              className="ml-2 inline-flex align-middle text-slate-600 hover:text-slate-500"
+              className="ml-2 inline-flex align-middle text-accent hover:text-accent-strong"
               aria-label={tGroups("viewCommit")}
               title={tGroups("viewCommit")}
             >

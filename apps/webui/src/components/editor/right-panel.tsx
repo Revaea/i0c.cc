@@ -7,6 +7,33 @@ import { useTranslations } from "next-intl";
 import Ajv, { type AnySchema, type ValidateFunction } from "ajv";
 import addFormats from "ajv-formats";
 
+import { Button } from "@/components/ui/button";
+
+import redirectsSchema from "i0c-redirect-worker/redirects.schema.json";
+
+interface SchemaValidatorResult {
+  error: string | null;
+  validate: ValidateFunction | null;
+}
+
+function createSchemaValidator(): SchemaValidatorResult {
+  try {
+    const ajv = new Ajv({ allErrors: true, strict: false });
+    addFormats(ajv);
+    return {
+      error: null,
+      validate: ajv.compile(redirectsSchema as AnySchema),
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Unknown schema error",
+      validate: null,
+    };
+  }
+}
+
+const schemaValidator = createSchemaValidator();
+
 export type EditorMode = "rules" | "json";
 
 export type RightPanelProps = {
@@ -33,17 +60,13 @@ export function RightPanel({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [activeLine, setActiveLine] = useState(1);
 
-  const [schemaLoadError, setSchemaLoadError] = useState<string | null>(null);
-  const [schemaRevision, setSchemaRevision] = useState(0);
   const [schemaValidationError, setSchemaValidationError] = useState<string | null>(null);
-  const schemaValidatorRef = useRef<((data: unknown) => boolean) | null>(null);
-  const schemaValidatorErrorsRef = useRef<unknown>(null);
-  const schemaLoadingRef = useRef(false);
+  const schemaLoadError = schemaValidator.error
+    ? t("schemaLoadFail", { message: schemaValidator.error })
+    : null;
 
   const lineHeightPx = 20;
   const paddingTopPx = 12;
-
-  const schemaUrl = "https://raw.githubusercontent.com/Revaea/i0c.cc/main/apps/runtime/redirects.schema.json";
 
   const lineCount = useMemo(() => Math.max(1, jsonDraft.split("\n").length), [jsonDraft]);
 
@@ -68,43 +91,6 @@ export function RightPanel({
   }, [editorMode, jsonDraft, t]);
 
   useEffect(() => {
-    if (editorMode !== "json") {
-      return;
-    }
-
-    if (schemaValidatorRef.current || schemaLoadingRef.current) {
-      return;
-    }
-
-    schemaLoadingRef.current = true;
-    setSchemaLoadError(null);
-
-    void (async () => {
-      try {
-        const response = await fetch(schemaUrl, { cache: "force-cache" });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status} ${response.statusText}`);
-        }
-        const schema = (await response.json()) as AnySchema;
-        const ajv = new Ajv({ allErrors: true, strict: false });
-        addFormats(ajv);
-        const validate: ValidateFunction = ajv.compile(schema);
-        schemaValidatorRef.current = (data: unknown) => {
-          const ok = validate(data);
-          schemaValidatorErrorsRef.current = validate.errors;
-          return ok as boolean;
-        };
-        setSchemaRevision((value) => value + 1);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : t("unknownError");
-        setSchemaLoadError(t("schemaLoadFail", { message }));
-      } finally {
-        schemaLoadingRef.current = false;
-      }
-    })();
-  }, [editorMode, schemaUrl, t]);
-
-  useEffect(() => {
     let cancelled = false;
 
     queueMicrotask(() => {
@@ -117,7 +103,7 @@ export function RightPanel({
         return;
       }
 
-      const validate = schemaValidatorRef.current;
+      const validate = schemaValidator.validate;
       if (!validate) {
         setSchemaValidationError(null);
         return;
@@ -131,13 +117,13 @@ export function RightPanel({
         return;
       }
 
-      const ok = validate(data);
+      const ok = validate(data) as boolean;
       if (ok) {
         setSchemaValidationError(null);
         return;
       }
 
-      const errors = schemaValidatorErrorsRef.current as
+      const errors = validate.errors as
         | Array<{ instancePath?: string; message?: string }>
         | null
         | undefined;
@@ -158,7 +144,7 @@ export function RightPanel({
     return () => {
       cancelled = true;
     };
-  }, [editorMode, jsonDraft, jsonFormatError, schemaRevision, t]);
+  }, [editorMode, jsonDraft, jsonFormatError, t]);
 
   const updateActiveLineFromSelection = useCallback(() => {
     const element = textareaRef.current;
@@ -204,31 +190,25 @@ export function RightPanel({
   const highlightTop = paddingTopPx + (activeLine - 1) * lineHeightPx;
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-lg">
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
-          <button
-            type="button"
+    <div>
+      <div className="mb-6 flex flex-col gap-3 border-b border-line pb-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="grid w-fit grid-cols-2 gap-1 rounded-xl bg-panel-muted p-1">
+          <Button
             onClick={onEnterRulesMode}
-            className={
-              "rounded-lg px-3 py-1.5 text-xs font-medium transition " +
-              (editorMode === "rules" ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-50")
-            }
+            size="sm"
+            variant={editorMode === "rules" ? "primary" : "ghost"}
           >
             {t("rules")}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             onClick={onEnterJsonMode}
-            className={
-              "rounded-lg px-3 py-1.5 text-xs font-medium transition " +
-              (editorMode === "json" ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-50")
-            }
+            size="sm"
+            variant={editorMode === "json" ? "primary" : "ghost"}
           >
             {t("json")}
-          </button>
+          </Button>
         </div>
-        <p className="text-xs text-slate-500">{editorMode === "json" ? t("jsonPreferred") : t("editAndSave")}</p>
+        <p className="text-xs text-muted">{editorMode === "json" ? t("jsonPreferred") : t("editAndSave")}</p>
       </div>
 
       {editorMode === "json" ? (
@@ -259,17 +239,17 @@ export function RightPanel({
 
           <div
             className={
-              "flex w-full rounded-2xl border bg-white focus-within:border-slate-300 overflow-hidden " +
-              (jsonFormatError ? "border-amber-200" : jsonError ? "border-rose-200" : "border-slate-200")
+              "flex w-full overflow-hidden rounded-xl border bg-panel focus-within:border-accent focus-within:ring-3 focus-within:ring-blue-100 " +
+              (jsonFormatError ? "border-amber-200" : jsonError ? "border-rose-200" : "border-line")
             }
           >
-            <div className="select-none border-r border-slate-200 bg-white px-3 py-3 text-right font-mono text-xs leading-5 text-slate-400">
+            <div className="select-none border-r border-line bg-panel-muted px-3 py-3 text-right font-mono text-xs leading-5 text-slate-400">
               {lineNumbers.map((line) => (
                 <div
                   key={line}
                   className={
                     "h-5 " +
-                    (line === activeLine ? "bg-slate-100 text-slate-600" : "text-slate-400")
+                    (line === activeLine ? "bg-accent-soft text-accent" : "text-slate-400")
                   }
                 >
                   {line}
@@ -277,10 +257,10 @@ export function RightPanel({
               ))}
             </div>
 
-            <div className="relative min-w-0 flex-1 bg-white">
+            <div className="relative min-w-0 flex-1 bg-panel">
               <div
                 aria-hidden
-                className="pointer-events-none absolute left-0 right-0 bg-slate-50"
+                className="pointer-events-none absolute left-0 right-0 bg-panel-muted"
                 style={{ top: highlightTop, height: lineHeightPx }}
               />
               <textarea
@@ -296,11 +276,11 @@ export function RightPanel({
                 onMouseUp={updateActiveLineFromSelection}
                 onFocus={updateActiveLineFromSelection}
                 spellCheck={false}
-                className="relative z-10 min-h-[60vh] min-w-0 w-full whitespace-pre bg-transparent px-3 py-3 font-mono text-xs leading-5 text-slate-900 outline-none resize-none overflow-x-auto overflow-y-hidden"
+                className="relative z-10 min-h-[60vh] w-full min-w-0 resize-none whitespace-pre bg-transparent px-3 py-3 font-mono text-xs leading-5 text-ink outline-none overflow-x-auto overflow-y-hidden"
               />
             </div>
           </div>
-          <p className="text-xs text-slate-500">{t("tipParse")}</p>
+          <p className="text-xs text-muted">{t("tipParse")}</p>
         </div>
       ) : (
         rulesContent

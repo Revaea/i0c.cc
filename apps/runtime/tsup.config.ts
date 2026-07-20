@@ -26,6 +26,7 @@ export default defineConfig({
   sourcemap: false,
   treeshake: false,
   minify: false,
+  noExternal: ["@vercel/functions"],
   skipNodeModulesBundle: true,
   shims: false,
   platform: "neutral",

@@ -7,13 +7,33 @@
     "signInTitle": "登录配置控制台",
     "signInWithGithub": "使用 GitHub 登录"
   },
+  "notFound": {
+    "title": "404 · 页面未找到",
+    "description": "你访问的页面不存在或可能已被移动。",
+    "returnHome": "返回首页"
+  },
   "header": {
     "console": "i0c.cc 控制台",
+    "workspaceLabel": "重定向管理",
+    "openNavigation": "展开导航",
+    "closeNavigation": "关闭导航",
+    "resizeNavigation": "调整导航宽度",
     "hideGroups": "隐藏分组",
     "showGroups": "展开分组",
     "githubUser": "GitHub 用户",
     "signedIn": "已登录",
     "signOut": "退出",
+    "primaryNavigation": "主导航",
+    "rules": "规则",
+    "analytics": "统计",
+    "layout": "布局切换",
+    "layoutHelp": "调整桌面布局，以适配不同的屏幕与使用习惯。",
+    "layoutFull": "全部展开",
+    "layoutSidebarAdjustable": "全部展开，侧栏宽度可调",
+    "layoutBothAdjustable": "全部展开，侧栏与内容宽度均可调",
+    "layoutOriginal": "原始宽度",
+    "sidebarWidth": "侧栏宽度",
+    "contentWidth": "内容最大宽度",
     "language": "语言",
     "english": "English",
     "chinese": "中文"
@@ -106,8 +126,162 @@
       "statusInvalid": "需为 3 位数字（例如 301、302）。",
       "priorityLabel": "优先级",
       "priorityTooltip": "匹配优先级\n数字越小优先级越高",
-      "priorityInvalid": "需为整数（例如 0、10、-1）。"
+      "priorityInvalid": "需为整数（例如 0、10、-1）。",
+      "analyticsIdLabel": "统计 ID",
+      "analyticsIdTooltip": "用于稳定归因请求；即使路径或目标地址变化，该标识也保持不变。"
     },
+  "analytics": {
+    "navigation": {
+      "overview": "全部统计",
+      "automation": "机器人与自动化",
+      "routes": "路由规则"
+    },
+    "page": {
+      "title": "短链接统计",
+      "description": "了解规则命中的请求情况，同时不存储 IP、完整来源地址、查询参数或 User-Agent 原文。"
+    },
+    "detail": {
+      "eyebrow": "链接统计",
+      "title": "短链接详情",
+      "description": "查看这条链接的请求活动与隐私友好的聚合维度。",
+      "back": "返回统计",
+      "trackedLink": "已跟踪链接",
+      "linkKind": "链接",
+      "analyticsId": "统计 ID"
+    },
+    "range": {
+      "label": "统计周期",
+      "days": "{count} 天"
+    },
+    "filters": {
+      "entryDomain": "入口域名",
+      "allDomains": "全部域名",
+      "unknownDomain": "未知域名"
+    },
+    "metrics": {
+      "title": "关键指标",
+      "humanClicks": "估算的人类导航",
+      "humanClicksDescription": "命中短链接且表现为浏览器导航的估算请求",
+      "entryHumanClicks": "估算的入口导航",
+      "entryHumanClicksDescription": "排除受控短链接续跳后的估算浏览器导航",
+      "totalRequests": "请求总数",
+      "totalRequestsDescription": "所有命中已跟踪链接的请求",
+      "entryRequests": "入口请求",
+      "entryRequestsDescription": "排除已验证短链接续跳后的请求",
+      "declaredBotShare": "已声明机器人占比",
+      "declaredBotShareDescription": "客户端主动声明为机器人或链接预览器的请求",
+      "suspectedAutomationShare": "疑似自动化占比",
+      "suspectedAutomationShareDescription": "被分类为可能自动化但未确认为机器人的请求",
+      "botPreviewShare": "机器人与预览占比",
+      "botPreviewShareDescription": "检测到的机器人与链接预览请求",
+      "errors": "错误数",
+      "errorsDescription": "命中规则但最终发生错误的请求"
+    },
+    "trend": {
+      "title": "请求趋势",
+      "description": "对比有效跳转与全部观测请求。",
+      "empty": "所选周期内尚未观测到请求。",
+      "accessibleTitle": "有效跳转与请求总数趋势",
+      "accessibleDescription": "折线图覆盖 {start} 至 {end}。",
+      "tableCaption": "统计趋势数据",
+      "date": "日期"
+    },
+    "ranking": {
+      "title": "热门短链接",
+      "description": "按所选周期内的有效跳转数排序。",
+      "empty": "所选周期内没有短链接统计数据。",
+      "requestCount": "{count} 次请求",
+      "tableCaption": "按有效跳转数排列的短链接",
+      "rank": "排名",
+      "shortLink": "短链接",
+      "change": "变化",
+      "changeCompared": "较上一周期 {value}",
+      "noComparison": "暂无对比"
+    },
+    "breakdowns": {
+      "title": "受众与交付",
+      "description": "为保护隐私而聚合的请求级维度。",
+      "countries": "国家或地区",
+      "referrers": "来源域名",
+      "devices": "设备",
+      "providers": "运行平台",
+      "campaigns": "显式渠道",
+      "upstreamLinks": "内部来源短链接",
+      "unknown": "未知",
+      "direct": "直接访问",
+      "empty": "暂无数据。"
+    },
+    "quality": {
+      "title": "数据质量",
+      "description": "用于解释这些统计数据的覆盖范围与已知限制。",
+      "notAvailable": "暂无",
+      "notReported": "未报告",
+      "observedWindow": "观测窗口",
+      "latestEvent": "最近有数据日期",
+      "unknownGeography": "未知地区占比",
+      "rawEventRetention": "原始事件保留期",
+      "databasePolicy": "由运维策略决定",
+      "days": "{count} 天",
+      "humanClickNote": "估算的人类导航会排除已声明机器人、疑似自动化和链接预览请求。",
+      "cacheNote": "浏览器缓存永久重定向后，后续访问可能不会再次到达边缘运行时。"
+    },
+    "states": {
+      "unconfiguredTitle": "尚未配置统计服务",
+      "unconfiguredDescription": "添加数据库与统计环境变量，并执行统计迁移后即可开始收集请求。",
+      "emptyTitle": "暂无统计数据",
+      "emptyDescription": "边缘运行时发送第一批签名统计事件后，请求数据会显示在这里。",
+      "linkEmptyTitle": "这条链接暂无请求",
+      "linkEmptyDescription": "该链接已启用跟踪，但所选周期内尚未观测到匹配请求。",
+      "notFoundTitle": "未找到已跟踪链接",
+      "notFoundDescription": "该统计 ID 不存在或已不可用。",
+      "errorTitle": "无法加载统计数据",
+      "errorDescription": "数据服务返回了意外错误。你可以安全重试，不会丢失任何改动。",
+      "retry": "重试",
+      "backToRules": "返回规则"
+    },
+    "automation": {
+      "observed": "观测值",
+      "estimated": "估算值",
+      "metrics": {
+        "title": "自动化指标",
+        "requests": "全部流量",
+        "declaredBots": "已声明机器人",
+        "suspectedAutomation": "疑似自动化",
+        "unmatched": "未匹配请求",
+        "errors": "错误",
+        "observedValue": "观测 {count}"
+      },
+      "trend": {
+        "title": "自动化趋势",
+        "description": "按时间对比已声明机器人和疑似自动化的估算请求。",
+        "accessibleTitle": "已声明机器人与疑似自动化请求趋势"
+      },
+      "ranking": {
+        "title": "自动化访问最多的短链接",
+        "description": "按已声明机器人和疑似自动化的估算请求排序。",
+        "empty": "所选周期内尚未观测到自动化访问短链接。",
+        "tableCaption": "按自动化请求排序的短链接"
+      },
+      "breakdowns": {
+        "title": "自动化分类",
+        "description": "条形图使用估算值，并在下方显示观测值；疑似自动化不代表已确认机器人。",
+        "entryDomains": "入口域名",
+        "trafficClasses": "流量类别",
+        "categories": "机器人类别",
+        "confidences": "分类置信度",
+        "classifierVersions": "分类器版本",
+        "resourceClasses": "资源类别",
+        "matchKinds": "匹配方式",
+        "outcomes": "处理结果",
+        "probes": "探测类别",
+        "observedValue": "观测 {count}"
+      },
+      "states": {
+        "emptyTitle": "暂无自动化分析数据",
+        "emptyDescription": "运行时上报已声明机器人、疑似自动化或未匹配请求后，数据会显示在这里。"
+      }
+    }
+  },
   "qrCode": {
     "openQRCode": "生成二维码",
     "faviconAlt": "网站图标",

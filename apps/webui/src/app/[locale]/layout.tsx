@@ -1,5 +1,6 @@
 import type {Metadata} from 'next';
-import {NextIntlClientProvider} from 'next-intl';
+import {hasLocale, NextIntlClientProvider} from 'next-intl';
+import {notFound} from 'next/navigation';
 import {getMessages, getTranslations} from 'next-intl/server';
 
 import {routing} from '@/i18n/routing';
@@ -19,11 +20,11 @@ type LayoutProps = {
 
 export async function generateMetadata({params}: LayoutProps): Promise<Metadata> {
   const {locale} = await params;
-  const normalizedLocale = routing.locales.includes(locale as (typeof routing.locales)[number])
-    ? (locale as (typeof routing.locales)[number])
-    : routing.defaultLocale;
+  if (!hasLocale(routing.locales, locale)) {
+    notFound();
+  }
 
-  const t = await getTranslations({locale: normalizedLocale, namespace: 'meta'});
+  const t = await getTranslations({locale, namespace: 'meta'});
   return {
     title: t('title'),
     description: t('description')
@@ -32,14 +33,14 @@ export async function generateMetadata({params}: LayoutProps): Promise<Metadata>
 
 export default async function LocaleLayout({children, params}: LayoutProps) {
   const {locale} = await params;
-  const normalizedLocale = routing.locales.includes(locale as (typeof routing.locales)[number])
-    ? (locale as (typeof routing.locales)[number])
-    : routing.defaultLocale;
+  if (!hasLocale(routing.locales, locale)) {
+    notFound();
+  }
 
-  const messages = await getMessages({locale: normalizedLocale});
+  const messages = await getMessages({locale});
 
   return (
-    <NextIntlClientProvider locale={normalizedLocale} messages={messages}>
+    <NextIntlClientProvider locale={locale} messages={messages}>
       <Providers>{children}</Providers>
     </NextIntlClientProvider>
   );

@@ -7,13 +7,14 @@ Monorepo for i0c.cc, containing the edge redirect runtime and the WebUI manageme
 | Project | Path | Description |
 |---------|------|-------------|
 | Runtime | [apps/runtime](apps/runtime) | Universal redirect runtime for Cloudflare Workers, Vercel Edge Functions, and Netlify Edge Functions. |
-| WebUI | [apps/webui](apps/webui) | Next.js management panel for visually editing and committing `redirects.json`. |
+| WebUI | [apps/webui](apps/webui) | Next.js management panel for editing `redirects.json` and querying short-link analytics. |
 
 ## Live previews
 
-- Runtime primary domain: https://api.i0c.cc
+- Runtime Cloudflare domains: https://i0c.cc, https://www.i0c.cc, https://api.i0c.cc
 - Runtime Vercel deployment: https://vc.i0c.cc
 - Runtime Netlify deployment: https://nf.i0c.cc
+- WebUI: https://u.i0c.cc
 
 ## Deploy
 
@@ -37,7 +38,7 @@ Use these settings when the platform asks for project or build configuration:
 | Vercel | `apps/runtime` | `pnpm build:vc` | `.vercel/output` |
 | Netlify | `apps/runtime` | `pnpm build:nf` | `dist` |
 
-After deploying, set `REDIRECTS_CONFIG_URL` or the repo/branch/path environment variables if your `redirects.json` is hosted somewhere other than the defaults.
+After deploying, set `REDIRECTS_CONFIG_URL` or the repo/branch/path environment variables if your `redirects.json` is hosted somewhere other than the defaults. To enable analytics, configure the three Runtime variables documented in [docs/analytics.md](docs/analytics.md) on every provider.
 
 ### WebUI
 
@@ -54,7 +55,7 @@ Use these settings on Vercel:
 | Build Command | `pnpm build` |
 | Output Directory | Next.js default |
 
-The WebUI needs GitHub OAuth and repository access environment variables. See [apps/webui/README.md](apps/webui/README.md) for details.
+The WebUI needs GitHub OAuth and repository access environment variables. Analytics additionally requires PostgreSQL, migrations, and a collector secret. See [apps/webui/README.md](apps/webui/README.md) for details.
 
 ## Local development
 
@@ -87,6 +88,12 @@ Build both projects separately:
 ```bash
 pnpm runtime:build
 pnpm webui:build
+```
+
+Run the Runtime analytics contract tests:
+
+```bash
+pnpm runtime:test
 ```
 
 Run the full local validation before committing:
@@ -124,6 +131,7 @@ pnpm data:validate
 
 - Runtime documentation: [apps/runtime/README.md](apps/runtime/README.md)
 - WebUI documentation: [apps/webui/README.md](apps/webui/README.md)
+- Analytics architecture and semantics: [docs/analytics.md](docs/analytics.md)
 - Chinese overview: [README.zh-CN.md](README.zh-CN.md)
 
 ## License
