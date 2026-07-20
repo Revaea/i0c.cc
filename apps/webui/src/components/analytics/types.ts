@@ -1,4 +1,4 @@
-export const analyticsRanges = [7, 30, 90] as const
+export const analyticsRanges = [1, 7, 30, 90] as const
 
 export type AnalyticsRange = (typeof analyticsRanges)[number]
 

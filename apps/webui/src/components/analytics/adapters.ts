@@ -1,3 +1,4 @@
+import { analyticsRawEventRetentionDays } from "@/lib/analytics/retention-policy"
 import type {
   AnalyticsAutomationDimensionPoint,
   AnalyticsAutomationOverview,
@@ -117,6 +118,7 @@ function mapQuality(
     coverageStart: firstActivePoint?.timestamp ?? null,
     coverageEnd: lastActivePoint?.timestamp ?? null,
     lastEventAt: lastActivePoint?.timestamp ?? null,
+    rawEventRetentionDays: analyticsRawEventRetentionDays,
     unknownCountryRate: safeRatio(unknownCountryRequests, data.totals.requests),
     notes: [],
   }
@@ -305,6 +307,7 @@ export function toAutomationViewModel(
       coverageStart: data.series.find((point) => point.observedRequests > 0)?.timestamp ?? null,
       coverageEnd: [...data.series].reverse().find((point) => point.observedRequests > 0)?.timestamp ?? null,
       lastEventAt: [...data.series].reverse().find((point) => point.observedRequests > 0)?.timestamp ?? null,
+      rawEventRetentionDays: analyticsRawEventRetentionDays,
       notes: [],
     },
     hasData: data.totals.observedRequests > 0 || data.totals.estimatedRequests > 0,

@@ -1,9 +1,9 @@
 {
   "analytics": {
     "navigation": {
-      "analysis": "分析",
-      "overview": "总览",
-      "automation": "机器人与自动化"
+      "analysis": "分析视图",
+      "overview": "流量概览",
+      "automation": "自动化"
     },
     "page": {
       "title": "短链接统计",
@@ -28,8 +28,8 @@
     },
     "filters": {
       "entryDomain": "入口域名",
-      "allDomains": "全部域名",
-      "unknownDomain": "未知域名"
+      "allDomains": "全部入口域名",
+      "unknownDomain": "未识别域名"
     },
     "labels": {
       "linkTypes": {
@@ -128,7 +128,8 @@
       "accessibleTitle": "有效访问与请求总数趋势",
       "accessibleDescription": "折线图覆盖 {start} 至 {end}。",
       "tableCaption": "统计趋势数据",
-      "date": "日期"
+      "date": "日期",
+      "time": "时间"
     },
     "ranking": {
       "title": "热门路由",

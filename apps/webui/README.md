@@ -69,6 +69,7 @@ The analytics feature uses standard PostgreSQL and does not depend on a vendor-s
    DATABASE_URL="postgresql://user:password@host/database?sslmode=require"
    ANALYTICS_INGEST_SECRET="replace-with-a-separate-strong-secret"
    ANALYTICS_SOURCE_ID="i0c.cc"
+   CRON_SECRET="replace-with-an-independent-strong-secret"
    ```
 
 2. Apply the checked-in migrations from the repository root:
@@ -87,7 +88,7 @@ The analytics feature uses standard PostgreSQL and does not depend on a vendor-s
 
 `ANALYTICS_SOURCE_ID` must be the shared base hostname, not a provider name. With `i0c.cc`, `i0c.cc`, `www.i0c.cc`, `api.i0c.cc`, `vc.i0c.cc`, and `nf.i0c.cc` can be reported independently without configuring a second domain list. Hostnames outside that namespace are stored as `unknown`.
 
-After GitHub sign-in, analytics are available at `/<locale>/analytics`. The entry-domain filter applies consistently to totals, trends, routes, geography, devices, providers, referrers, campaigns, internal sources, and automation analysis. `/<locale>/analytics/automation` separates observed values from sampling-adjusted estimates for declared bots, suspected automation, and unmatched Runtime requests.
+After GitHub sign-in, analytics are available at `/<locale>/analytics` with 1, 7, 30, and 90-day ranges. The 1-day trend uses hourly buckets; longer ranges use daily buckets. The entry-domain filter applies consistently to totals, trends, routes, geography, devices, providers, referrers, campaigns, internal sources, and automation analysis. `/<locale>/analytics/automation` separates observed values from sampling-adjusted estimates for declared bots, suspected automation, and unmatched Runtime requests.
 
 The ingestion endpoint accepts compatible V1 events and strict V2 link or Runtime events. It rejects stale, invalid, oversized, incorrectly classified, or wrong-source events. Query and campaign-link endpoints require an authenticated WebUI session.
 
@@ -97,7 +98,10 @@ The Runtime sends the configured rule path for matched traffic, entry domain, pr
 
 For campaign links, an authenticated client can call `POST /api/analytics/campaigns` with a Runtime URL, analytics ID, campaign ID, and 1–365 day lifetime. The returned signed `_i0c_via` parameter is bound to the exact host and normalized path, then removed by the Runtime before rule processing.
 
-Keep the database URL and signing secret server-only. Free-plan quotas and inactivity policies can change, so check the provider's current limits before production use.
+Keep the database URL and signing secrets server-only. Vercel invokes the protected retention
+endpoint daily: raw events, idempotency receipts, and upstream claims expire after 181 days, while
+hourly and daily aggregates remain available. Free-plan quotas and inactivity policies can change,
+so check the provider's current limits before production use.
 
 See [../../docs/analytics.md](../../docs/analytics.md) for the complete event contract, attribution behavior, database migration order, privacy limits, delivery guarantees, and acceptance scenarios. Migrations are deliberate external writes and are never run automatically by the WebUI build.
 
@@ -112,7 +116,10 @@ Deploy this package from the monorepo with these Vercel settings:
 | Build Command | `pnpm build` |
 | Output Directory | Next.js default |
 
-Set the environment variables from [.env.example](.env.example) in Vercel. For production, `NEXTAUTH_URL` must match the deployed domain, and the GitHub OAuth callback URL must be `https://<your-domain>/api/auth/callback/github`.
+Set the environment variables from [.env.example](.env.example) in Vercel. For production,
+`NEXTAUTH_URL` must match the deployed domain, `CRON_SECRET` must be configured for the daily
+retention request, and the GitHub OAuth callback URL must be
+`https://<your-domain>/api/auth/callback/github`.
 
 ## Features Overview
 

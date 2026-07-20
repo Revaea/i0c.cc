@@ -53,6 +53,18 @@ export function formatDay(value: string, locale = fallbackLocale) {
   }).format(date)
 }
 
+export function formatHour(value: string, locale = fallbackLocale) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date)
+}
+
 export function formatChangeRate(value: number | null | undefined, locale = fallbackLocale) {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return "—"

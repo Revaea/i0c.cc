@@ -134,6 +134,11 @@ interface ResolvedQueryScope {
   range: QueryRange;
 }
 
+interface SeriesBucket {
+  unit: "hour" | "day";
+  step: "1 hour" | "1 day";
+}
+
 interface DimensionGroups {
   countries: AnalyticsDimensionPoint[];
   referrers: AnalyticsDimensionPoint[];
@@ -144,6 +149,7 @@ interface DimensionGroups {
 }
 
 const rangeDays: Record<AnalyticsRange, number> = {
+  "1d": 1,
   "7d": 7,
   "30d": 30,
   "90d": 90,
@@ -205,6 +211,12 @@ function resolveRange(range: AnalyticsRange, now = new Date()): QueryRange {
     startDay: start.toISOString().slice(0, 10),
     endDay: endDayExclusive.toISOString().slice(0, 10),
   };
+}
+
+function resolveSeriesBucket(range: AnalyticsRange): SeriesBucket {
+  return range === "1d"
+    ? { unit: "hour", step: "1 hour" }
+    : { unit: "day", step: "1 day" };
 }
 
 function toMetricTotals(row: MetricsRow | undefined): AnalyticsMetricTotals {
@@ -406,16 +418,17 @@ async function getSeries(
   analyticsId: string | null,
 ): Promise<AnalyticsSeriesPoint[]> {
   const sql = getDatabase();
+  const bucket = resolveSeriesBucket(scope.range.publicRange.key);
   const rows = await sql<SeriesRow[]>`
-    WITH days AS (
+    WITH buckets AS (
       SELECT generate_series(
         ${scope.range.start}::TIMESTAMPTZ,
-        date_trunc('day', ${scope.range.end}::TIMESTAMPTZ AT TIME ZONE 'UTC') AT TIME ZONE 'UTC',
-        INTERVAL '1 day'
-      ) AS bucket_day
+        date_trunc(${bucket.unit}, ${scope.range.end}::TIMESTAMPTZ AT TIME ZONE 'UTC') AT TIME ZONE 'UTC',
+        ${bucket.step}::INTERVAL
+      ) AS bucket_time
     ), stats AS (
       SELECT
-        date_trunc('day', bucket_start AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS bucket_day,
+        date_trunc(${bucket.unit}, bucket_start AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS bucket_time,
         SUM(requests) AS requests,
         SUM(entry_requests) AS entry_requests,
         SUM(human_requests) AS clicks,
@@ -431,10 +444,10 @@ async function getSeries(
         AND bucket_start < ${scope.range.end}
         AND (${scope.entryDomain === "all"} OR entry_domain = ${scope.entryDomain})
         AND (${analyticsId}::TEXT IS NULL OR analytics_id = ${analyticsId})
-      GROUP BY date_trunc('day', bucket_start AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'
+      GROUP BY 1
     )
     SELECT
-      days.bucket_day AS timestamp,
+      buckets.bucket_time AS timestamp,
       COALESCE(stats.requests, 0) AS requests,
       COALESCE(stats.entry_requests, 0) AS entry_requests,
       COALESCE(stats.clicks, 0) AS clicks,
@@ -444,9 +457,9 @@ async function getSeries(
       COALESCE(stats.suspected_automation, 0) AS suspected_automation,
       COALESCE(stats.errors, 0) AS errors,
       COALESCE(stats.latency_ms_sum, 0) AS latency_ms_sum
-    FROM days
-    LEFT JOIN stats USING (bucket_day)
-    ORDER BY days.bucket_day ASC
+    FROM buckets
+    LEFT JOIN stats USING (bucket_time)
+    ORDER BY buckets.bucket_time ASC
   `;
 
   return mapSeries(rows);
@@ -774,16 +787,17 @@ async function getAutomationSeries(
   scope: ResolvedQueryScope,
 ): Promise<AnalyticsAutomationSeriesPoint[]> {
   const sql = getDatabase();
+  const bucket = resolveSeriesBucket(scope.range.publicRange.key);
   const rows = await sql<AutomationSeriesRow[]>`
-    WITH days AS (
+    WITH buckets AS (
       SELECT generate_series(
         ${scope.range.start}::TIMESTAMPTZ,
-        date_trunc('day', ${scope.range.end}::TIMESTAMPTZ AT TIME ZONE 'UTC') AT TIME ZONE 'UTC',
-        INTERVAL '1 day'
-      ) AS bucket_day
+        date_trunc(${bucket.unit}, ${scope.range.end}::TIMESTAMPTZ AT TIME ZONE 'UTC') AT TIME ZONE 'UTC',
+        ${bucket.step}::INTERVAL
+      ) AS bucket_time
     ), stats AS (
       SELECT
-        date_trunc('day', bucket_start AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS bucket_day,
+        date_trunc(${bucket.unit}, bucket_start AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS bucket_time,
         SUM(observed_requests) AS observed_requests,
         SUM(estimated_requests) AS estimated_requests,
         SUM(declared_bot_observed_requests) AS observed_declared_bots,
@@ -799,10 +813,10 @@ async function getAutomationSeries(
         AND bucket_start >= ${scope.range.start}
         AND bucket_start < ${scope.range.end}
         AND (${scope.entryDomain === "all"} OR entry_domain = ${scope.entryDomain})
-      GROUP BY date_trunc('day', bucket_start AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'
+      GROUP BY 1
     )
     SELECT
-      days.bucket_day AS timestamp,
+      buckets.bucket_time AS timestamp,
       COALESCE(stats.observed_requests, 0) AS observed_requests,
       COALESCE(stats.estimated_requests, 0) AS estimated_requests,
       COALESCE(stats.observed_declared_bots, 0) AS observed_declared_bots,
@@ -813,9 +827,9 @@ async function getAutomationSeries(
       COALESCE(stats.estimated_unmatched, 0) AS estimated_unmatched,
       COALESCE(stats.observed_errors, 0) AS observed_errors,
       COALESCE(stats.estimated_errors, 0) AS estimated_errors
-    FROM days
-    LEFT JOIN stats USING (bucket_day)
-    ORDER BY days.bucket_day ASC
+    FROM buckets
+    LEFT JOIN stats USING (bucket_time)
+    ORDER BY buckets.bucket_time ASC
   `;
 
   return rows.map((row) => ({
@@ -1043,7 +1057,7 @@ async function queryAnalyticsOverview(
 
 const getCachedAnalyticsOverview = unstable_cache(
   queryAnalyticsOverview,
-  ["analytics-overview-v1"],
+  ["analytics-overview-v2"],
   { revalidate: analyticsCacheSeconds, tags: [analyticsCacheTag] },
 );
 
@@ -1096,7 +1110,7 @@ async function queryAnalyticsDetail(
 
 const getCachedAnalyticsDetail = unstable_cache(
   queryAnalyticsDetail,
-  ["analytics-detail-v1"],
+  ["analytics-detail-v2"],
   { revalidate: analyticsCacheSeconds, tags: [analyticsCacheTag] },
 );
 
@@ -1133,7 +1147,7 @@ async function queryAnalyticsAutomationOverview(
 
 const getCachedAnalyticsAutomationOverview = unstable_cache(
   queryAnalyticsAutomationOverview,
-  ["analytics-automation-overview-v1"],
+  ["analytics-automation-overview-v2"],
   { revalidate: analyticsCacheSeconds, tags: [analyticsCacheTag] },
 );
 

@@ -8,8 +8,10 @@ import {
   formatCount,
   formatDate,
   formatDay,
+  formatHour,
   formatPercent,
 } from "./format"
+import { AnalyticsTrendChart } from "./analytics-trend-chart"
 import { buildAnalyticsHref } from "./links"
 import type {
   AnalyticsAutomationLink,
@@ -32,6 +34,7 @@ interface MetricCardsProps {
 interface TrendChartProps {
   points: AnalyticsTrendPoint[]
   locale: string
+  range: AnalyticsRange
   chartId: string
   accessibleTitle?: string
   description?: string
@@ -56,6 +59,7 @@ interface AutomationMetricCardsProps {
 interface AutomationTrendChartProps {
   points: AnalyticsAutomationTrendPoint[]
   locale: string
+  range: AnalyticsRange
 }
 
 interface AutomationLinkRankingProps {
@@ -75,18 +79,6 @@ interface DataQualityPanelProps {
   quality: AnalyticsDataQuality
   locale: string
 }
-
-const chart = {
-  width: 760,
-  height: 260,
-  left: 52,
-  right: 20,
-  top: 18,
-  bottom: 42,
-}
-
-const plotWidth = chart.width - chart.left - chart.right
-const plotHeight = chart.height - chart.top - chart.bottom
 
 export function MetricCards({ metrics, locale }: MetricCardsProps) {
   const t = useTranslations("analytics")
@@ -171,7 +163,7 @@ export function AutomationMetricCards({ metrics, locale }: AutomationMetricCards
   )
 }
 
-export function AutomationTrendChart({ points, locale }: AutomationTrendChartProps) {
+export function AutomationTrendChart({ points, locale, range }: AutomationTrendChartProps) {
   const t = useTranslations("analytics")
   const chartPoints: AnalyticsTrendPoint[] = points.map((point) => ({
     timestamp: point.timestamp,
@@ -185,6 +177,7 @@ export function AutomationTrendChart({ points, locale }: AutomationTrendChartPro
     <TrendChart
       points={chartPoints}
       locale={locale}
+      range={range}
       chartId="analytics-automation-trend"
       accessibleTitle={t("automation.trend.accessibleTitle")}
       title={t("automation.trend.title")}
@@ -195,43 +188,10 @@ export function AutomationTrendChart({ points, locale }: AutomationTrendChartPro
   )
 }
 
-function getCoordinates(
-  points: AnalyticsTrendPoint[],
-  maxValue: number,
-  selectValue: (point: AnalyticsTrendPoint) => number,
-) {
-  return points.map((point, index) => {
-    const x =
-      chart.left +
-      (points.length === 1 ? plotWidth / 2 : (index / (points.length - 1)) * plotWidth)
-    const y = chart.top + (1 - Math.max(0, selectValue(point)) / maxValue) * plotHeight
-
-    return { x, y }
-  })
-}
-
-function getLinePath(coordinates: Array<{ x: number; y: number }>) {
-  return coordinates
-    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
-    .join(" ")
-}
-
-function getAreaPath(coordinates: Array<{ x: number; y: number }>) {
-  if (coordinates.length === 0) {
-    return ""
-  }
-
-  const line = getLinePath(coordinates)
-  const last = coordinates[coordinates.length - 1]
-  const first = coordinates[0]
-  const baseline = chart.top + plotHeight
-
-  return `${line} L ${last.x.toFixed(2)} ${baseline} L ${first.x.toFixed(2)} ${baseline} Z`
-}
-
 export function TrendChart({
   points,
   locale,
+  range,
   chartId,
   accessibleTitle,
   description,
@@ -242,18 +202,20 @@ export function TrendChart({
   const t = useTranslations("analytics")
   const resolvedPrimaryLabel = primaryLabel ?? t("metrics.effectiveVisits")
   const resolvedSecondaryLabel = secondaryLabel ?? t("metrics.totalRequests")
-  const maxValue = Math.max(
-    1,
-    ...points.flatMap((point) => [point.estimatedEntryNavigations, point.totalRequests]),
-  )
-  const clickCoordinates = getCoordinates(
-    points,
-    maxValue,
-    (point) => point.estimatedEntryNavigations,
-  )
-  const requestCoordinates = getCoordinates(points, maxValue, (point) => point.totalRequests)
-  const labelIndices = Array.from(new Set([0, Math.floor((points.length - 1) / 2), points.length - 1]))
-    .filter((index) => index >= 0)
+  const resolvedAccessibleTitle = accessibleTitle ?? t("trend.accessibleTitle")
+  const isHourly = range === 1
+  const chartData = points.map((point) => {
+    const label = point.label
+      ?? (isHourly ? formatDate(point.timestamp, locale) : formatDay(point.timestamp, locale))
+
+    return {
+      timestamp: point.timestamp,
+      label,
+      axisLabel: isHourly ? formatHour(point.timestamp, locale) : label,
+      primaryValue: point.estimatedEntryNavigations,
+      secondaryValue: point.totalRequests,
+    }
+  })
 
   return (
     <section className={cardClassName({ elevation: "flat", padding: "md", className: "sm:p-6" })}>
@@ -282,95 +244,24 @@ export function TrendChart({
         </div>
       ) : (
         <div className="mt-6 overflow-x-auto">
-          <svg
-            viewBox={`0 0 ${chart.width} ${chart.height}`}
-            role="img"
-            aria-labelledby={`${chartId}-title ${chartId}-description`}
-            className="h-auto min-w-[42rem] w-full"
-          >
-            <title id={`${chartId}-title`}>
-              {accessibleTitle ?? t("trend.accessibleTitle")}
-            </title>
-            <desc id={`${chartId}-description`}>
-              {t("trend.accessibleDescription", {
-                start: formatDay(points[0].timestamp, locale),
-                end: formatDay(points[points.length - 1].timestamp, locale),
-              })}
-            </desc>
-            <defs>
-              <linearGradient id={`${chartId}-fill`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.14" />
-                <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-
-            {[0, 0.5, 1].map((step) => {
-              const y = chart.top + step * plotHeight
-              const value = maxValue * (1 - step)
-
-              return (
-                <g key={step}>
-                  <line
-                    x1={chart.left}
-                    x2={chart.left + plotWidth}
-                    y1={y}
-                    y2={y}
-                    stroke="var(--line)"
-                    strokeDasharray={step === 1 ? undefined : "4 5"}
-                  />
-                  <text
-                    x={chart.left - 10}
-                    y={y + 4}
-                    textAnchor="end"
-                    className="fill-muted text-[11px]"
-                  >
-                    {formatCount(Math.round(value), locale)}
-                  </text>
-                </g>
-              )
+          <AnalyticsTrendChart
+            data={chartData}
+            locale={locale}
+            chartId={chartId}
+            accessibleTitle={resolvedAccessibleTitle}
+            accessibleDescription={t("trend.accessibleDescription", {
+              start: chartData[0].label,
+              end: chartData[chartData.length - 1].label,
             })}
-
-            <path d={getAreaPath(clickCoordinates)} fill={`url(#${chartId}-fill)`} />
-            <path
-              d={getLinePath(requestCoordinates)}
-              fill="none"
-              stroke="var(--line-strong)"
-              strokeWidth="2.25"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d={getLinePath(clickCoordinates)}
-              fill="none"
-              stroke="var(--accent)"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-
-            {labelIndices.map((index) => {
-              const coordinate = clickCoordinates[index]
-              const point = points[index]
-
-              return (
-                <text
-                  key={`${point.timestamp}-${index}`}
-                  x={coordinate.x}
-                  y={chart.height - 12}
-                  textAnchor={index === 0 ? "start" : index === points.length - 1 ? "end" : "middle"}
-                  className="fill-muted text-[11px]"
-                >
-                  {point.label ?? formatDay(point.timestamp, locale)}
-                </text>
-              )
-            })}
-          </svg>
+            primaryLabel={resolvedPrimaryLabel}
+            secondaryLabel={resolvedSecondaryLabel}
+          />
 
           <table className="sr-only">
             <caption>{t("trend.tableCaption")}</caption>
             <thead>
               <tr>
-                <th scope="col">{t("trend.date")}</th>
+                <th scope="col">{t(isHourly ? "trend.time" : "trend.date")}</th>
                 <th scope="col">{resolvedPrimaryLabel}</th>
                 <th scope="col">{resolvedSecondaryLabel}</th>
               </tr>
@@ -378,7 +269,12 @@ export function TrendChart({
             <tbody>
               {points.map((point) => (
                 <tr key={point.timestamp}>
-                  <th scope="row">{point.label ?? formatDay(point.timestamp, locale)}</th>
+                  <th scope="row">
+                    {point.label
+                      ?? (isHourly
+                        ? formatDate(point.timestamp, locale)
+                        : formatDay(point.timestamp, locale))}
+                  </th>
                   <td>{point.estimatedEntryNavigations}</td>
                   <td>{point.totalRequests}</td>
                 </tr>
