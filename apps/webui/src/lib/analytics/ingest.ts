@@ -5,7 +5,7 @@ import { getDatabase } from "./database";
 import type {
   CanonicalAnalyticsEvent,
   CanonicalAnalyticsLinkEvent,
-} from "./event-schema";
+} from "./event-normalization";
 
 export interface AnalyticsIngestResult {
   isDuplicate: boolean;

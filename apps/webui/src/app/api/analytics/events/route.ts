@@ -7,7 +7,8 @@ import {
   readAnalyticsSourceId,
 } from "@/lib/analytics/configuration";
 import { isDatabaseConfigured } from "@/lib/analytics/database";
-import { analyticsEventSchema, normalizeAnalyticsEvent } from "@/lib/analytics/event-schema";
+import { normalizeAnalyticsEvent } from "@/lib/analytics/event-normalization";
+import { analyticsEventSchema } from "@/lib/analytics/event-schema";
 import { ingestAnalyticsEvent } from "@/lib/analytics/ingest";
 
 export const runtime = "nodejs";
