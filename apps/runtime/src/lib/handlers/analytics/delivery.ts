@@ -15,6 +15,7 @@ import type { AnalyticsEventV2 } from "./events";
 import type { AnalyticsDeliveryConfig } from "./settings";
 
 const encoder = new TextEncoder();
+const maximumDeliveryAttempts = 2;
 
 let deliveryKeyCache: {
   writeKey: string;
@@ -50,19 +51,37 @@ async function emitAnalyticsEvent(
   const body = JSON.stringify(event);
   const timestamp = String(Math.floor(completedAt / 1000));
   const signature = await createSignature(config.writeKey, `${timestamp}.${body}`);
-  const response = await runtime.fetchImpl(config.endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Analytics-Timestamp": timestamp,
-      "X-Analytics-Signature": `sha256=${signature}`
-    },
-    body,
-    redirect: "manual"
-  });
-  if (!response.ok) {
-    throw new Error(`collector responded with ${response.status}`);
+  for (let attempt = 1; attempt <= maximumDeliveryAttempts; attempt += 1) {
+    let response: Response;
+    try {
+      response = await runtime.fetchImpl(config.endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Analytics-Timestamp": timestamp,
+          "X-Analytics-Signature": `sha256=${signature}`
+        },
+        body,
+        redirect: "manual"
+      });
+    } catch (error) {
+      if (attempt === maximumDeliveryAttempts) {
+        throw error;
+      }
+      continue;
+    }
+
+    if (response.ok) {
+      return;
+    }
+    if (attempt === maximumDeliveryAttempts || !isRetryableStatus(response.status)) {
+      throw new Error(`collector responded with ${response.status}`);
+    }
   }
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 408 || status === 425 || status >= 500;
 }
 
 async function createSignature(key: string, value: string): Promise<string> {

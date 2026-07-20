@@ -220,6 +220,67 @@ test("delivers the sampled Analytics V2 runtime event contract", async () => {
   assert.equal(delivery.event.analyticsId, undefined);
 });
 
+test("retries one transient collector failure", async () => {
+  let deliveryAttempts = 0;
+  let deliveryPromise: Promise<unknown> | undefined;
+  const runtime = createRuntime({
+    fetchImpl: async () => {
+      deliveryAttempts += 1;
+      return new Response(null, { status: deliveryAttempts === 1 ? 503 : 202 });
+    },
+    waitUntil: (promise) => {
+      deliveryPromise = promise;
+    }
+  });
+
+  await finalizeMatchedAnalytics({
+    request: createRequest(),
+    response: Response.redirect("https://example.com/", 302),
+    rule,
+    routePath: "/r",
+    matchKind: "exact",
+    effectivePath: "/r",
+    startedAt: completedAt - 500,
+    runtime,
+    analytics: createAnalyticsContext()
+  });
+
+  assert.ok(deliveryPromise);
+  await deliveryPromise;
+  assert.equal(deliveryAttempts, 2);
+});
+
+test("does not retry a rejected collector request", async (context) => {
+  context.mock.method(console, "error", () => undefined);
+  let deliveryAttempts = 0;
+  let deliveryPromise: Promise<unknown> | undefined;
+  const runtime = createRuntime({
+    fetchImpl: async () => {
+      deliveryAttempts += 1;
+      return new Response(null, { status: 401 });
+    },
+    waitUntil: (promise) => {
+      deliveryPromise = promise;
+    }
+  });
+
+  await finalizeMatchedAnalytics({
+    request: createRequest(),
+    response: Response.redirect("https://example.com/", 302),
+    rule,
+    routePath: "/r",
+    matchKind: "exact",
+    effectivePath: "/r",
+    startedAt: completedAt - 500,
+    runtime,
+    analytics: createAnalyticsContext()
+  });
+
+  assert.ok(deliveryPromise);
+  await deliveryPromise;
+  assert.equal(deliveryAttempts, 1);
+});
+
 test("reuses the imported delivery signing key", async () => {
   const subtle = globalThis.crypto.subtle;
   const originalImportKey = subtle.importKey;
