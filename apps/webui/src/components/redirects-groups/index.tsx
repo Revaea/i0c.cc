@@ -72,7 +72,7 @@ export function RedirectsGroupsManager({ isReadOnly = false }: RedirectsGroupsMa
     setJsonError(null);
   }, [previewJson]);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     if (isReadOnly) {
       return;
     }
@@ -81,8 +81,9 @@ export function RedirectsGroupsManager({ isReadOnly = false }: RedirectsGroupsMa
       try {
         const normalized = JSON.stringify(JSON.parse(jsonDraft), null, 2);
         setJsonError(null);
-        applyJson(normalized);
-        save(normalized);
+        const hydrated = await applyJson(normalized);
+        setJsonDraft(hydrated);
+        save(hydrated);
       } catch (error) {
         setJsonError(error instanceof Error ? error.message : tEditor("jsonParseFail"));
       }

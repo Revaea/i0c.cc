@@ -41,12 +41,38 @@ export function createAnalyticsId(): string {
   });
 }
 
-export function ensureAnalyticsId(config: Record<string, unknown>): Record<string, unknown> {
+function formatUuid(bytes: Uint8Array): string {
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+export async function createDeterministicAnalyticsId(seed: string): Promise<string> {
+  if (typeof globalThis.crypto?.subtle?.digest !== "function") {
+    throw new Error("Web Crypto is required to generate stable analytics IDs");
+  }
+
+  const digest = await globalThis.crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(seed),
+  );
+  const bytes = new Uint8Array(digest.slice(0, 16));
+  bytes[6] = ((bytes[6] ?? 0) & 0x0f) | 0x80;
+  bytes[8] = ((bytes[8] ?? 0) & 0x3f) | 0x80;
+  return formatUuid(bytes);
+}
+
+export async function ensureAnalyticsId(
+  config: Record<string, unknown>,
+  identitySeed: string,
+): Promise<Record<string, unknown>> {
   if (typeof config.analyticsId === "string" && config.analyticsId.trim() !== "") {
     return config;
   }
 
-  return { ...config, analyticsId: createAnalyticsId() };
+  return {
+    ...config,
+    analyticsId: await createDeterministicAnalyticsId(identitySeed),
+  };
 }
 
 export function createEmptyConfig(): Record<string, unknown> {

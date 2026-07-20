@@ -16,35 +16,73 @@ export type ParsedRedirectConfig = {
   rootGroup: RedirectGroup;
 };
 
-function parseEntries(source: Record<string, unknown>): RedirectEntry[] {
+function createAnalyticsIdentitySeed(
+  groupPath: readonly string[],
+  key: string,
+  value: Record<string, unknown>,
+  arrayIndex?: number,
+): string {
+  return JSON.stringify([
+    "i0c-analytics-id-v1",
+    groupPath,
+    key,
+    arrayIndex ?? null,
+    value,
+  ]);
+}
+
+async function parseEntries(
+  source: Record<string, unknown>,
+  groupPath: readonly string[],
+): Promise<RedirectEntry[]> {
   const entries: RedirectEntry[] = [];
 
-  Object.entries(source).forEach(([key, value]) => {
+  for (const [key, value] of Object.entries(source)) {
     if (isRecord(value) && groupLooksLikeSlots(value)) {
-      return;
+      continue;
     }
 
-    const hydratedValue = Array.isArray(value)
-      ? value.map((item) => (isRecord(item) ? ensureAnalyticsId(item) : item))
-      : isRecord(value)
-        ? ensureAnalyticsId(value)
-        : value;
+    let hydratedValue: unknown = value;
+    if (Array.isArray(value)) {
+      const hydratedItems: unknown[] = [];
+      for (const [index, item] of value.entries()) {
+        hydratedItems.push(
+          isRecord(item)
+            ? await ensureAnalyticsId(
+                item,
+                createAnalyticsIdentitySeed(groupPath, key, item, index),
+              )
+            : item,
+        );
+      }
+      hydratedValue = hydratedItems;
+    } else if (isRecord(value)) {
+      hydratedValue = await ensureAnalyticsId(
+        value,
+        createAnalyticsIdentitySeed(groupPath, key, value),
+      );
+    }
 
     entries.push({ id: uniqueId(), key, value: hydratedValue });
-  });
+  }
 
   return entries;
 }
 
-function parseGroup(name: string, source: Record<string, unknown>): RedirectGroup {
-  const entries = parseEntries(source);
+async function parseGroup(
+  name: string,
+  source: Record<string, unknown>,
+  parentPath: readonly string[],
+): Promise<RedirectGroup> {
+  const groupPath = [...parentPath, name];
+  const entries = await parseEntries(source, groupPath);
   const children: RedirectGroup[] = [];
 
-  Object.entries(source).forEach(([key, value]) => {
+  for (const [key, value] of Object.entries(source)) {
     if (isRecord(value) && groupLooksLikeSlots(value)) {
-      children.push(parseGroup(key, value));
+      children.push(await parseGroup(key, value, groupPath));
     }
-  });
+  }
 
   if (entries.length === 0 && children.length === 0) {
     entries.push(createEmptyEntry());
@@ -53,7 +91,7 @@ function parseGroup(name: string, source: Record<string, unknown>): RedirectGrou
   return { id: uniqueId(), name, entries, children };
 }
 
-export function parseInitialContent(source: string): ParsedRedirectConfig {
+export async function parseInitialContent(source: string): Promise<ParsedRedirectConfig> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(source);
@@ -72,7 +110,7 @@ export function parseInitialContent(source: string): ParsedRedirectConfig {
   return {
     slotsKey,
     baseConfig,
-    rootGroup: parseGroup(slotsKey, rawSlots)
+    rootGroup: await parseGroup(slotsKey, rawSlots, []),
   };
 }
 

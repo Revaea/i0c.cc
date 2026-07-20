@@ -57,7 +57,7 @@ export function useRedirectsGroups() {
 
       try {
         const content = await loadConfig();
-        const parsed = parseInitialContent(content);
+        const parsed = await parseInitialContent(content);
 
         if (cancelled) {
           return;
@@ -90,7 +90,7 @@ export function useRedirectsGroups() {
 
       try {
         const content = await loadConfig(sourceUrl);
-        const parsed = parseInitialContent(content);
+        const parsed = await parseInitialContent(content);
         setEditorState((prev) => applyParsedConfig(prev, parsed));
         resetHistory();
       } catch (error) {
@@ -181,12 +181,18 @@ export function useRedirectsGroups() {
   );
 
   const applyJson = useCallback(
-    (content: string) => {
-      const parsed = parseInitialContent(content);
+    async (content: string) => {
+      const parsed = await parseInitialContent(content);
 
       pushCurrentSnapshot();
 
       setEditorState((prev) => applyParsedConfig(prev, parsed));
+
+      return JSON.stringify(
+        buildConfig(parsed.rootGroup, parsed.baseConfig, parsed.slotsKey),
+        null,
+        2,
+      );
     },
     [pushCurrentSnapshot]
   );
