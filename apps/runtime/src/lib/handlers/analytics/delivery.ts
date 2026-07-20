@@ -14,6 +14,13 @@ import type { ResolvedRuntime } from "../types";
 import type { AnalyticsEventV2 } from "./events";
 import type { AnalyticsDeliveryConfig } from "./settings";
 
+const encoder = new TextEncoder();
+
+let deliveryKeyCache: {
+  writeKey: string;
+  key: Promise<CryptoKey>;
+} | undefined;
+
 export function scheduleAnalyticsEvent(
   event: AnalyticsEventV2,
   runtime: ResolvedRuntime,
@@ -59,16 +66,30 @@ async function emitAnalyticsEvent(
 }
 
 async function createSignature(key: string, value: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const cryptoKey = await globalThis.crypto.subtle.importKey(
+  const cryptoKey = await getDeliveryHmacKey(key);
+  const signature = await globalThis.crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(value));
+  return toHex(signature);
+}
+
+function getDeliveryHmacKey(writeKey: string): Promise<CryptoKey> {
+  if (deliveryKeyCache?.writeKey === writeKey) {
+    return deliveryKeyCache.key;
+  }
+
+  const key = globalThis.crypto.subtle.importKey(
     "raw",
-    encoder.encode(key),
+    encoder.encode(writeKey),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
   );
-  const signature = await globalThis.crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(value));
-  return toHex(signature);
+  deliveryKeyCache = { writeKey, key };
+  void key.catch(() => {
+    if (deliveryKeyCache?.key === key) {
+      deliveryKeyCache = undefined;
+    }
+  });
+  return key;
 }
 
 function toHex(value: ArrayBuffer): string {
