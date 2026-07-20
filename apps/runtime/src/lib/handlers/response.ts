@@ -22,6 +22,7 @@ const SENSITIVE_FORWARD_HEADERS = [
   "x-forwarded-for",
   "x-real-ip"
 ] as const;
+const MAX_PROXY_REDIRECTS = 5;
 
 function isIPv4(hostname: string): boolean {
   return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname);
@@ -114,7 +115,6 @@ async function proxyRequest(
     return new Response("Bad Request: Unsafe proxy target.", { status: 400 });
   }
 
-  const MAX_REDIRECTS = 5;
   let currentTarget = targetUrl;
   let redirectCount = 0;
   let lastResponse: Response | null = null;
@@ -127,7 +127,7 @@ async function proxyRequest(
 
   let effectiveMethod = originalMethod;
 
-  while (redirectCount <= MAX_REDIRECTS) {
+  while (true) {
     const headers = new Headers(request.headers);
     const currentUrlObj = new URL(currentTarget);
 
@@ -179,12 +179,17 @@ async function proxyRequest(
       const location = lastResponse.headers.get("Location");
       if (!location) break;
 
-      const nextUrlObj = new URL(location, currentUrlObj);
+      let nextUrlObj: URL;
       try {
+        nextUrlObj = new URL(location, currentUrlObj);
         assertSafeProxyUrl(nextUrlObj);
       } catch (e) {
         console.error("Blocked unsafe upstream redirect:", e);
         return new Response("Bad Gateway: Unsafe upstream redirect.", { status: 502 });
+      }
+
+      if (redirectCount >= MAX_PROXY_REDIRECTS) {
+        break;
       }
 
       const nextUrl = nextUrlObj.toString();

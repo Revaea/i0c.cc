@@ -2,10 +2,10 @@
  * @file response-security.test.ts
  * @description
  * [EN] Proxy response security regression tests.
- * Verifies that bracketed private IPv6 targets cannot bypass proxy host validation.
+ * Verifies proxy host validation and bounded, failure-safe upstream redirect handling.
  *
  * [CN] 代理响应安全回归测试。
- * 验证带方括号的私有 IPv6 目标无法绕过代理主机校验。
+ * 验证代理主机校验以及有界且可安全失败的上游重定向处理。
  *
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
@@ -90,4 +90,46 @@ test("keeps public IPv6 and ordinary hostnames available", async () => {
     "https://[2606:4700:4700::1111]/health",
     "https://feedback.example/health"
   ]);
+});
+
+test("returns a gateway error for malformed upstream redirects", async (context) => {
+  context.mock.method(console, "error", () => undefined);
+  const runtime = createRuntime(async () => new Response(null, {
+    status: 302,
+    headers: { Location: "http://[" }
+  }));
+
+  const response = await respondUsingRule(
+    new Request("https://i0c.cc/proxy"),
+    proxyRule,
+    "https://example.com/start",
+    runtime,
+    "/proxy"
+  );
+
+  assert.equal(response.status, 502);
+  assert.equal(await response.text(), "Bad Gateway: Unsafe upstream redirect.");
+});
+
+test("reports only upstream redirects that were followed", async () => {
+  let fetchCalls = 0;
+  const runtime = createRuntime(async () => {
+    fetchCalls += 1;
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `https://example.com/${fetchCalls}` }
+    });
+  });
+
+  const response = await respondUsingRule(
+    new Request("https://i0c.cc/proxy"),
+    proxyRule,
+    "https://example.com/start",
+    runtime,
+    "/proxy"
+  );
+
+  assert.equal(fetchCalls, 6);
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get("x-proxy-redirects-followed"), "5");
 });
