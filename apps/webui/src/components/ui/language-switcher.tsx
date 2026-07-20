@@ -2,22 +2,11 @@
 
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {useLocale, useTranslations} from 'next-intl';
-import {usePathname, useRouter} from 'next/navigation';
+import {useSearchParams} from 'next/navigation';
 
 import {Button} from '@/components/ui/button';
-import {routing} from '@/i18n/routing';
-
-function replaceLocaleInPath(pathname: string, nextLocale: string): string {
-  const path = pathname.startsWith('/') ? pathname : `/${pathname}`;
-  const segments = path.split('/');
-  const maybeLocale = segments[1] ?? '';
-  if (routing.locales.includes(maybeLocale as (typeof routing.locales)[number])) {
-    segments[1] = nextLocale;
-    return segments.join('/') || `/${nextLocale}`;
-  }
-
-  return `/${nextLocale}${path}`;
-}
+import {usePathname, useRouter} from '@/i18n/navigation';
+import {resolveAppLocale, type AppLocale} from '@/i18n/routing';
 
 export type LanguageSwitcherProps = {
   className?: string;
@@ -28,10 +17,11 @@ export function LanguageSwitcher({className}: LanguageSwitcherProps) {
   const tHeader = useTranslations('header');
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const currentLocale = String(locale);
+  const currentLocale = resolveAppLocale(locale);
 
-  const items = useMemo(
+  const items = useMemo<{value: AppLocale; label: string}[]>(
     () => [
       {value: 'zh-CN', label: tHeader('chinese')},
       {value: 'en', label: tHeader('english')}
@@ -78,9 +68,15 @@ export function LanguageSwitcher({className}: LanguageSwitcherProps) {
   const a11yLabel = tHeader('language');
   const triggerLabel = `${a11yLabel}: ${currentLabel}`;
 
-  const navigateTo = (nextLocale: string) => {
+  const navigateTo = (nextLocale: AppLocale) => {
     setOpen(false);
-    router.push(replaceLocaleInPath(pathname, nextLocale));
+    if (nextLocale === currentLocale) {
+      return;
+    }
+
+    const search = searchParams.toString();
+    const href = `${pathname}${search ? `?${search}` : ''}${window.location.hash}`;
+    router.replace(href, {locale: nextLocale});
   };
 
   return (

@@ -1,14 +1,14 @@
 'use client';
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 
 import { buttonClassName } from "@/components/ui/button";
+import { LinkPendingIndicator } from "@/components/ui/link-pending-indicator";
+import { Link, usePathname } from "@/i18n/navigation";
 
 function getLinkClass(isActive: boolean): string {
   return buttonClassName({
-    className: "w-full min-w-0",
+    className: "relative w-full min-w-0",
     size: "sm",
     variant: isActive ? "primary" : "ghost",
   });
@@ -16,10 +16,10 @@ function getLinkClass(isActive: boolean): string {
 
 export function AppSectionNavigation() {
   const t = useTranslations("header");
-  const locale = useLocale();
+  const tCommon = useTranslations("common");
   const pathname = usePathname();
-  const rulesHref = `/${locale}`;
-  const analyticsHref = `/${locale}/analytics`;
+  const rulesHref = "/";
+  const analyticsHref = "/analytics";
   const isAnalyticsRoute =
     pathname === analyticsHref || pathname.startsWith(`${analyticsHref}/`);
 
@@ -42,6 +42,7 @@ export function AppSectionNavigation() {
           />
         </svg>
         <span className="truncate">{t("rules")}</span>
+        <LinkPendingIndicator label={tCommon("loading")} />
       </Link>
       <Link
         href={analyticsHref}
@@ -57,6 +58,7 @@ export function AppSectionNavigation() {
           />
         </svg>
         <span className="truncate">{t("analytics")}</span>
+        <LinkPendingIndicator label={tCommon("loading")} />
       </Link>
     </nav>
   );

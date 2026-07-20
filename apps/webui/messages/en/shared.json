@@ -39,7 +39,8 @@
     "chinese": "中文"
   },
   "common": {
-    "close": "Close"
+    "close": "Close",
+    "loading": "Loading"
   },
   "qrCode": {
     "openQRCode": "Generate QR code",

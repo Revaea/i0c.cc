@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { cookies } from "next/headers";
+import { getLocale } from "next-intl/server";
+
+import { resolveAppLocale } from "@/i18n/routing";
 
 import "./globals.css";
 
@@ -30,8 +32,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const locale = cookieStore.get("NEXT_LOCALE")?.value || "en";
+  const locale = resolveAppLocale(await getLocale());
 
   return (
     <html lang={locale}>
