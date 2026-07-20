@@ -13,10 +13,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  analyticsEventSchema,
-  normalizeAnalyticsEvent
-} from "../../../webui/src/lib/analytics/event-schema";
+import { normalizeAnalyticsEvent } from "../../../webui/src/lib/analytics/event-normalization";
+import { analyticsEventSchema } from "../../../webui/src/lib/analytics/event-schema";
 
 const baseEvent = {
   schemaVersion: 2,
