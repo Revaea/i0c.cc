@@ -5,13 +5,15 @@
       "/": {
         "type": "proxy",
         "appendPath": true,
-        "target": "https://api.revaea.com"
+        "target": "https://api.revaea.com",
+        "analyticsId": "87bc29d5-4217-41d4-a6cd-8de8785329d0"
       },
       "/r": {
         "type": "prefix",
         "appendPath": true,
         "status": 302,
-        "target": "https://revaea.com"
+        "target": "https://revaea.com",
+        "analyticsId": "89df375b-e761-4667-afd6-19a7440eaf83"
       }
     },
     "Others": {
@@ -19,17 +21,20 @@
         "type": "prefix",
         "appendPath": true,
         "status": 302,
-        "target": "https://hls.revaea.com"
+        "target": "https://hls.revaea.com",
+        "analyticsId": "cf1b79cd-923f-493c-ae53-de47eda501d0"
       },
       "/r/p": {
         "type": "proxy",
         "appendPath": true,
-        "target": "https://i.pximg.net"
+        "target": "https://i.pximg.net",
+        "analyticsId": "6b1742ea-f680-420b-9e7e-e1d80a103c57"
       },
       "/r/g": {
         "type": "proxy",
         "appendPath": true,
-        "target": "https://raw.githubusercontent.com"
+        "target": "https://raw.githubusercontent.com",
+        "analyticsId": "0eec5daa-4432-4c42-a706-3dcf726b1deb"
       }
     }
   }
