@@ -204,6 +204,13 @@ const analyticsLinkEventV2Schema = analyticsEventV2CommonSchema
         message: "All upstream attribution fields must be provided together",
       });
     }
+    if (event.campaignId != null && upstreamCount > 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["campaignId"],
+        message: "Campaign and upstream attribution are mutually exclusive",
+      });
+    }
   });
 
 const analyticsRuntimeEventV2Schema = analyticsEventV2CommonSchema
