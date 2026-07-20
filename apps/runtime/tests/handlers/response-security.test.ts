@@ -35,7 +35,7 @@ function createRuntime(fetchImpl: typeof fetch): ResolvedRuntime {
   };
 }
 
-test("blocks bracketed private IPv6 proxy targets", async (context) => {
+test("blocks non-public literal IP proxy targets", async (context) => {
   context.mock.method(console, "error", () => undefined);
   let fetchCalls = 0;
   const runtime = createRuntime(async () => {
@@ -44,10 +44,26 @@ test("blocks bracketed private IPv6 proxy targets", async (context) => {
   });
 
   for (const target of [
+    "http://2130706433/",
+    "http://10.0.0.1/",
+    "http://100.64.0.1/",
+    "http://169.254.169.254/",
+    "http://172.16.0.1/",
+    "http://192.0.2.1/",
+    "http://192.88.99.1/",
+    "http://192.168.0.1/",
+    "http://198.18.0.1/",
+    "http://198.51.100.1/",
+    "http://203.0.113.1/",
+    "http://224.0.0.1/",
+    "http://[::]/",
     "http://[::1]/",
+    "http://[::ffff:127.0.0.1]/",
     "http://[fc00::1]/",
     "http://[fd12::1]/",
-    "http://[fe80::1]/"
+    "http://[fe80::1]/",
+    "http://[2001:db8::1]/",
+    "http://[ff02::1]/"
   ]) {
     const response = await respondUsingRule(
       new Request("https://i0c.cc/proxy"),
@@ -72,6 +88,7 @@ test("keeps public IPv6 and ordinary hostnames available", async () => {
   });
 
   for (const target of [
+    "https://1.1.1.1/health",
     "https://[2606:4700:4700::1111]/health",
     "https://feedback.example/health"
   ]) {
@@ -87,6 +104,7 @@ test("keeps public IPv6 and ordinary hostnames available", async () => {
   }
 
   assert.deepEqual(forwardedUrls, [
+    "https://1.1.1.1/health",
     "https://[2606:4700:4700::1111]/health",
     "https://feedback.example/health"
   ]);

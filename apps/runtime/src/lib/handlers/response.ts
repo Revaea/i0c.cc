@@ -28,21 +28,23 @@ function isIPv4(hostname: string): boolean {
   return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname);
 }
 
-function isPrivateIPv4(hostname: string): boolean {
+function isNonPublicIPv4(hostname: string): boolean {
   if (!isIPv4(hostname)) return false;
   const parts = hostname.split(".").map((p) => Number(p));
   if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n) || n < 0 || n > 255)) return false;
-  const [a, b] = parts;
+  const [a, b, c] = parts;
 
-  // 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8
   if (a === 0 || a === 10 || a === 127) return true;
-  // 169.254.0.0/16 (link-local)
+  if (a === 100 && b >= 64 && b <= 127) return true;
   if (a === 169 && b === 254) return true;
-  // 172.16.0.0/12
   if (a === 172 && b >= 16 && b <= 31) return true;
-  // 192.168.0.0/16
+  if (a === 192 && b === 0 && (c === 0 || c === 2)) return true;
+  if (a === 192 && b === 88 && c === 99) return true;
   if (a === 192 && b === 168) return true;
-  return false;
+  if (a === 198 && (b === 18 || b === 19)) return true;
+  if (a === 198 && b === 51 && c === 100) return true;
+  if (a === 203 && b === 0 && c === 113) return true;
+  return a >= 224;
 }
 
 function normalizeHostname(hostname: string): string {
@@ -52,31 +54,39 @@ function normalizeHostname(hostname: string): string {
     : host;
 }
 
-function isPrivateIPv6(hostname: string): boolean {
+function isNonPublicIPv6(hostname: string): boolean {
   const host = normalizeHostname(hostname);
   if (!host.includes(":")) return false;
-  if (host === "::" || host === "::1" || host.startsWith("::ffff:")) return true;
+  if (
+    host.startsWith("::")
+    || host.startsWith("64:ff9b:")
+    || host.startsWith("100:")
+    || host.startsWith("2001:db8:")
+    || host.startsWith("2002:")
+  ) {
+    return true;
+  }
 
   const firstHextet = Number.parseInt(host.split(":", 1)[0], 16);
   return (
     (firstHextet >= 0xfc00 && firstHextet <= 0xfdff) ||
-    (firstHextet >= 0xfe80 && firstHextet <= 0xfebf)
+    (firstHextet >= 0xfe80 && firstHextet <= 0xfeff) ||
+    (firstHextet >= 0xff00 && firstHextet <= 0xffff)
   );
 }
 
-function isLikelyLocalhost(hostname: string): boolean {
+function isNonPublicProxyHost(hostname: string): boolean {
   const host = normalizeHostname(hostname);
   if (host === "localhost" || host === "127.0.0.1") return true;
-  // block common internal hostnames
   if (host.endsWith(".localhost")) return true;
-  return isPrivateIPv6(host);
+  return isNonPublicIPv4(host) || isNonPublicIPv6(host);
 }
 
 function assertSafeProxyUrl(url: URL): void {
   if (url.protocol !== "https:" && url.protocol !== "http:") {
     throw new Error(`Unsupported proxy protocol: ${url.protocol}`);
   }
-  if (isLikelyLocalhost(url.hostname) || isPrivateIPv4(url.hostname)) {
+  if (isNonPublicProxyHost(url.hostname)) {
     throw new Error(`Blocked proxy target host: ${url.hostname}`);
   }
 }
