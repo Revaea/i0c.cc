@@ -1,0 +1,128 @@
+/**
+ * @file dispatcher.test.ts
+ * @description
+ * [EN] Route dispatcher regression tests.
+ * Verifies direct redirects, sequential proxy fallback, and static asset proxy races.
+ *
+ * [CN] 路由分发器回归测试。
+ * 验证直接重定向、顺序代理回退和静态资源代理竞速行为。
+ *
+ * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
+ */
+
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { dispatchRouteRequest } from "../../src/lib/handlers/dispatcher";
+import { buildCompiledList } from "../../src/lib/handlers/matcher";
+import type { ResolvedRuntime } from "../../src/lib/handlers/types";
+
+function createRuntime(fetchImpl: typeof fetch = fetch): ResolvedRuntime {
+  return {
+    configUrl: "https://config.example/redirects.json",
+    cacheTtlSeconds: 60,
+    fetchImpl,
+    provider: "cloudflare",
+    now: () => Date.now(),
+    random: () => 0
+  };
+}
+
+test("dispatches an exact redirect with match metadata", async () => {
+  const compiledList = buildCompiledList({
+    "/docs": {
+      type: "exact",
+      target: "https://example.com/guide",
+      appendPath: false,
+      status: 307
+    }
+  });
+
+  const result = await dispatchRouteRequest({
+    request: new Request("https://i0c.cc/docs"),
+    runtime: createRuntime(),
+    compiledList,
+    effectivePath: "/docs",
+    search: "",
+    isStaticAssetPath: false
+  });
+
+  assert.ok(result.match);
+  assert.equal(result.match.response.status, 307);
+  assert.equal(result.match.response.headers.get("location"), "https://example.com/guide");
+  assert.equal(result.match.routePath, "/docs");
+  assert.equal(result.match.matchKind, "exact");
+  assert.equal(result.hasProxyExhaustion, false);
+});
+
+test("falls through failed proxies in priority order", async () => {
+  const requests: string[] = [];
+  const runtime = createRuntime(async (input) => {
+    const request = input instanceof Request ? input : new Request(input);
+    requests.push(request.url);
+
+    return request.url.startsWith("https://first.example/")
+      ? new Response("missing", { status: 404 })
+      : new Response("fallback", { status: 200 });
+  });
+  const compiledList = buildCompiledList({
+    "/assets": [
+      { type: "proxy", target: "https://first.example", priority: 1 },
+      { type: "proxy", target: "https://second.example", priority: 2 }
+    ]
+  });
+
+  const result = await dispatchRouteRequest({
+    request: new Request("https://i0c.cc/assets/app.js"),
+    runtime,
+    compiledList,
+    effectivePath: "/assets/app.js",
+    search: "",
+    isStaticAssetPath: false
+  });
+
+  assert.deepEqual(requests, [
+    "https://first.example/app.js",
+    "https://second.example/app.js"
+  ]);
+  assert.ok(result.match);
+  assert.equal(await result.match.response.text(), "fallback");
+  assert.equal(result.match.rule.target, "https://second.example");
+  assert.equal(result.hasProxyExhaustion, true);
+});
+
+test("races static asset proxies and returns a successful candidate", async () => {
+  const requests: string[] = [];
+  const runtime = createRuntime(async (input) => {
+    const request = input instanceof Request ? input : new Request(input);
+    requests.push(request.url);
+
+    return request.url.startsWith("https://first.example/")
+      ? new Response("unavailable", { status: 503 })
+      : new Response("asset", { status: 200 });
+  });
+  const compiledList = buildCompiledList({
+    "/assets": [
+      { type: "proxy", target: "https://first.example", priority: 1 },
+      { type: "proxy", target: "https://second.example", priority: 2 }
+    ]
+  });
+
+  const result = await dispatchRouteRequest({
+    request: new Request("https://i0c.cc/assets/app.js"),
+    runtime,
+    compiledList,
+    effectivePath: "/assets/app.js",
+    search: "",
+    isStaticAssetPath: true
+  });
+
+  assert.deepEqual(requests.sort(), [
+    "https://first.example/app.js",
+    "https://second.example/app.js"
+  ]);
+  assert.ok(result.match);
+  assert.equal(await result.match.response.text(), "asset");
+  assert.equal(result.match.rule.target, "https://second.example");
+  assert.equal(result.hasProxyExhaustion, false);
+});

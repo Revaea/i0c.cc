@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsup --config tsup.config.ts && node scripts/post-build.mjs",
-    "test": "tsx --test tests/analytics/*.test.ts",
+    "test": "tsx --test tests/**/*.test.ts",
     "dev:cf": "wrangler dev",
     "deploy:cf": "wrangler deploy",
     "build:vc": "pnpm build",
