@@ -29,9 +29,13 @@ Configure the WebUI with:
 DATABASE_URL="postgresql://user:password@host/database?sslmode=require"
 ANALYTICS_INGEST_SECRET="replace-with-a-32-byte-random-secret"
 ANALYTICS_SOURCE_ID="i0c.cc"
+CRON_SECRET="replace-with-a-32-byte-random-secret"
 ```
 
 `ANALYTICS_WRITE_KEY` and `ANALYTICS_INGEST_SECRET` must contain exactly the same secret. Do not reuse the GitHub OAuth, NextAuth, or database credentials.
+
+`CRON_SECRET` independently protects the daily retention endpoint. Vercel sends it in the
+`Authorization` header for scheduled requests; do not reuse another application secret.
 
 `ANALYTICS_SOURCE_ID` is both the logical statistics namespace and its base hostname. It is normalized to lowercase. With `i0c.cc`, events may report `i0c.cc` or any subdomain of `i0c.cc`; other hostnames are stored as `unknown`. This bounds entry-domain cardinality without requiring a separate domain-list variable.
 
@@ -149,7 +153,7 @@ Matched events contain the configured rule path and stable analytics ID. Hostnam
 
 ## Database migrations
 
-Run migrations from the repository root before deploying the V2 collector:
+Run migrations from the repository root before deploying the analytics collector:
 
 ```bash
 pnpm analytics:migrate
@@ -160,6 +164,7 @@ The migration runner applies files in filename order inside transactions and rec
 - `001_short_link_analytics.sql`: original link events and aggregates.
 - `002_domain_attribution.sql`: entry-domain, campaign, internal-source, classification, and UTC aggregate dimensions.
 - `003_runtime_traffic_analysis.sql`: sampled Runtime events, cross-kind idempotency receipts, and automation aggregates.
+- `004_raw_event_retention.sql`: cleanup indexes and the fixed 181-day raw-event retention function.
 
 Recommended rollout order:
 
@@ -170,7 +175,16 @@ Recommended rollout order:
 5. Configure and deploy the Netlify Runtime.
 6. Check collector errors, `unknown` entry domains, observed/estimated ratios, and all-domain sums.
 
-The application currently does not delete raw analytics rows automatically. For a high-traffic deployment, define and test a retention job separately; do not run retention or schema migrations as part of the WebUI build.
+Vercel calls `/api/analytics/retention` once per day. The authenticated endpoint deletes link
+events, Runtime events, idempotency receipts, and expired upstream claims whose database receive
+time is more than 181 days old. Hourly and daily aggregate tables are retained, so historical
+trends and prior-period comparisons do not depend on keeping raw request rows indefinitely.
+Retention and schema migrations are never run as part of the WebUI build.
+
+The WebUI exposes 1, 7, 30, and 90-day ranges. The 1-day trend uses hourly UTC buckets; longer
+ranges use daily UTC buckets. The 181-day raw-event policy preserves two complete 90-day periods
+plus one day for UTC boundaries and the daily cleanup schedule. This retention window makes future
+aggregate rebuilding possible; it does not by itself perform a rebuild.
 
 ## Acceptance scenarios
 

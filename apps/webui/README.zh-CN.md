@@ -67,6 +67,7 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
    DATABASE_URL="postgresql://user:password@host/database?sslmode=require"
    ANALYTICS_INGEST_SECRET="replace-with-a-separate-strong-secret"
    ANALYTICS_SOURCE_ID="i0c.cc"
+   CRON_SECRET="replace-with-an-independent-strong-secret"
    ```
 
 2. 在仓库根目录执行已提交的数据库迁移：
@@ -85,7 +86,7 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
 
 `ANALYTICS_SOURCE_ID` 必须是共享的基础域名，而不是平台名称。使用 `i0c.cc` 时，`i0c.cc`、`www.i0c.cc`、`api.i0c.cc`、`vc.i0c.cc`、`nf.i0c.cc` 可以分别统计，无需再维护一份域名列表。命名空间之外的域名会存为 `unknown`。
 
-使用 GitHub 登录后，可以在 `/<locale>/analytics` 查看统计。入口域名筛选会一致作用于总数、趋势、路由、国家或地区、设备、平台、来源域名、渠道、内部来源和自动化分析。`/<locale>/analytics/automation` 会把已声明机器人、疑似自动化和未匹配 Runtime 请求的观测值与抽样估算值分开展示。
+使用 GitHub 登录后，可以在 `/<locale>/analytics` 查看 1、7、30 和 90 天范围的统计。1 天趋势使用小时桶，更长范围使用天桶。入口域名筛选会一致作用于总数、趋势、路由、国家或地区、设备、平台、来源域名、渠道、内部来源和自动化分析。`/<locale>/analytics/automation` 会把已声明机器人、疑似自动化和未匹配 Runtime 请求的观测值与抽样估算值分开展示。
 
 事件接收端兼容 V1，并严格校验 V2 的 link 与 Runtime 事件。过期、签名无效、正文过大、分类不一致或 source 错误的事件都会被拒绝。查询接口与渠道链接接口要求已经通过 WebUI 身份验证的会话。
 
@@ -95,7 +96,7 @@ Runtime 会发送匹配流量对应的配置规则路径、入口域名、平台
 
 需要生成渠道链接时，已登录的客户端可以调用 `POST /api/analytics/campaigns`，传入 Runtime 地址、统计 ID、渠道 ID 和 1–365 天有效期。返回的签名 `_i0c_via` 参数会绑定精确域名和归一化路径，并由 Runtime 在规则处理前删除。
 
-数据库地址和签名密钥必须仅保存在服务端。免费方案的额度和休眠策略可能变化，生产使用前请检查服务商的最新限制。
+数据库地址和签名密钥必须仅保存在服务端。Vercel 每天调用受保护的保留端点：原始事件、幂等收据和上游声明在 181 天后过期，小时与天级聚合继续保留。免费方案的额度和休眠策略可能变化，生产使用前请检查服务商的最新限制。
 
 完整事件契约、归因行为、数据库迁移顺序、隐私限制、投递保证和验收场景详见 [统计架构文档](../../docs/analytics.zh-CN.md)。迁移属于明确的外部写入，WebUI 构建不会自动执行迁移。
 
@@ -110,7 +111,7 @@ Runtime 会发送匹配流量对应的配置规则路径、入口域名、平台
 | Build Command | `pnpm build` |
 | Output Directory | Next.js default |
 
-将 [.env.example](.env.example) 中的环境变量配置到 Vercel。生产环境的 `NEXTAUTH_URL` 必须和部署域名一致，GitHub OAuth callback URL 必须是 `https://<你的域名>/api/auth/callback/github`。
+将 [.env.example](.env.example) 中的环境变量配置到 Vercel。生产环境的 `NEXTAUTH_URL` 必须和部署域名一致，必须配置 `CRON_SECRET` 供每日保留请求使用，GitHub OAuth callback URL 必须是 `https://<你的域名>/api/auth/callback/github`。
 
 ## 功能概览
 
