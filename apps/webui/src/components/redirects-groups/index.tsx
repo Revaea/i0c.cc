@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { AppShell } from "@/components/ui/app-shell";
-import { AppSectionNavigation } from "@/components/ui/app-section-navigation";
+import { AppSectionNavigationHeader } from "@/components/ui/app-section-navigation";
 import { ContentSkeleton, SidebarSkeletonBody, SidebarSkeletonCatalog, SidebarSkeletonFooter } from "@/components/ui/skeletons";
 import { GroupEntriesEditor } from "@/components/editor/group-entries-editor";
 import { RightPanel } from "@/components/editor/right-panel";
@@ -95,16 +95,18 @@ export function RedirectsGroupsManager() {
     return (
       <AppShell
         navigation={
-          <div className="space-y-5 p-5 sm:p-6">
-            <AppSectionNavigation />
-            <div className="border-b border-line pb-5">
-              <SidebarSkeletonBody />
-            </div>
-            <div className="border-b border-line pb-5">
-              <SidebarSkeletonCatalog />
-            </div>
-            <div>
-              <SidebarSkeletonFooter />
+          <div>
+            <AppSectionNavigationHeader />
+            <div className="space-y-5 p-5 sm:p-6">
+              <div className="border-b border-line pb-5">
+                <SidebarSkeletonBody />
+              </div>
+              <div className="border-b border-line pb-5">
+                <SidebarSkeletonCatalog />
+              </div>
+              <div>
+                <SidebarSkeletonFooter />
+              </div>
             </div>
           </div>
         }
@@ -120,13 +122,15 @@ export function RedirectsGroupsManager() {
     return (
       <AppShell
         navigation={
-          <div className="space-y-5 p-5 sm:p-6">
-            <AppSectionNavigation />
-            <div className="border-b border-line pb-5">
-              <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-                {tGroups("group")}
-              </h2>
-              <div className="mt-3 text-sm text-muted">{tGroups("cannotLoad")}</div>
+          <div>
+            <AppSectionNavigationHeader />
+            <div className="space-y-5 p-5 sm:p-6">
+              <div className="border-b border-line pb-5">
+                <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+                  {tGroups("group")}
+                </h2>
+                <div className="mt-3 text-sm text-muted">{tGroups("cannotLoad")}</div>
+              </div>
             </div>
           </div>
         }
@@ -187,13 +191,15 @@ export function RedirectsGroupsManager() {
   ) : null;
 
   const navigationNode = (
-    <div className="space-y-5 p-5 sm:p-6">
-      <AppSectionNavigation />
-      <div className="border-b border-line pb-5">
-        {sidebarBodyNode}
+    <div>
+      <AppSectionNavigationHeader />
+      <div className="space-y-5 p-5 sm:p-6">
+        <div className="border-b border-line pb-5">
+          {sidebarBodyNode}
+        </div>
+        {catalogNode}
+        {sidebarFooterNode}
       </div>
-      {catalogNode}
-      {sidebarFooterNode}
     </div>
   );
 

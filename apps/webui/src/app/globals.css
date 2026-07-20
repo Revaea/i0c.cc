@@ -83,6 +83,58 @@ a {
   }
 }
 
+@keyframes page-loading-bar {
+  0% {
+    transform: scaleX(0.08);
+  }
+
+  55% {
+    transform: scaleX(0.68);
+  }
+
+  100% {
+    transform: scaleX(0.9);
+  }
+}
+
+.page-loading-bar-progress {
+  transform-origin: left center;
+  will-change: transform;
+}
+
+.page-loading-bar-indicator {
+  animation: page-loading-bar 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform: scaleX(0.08);
+}
+
+.page-loading-bar-indicator-complete {
+  animation: none;
+  transform: scaleX(1);
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.page-loading-bar-indicator-restart {
+  animation: none;
+  transform: scaleX(0.08);
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.page-loading-bar-indicator-hidden {
+  animation: none;
+  transform: scaleX(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-loading-bar-indicator,
+  .page-loading-bar-indicator-complete,
+  .page-loading-bar-indicator-restart {
+    width: 100%;
+    animation: none;
+    transform: none;
+    transition: none;
+  }
+}
+
 @keyframes panel-in {
   0% {
     opacity: 0;

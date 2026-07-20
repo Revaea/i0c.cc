@@ -10,10 +10,9 @@ import {
   type AnalyticsRange,
   type AnalyticsScopeViewModel,
 } from "@/components/analytics/types"
-import { AppSectionNavigation } from "@/components/ui/app-section-navigation"
+import { AppSectionNavigationHeader } from "@/components/ui/app-section-navigation"
 import { AppShell } from "@/components/ui/app-shell"
 import { buttonClassName } from "@/components/ui/button"
-import { LinkPendingIndicator } from "@/components/ui/link-pending-indicator"
 import { sidebarItemClassName } from "@/components/ui/sidebar-item"
 import { refreshAnalytics } from "@/lib/analytics/actions"
 
@@ -52,9 +51,7 @@ interface AnalyticsStatePanelProps {
 export function AnalyticsShell({ children, navigation }: AnalyticsShellProps) {
   const navigationContent = (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 p-5 sm:p-6">
-        <AppSectionNavigation />
-      </div>
+      <AppSectionNavigationHeader />
       {navigation}
     </div>
   )
@@ -98,7 +95,6 @@ export function AnalyticsPageHeader({
             />
           </svg>
           {backAction.label}
-          <LinkPendingIndicator label={t("states.loading")} />
         </Link>
       ) : null}
       <div className="flex flex-wrap items-center justify-end gap-3">
@@ -169,7 +165,6 @@ function EntryDomainNavigation({
                 <path d="M3.8 10h12.4M10 3.5c1.6 1.8 2.4 4 2.4 6.5s-.8 4.7-2.4 6.5M10 3.5C8.4 5.3 7.6 7.5 7.6 10s.8 4.7 2.4 6.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
               </svg>
               <span className="min-w-0 flex-1 truncate">{option.label}</span>
-              <LinkPendingIndicator label={t("states.loading")} />
             </Link>
           )
         })}
@@ -191,7 +186,7 @@ export function AnalyticsRouteNavigation({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto border-t border-line px-5 py-5 sm:px-6">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
         <EntryDomainNavigation
           basePath={entryDomainBasePath}
           range={range}
@@ -225,7 +220,6 @@ export function AnalyticsRouteNavigation({
               />
             </svg>
             <span className="min-w-0 truncate">{t("navigation.overview")}</span>
-            <LinkPendingIndicator label={t("states.loading")} />
           </Link>
 
           <Link
@@ -242,7 +236,6 @@ export function AnalyticsRouteNavigation({
               <path d="M8 12h.01M12 12h.01" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
             </svg>
             <span className="min-w-0 truncate">{t("navigation.automation")}</span>
-            <LinkPendingIndicator label={t("states.loading")} />
           </Link>
         </nav>
       </section>
@@ -282,7 +275,6 @@ export function RangeFilter({
             })}
           >
             {t("range.days", { count: option })}
-            <LinkPendingIndicator label={t("states.loading")} />
           </Link>
         )
       })}
