@@ -133,6 +133,7 @@
   "analytics": {
     "navigation": {
       "overview": "Overview",
+      "automation": "Bots and automation",
       "routes": "Route rules"
     },
     "page": {
@@ -152,12 +153,25 @@
       "label": "Analytics period",
       "days": "{count} days"
     },
+    "filters": {
+      "entryDomain": "Entry domain",
+      "allDomains": "All domains",
+      "unknownDomain": "Unknown domain"
+    },
     "metrics": {
       "title": "Key metrics",
-      "humanClicks": "Human clicks",
-      "humanClicksDescription": "Likely human navigation requests",
+      "humanClicks": "Estimated human navigations",
+      "humanClicksDescription": "Estimated browser-like navigation requests matched to links",
+      "entryHumanClicks": "Estimated entry navigations",
+      "entryHumanClicksDescription": "Estimated browser-like navigations excluding controlled continuation hops",
       "totalRequests": "Total requests",
       "totalRequestsDescription": "All requests matched to tracked links",
+      "entryRequests": "Entry requests",
+      "entryRequestsDescription": "Requests excluding verified short-link continuation hops",
+      "declaredBotShare": "Declared bot share",
+      "declaredBotShareDescription": "Requests whose clients identify as bots or preview agents",
+      "suspectedAutomationShare": "Suspected automation share",
+      "suspectedAutomationShareDescription": "Requests classified as likely automated, not confirmed bots",
       "botPreviewShare": "Bot + preview share",
       "botPreviewShareDescription": "Detected bots and link unfurlers",
       "errors": "Errors",
@@ -191,6 +205,8 @@
       "referrers": "Referrers",
       "devices": "Devices",
       "providers": "Providers",
+      "campaigns": "Explicit campaigns",
+      "upstreamLinks": "Internal source links",
       "unknown": "Unknown",
       "direct": "Direct",
       "empty": "No data available."
@@ -206,7 +222,7 @@
       "rawEventRetention": "Raw-event retention",
       "databasePolicy": "Operator managed",
       "days": "{count} days",
-      "humanClickNote": "Human clicks exclude detected bots and link previews.",
+      "humanClickNote": "Estimated human navigations exclude declared bots, suspected automation, and link previews.",
       "cacheNote": "Cached permanent redirects may not produce a new edge request for every browser visit."
     },
     "states": {
@@ -222,6 +238,48 @@
       "errorDescription": "The data service returned an unexpected error. You can retry without losing any changes.",
       "retry": "Try again",
       "backToRules": "Back to rules"
+    },
+    "automation": {
+      "observed": "Observed",
+      "estimated": "Estimated",
+      "metrics": {
+        "title": "Automation metrics",
+        "requests": "All traffic",
+        "declaredBots": "Declared bots",
+        "suspectedAutomation": "Suspected automation",
+        "unmatched": "Unmatched requests",
+        "errors": "Errors",
+        "observedValue": "{count} observed"
+      },
+      "trend": {
+        "title": "Automation trend",
+        "description": "Estimated declared-bot and suspected-automation requests over time.",
+        "accessibleTitle": "Declared-bot and suspected-automation requests over time"
+      },
+      "ranking": {
+        "title": "Links most visited by automation",
+        "description": "Tracked links ranked by estimated declared-bot and suspected-automation requests.",
+        "empty": "No automated visits to tracked links were observed in this period.",
+        "tableCaption": "Tracked links ranked by automated requests"
+      },
+      "breakdowns": {
+        "title": "Automation classification",
+        "description": "Bars use estimated values with observed counts shown below. Suspected automation is not a confirmed bot.",
+        "entryDomains": "Entry domains",
+        "trafficClasses": "Traffic classes",
+        "categories": "Bot categories",
+        "confidences": "Classification confidence",
+        "classifierVersions": "Classifier versions",
+        "resourceClasses": "Resource classes",
+        "matchKinds": "Match kinds",
+        "outcomes": "Outcomes",
+        "probes": "Probe categories",
+        "observedValue": "{count} observed"
+      },
+      "states": {
+        "emptyTitle": "No automation analytics yet",
+        "emptyDescription": "Declared bots, suspected automation, and unmatched requests will appear after the runtime reports them."
+      }
     }
   },
   "qrCode": {

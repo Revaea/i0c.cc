@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { isAnalyticsRequestAuthenticated } from "@/lib/analytics/auth";
-import { getAnalyticsOverview, isAnalyticsConfigured } from "@/lib/analytics/queries";
+import {
+  getAnalyticsAutomationOverview,
+  isAnalyticsConfigured,
+} from "@/lib/analytics/queries";
 import {
   analyticsRanges,
   type AnalyticsQueryScope,
@@ -38,9 +41,14 @@ export async function GET(request: Request) {
   }
 
   try {
-    return NextResponse.json(await getAnalyticsOverview(parseScope(request, range)));
+    return NextResponse.json(
+      await getAnalyticsAutomationOverview(parseScope(request, range)),
+    );
   } catch (error) {
-    console.error("Failed to query analytics summary", error);
-    return NextResponse.json({ error: "Analytics summary could not be loaded" }, { status: 500 });
+    console.error("Failed to query automation analytics", error);
+    return NextResponse.json(
+      { error: "Automation analytics could not be loaded" },
+      { status: 500 },
+    );
   }
 }

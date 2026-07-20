@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 
 import { isAnalyticsRequestAuthenticated } from "@/lib/analytics/auth";
 import { getAnalyticsDetail, isAnalyticsConfigured } from "@/lib/analytics/queries";
-import { analyticsRanges, type AnalyticsRange } from "@/lib/analytics/types";
+import {
+  analyticsRanges,
+  type AnalyticsQueryScope,
+  type AnalyticsRange,
+} from "@/lib/analytics/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +18,13 @@ interface RouteContext {
 function parseRange(request: Request): AnalyticsRange | null {
   const value = new URL(request.url).searchParams.get("range") ?? "30d";
   return analyticsRanges.find((range) => range === value) ?? null;
+}
+
+function parseScope(request: Request, range: AnalyticsRange): AnalyticsQueryScope {
+  return {
+    range,
+    entryDomain: new URL(request.url).searchParams.get("entryDomain") ?? "all",
+  };
 }
 
 function isValidAnalyticsId(value: string): boolean {
@@ -40,7 +51,7 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   try {
-    const detail = await getAnalyticsDetail(analyticsId, range);
+    const detail = await getAnalyticsDetail(analyticsId, parseScope(request, range));
     if (!detail) {
       return NextResponse.json({ error: "Analytics link was not found" }, { status: 404 });
     }

@@ -10,6 +10,7 @@ import {
 } from "@/components/analytics/adapters"
 import { AnalyticsDetailDashboard } from "@/components/analytics/analytics-dashboard"
 import { parseAnalyticsRange } from "@/components/analytics/format"
+import { buildAnalyticsHref } from "@/components/analytics/links"
 import {
   AnalyticsPageHeader,
   AnalyticsRouteNavigation,
@@ -19,13 +20,16 @@ import {
 import { SignInPanel } from "@/components/ui/sign-in-panel"
 import {
   getAnalyticsDetail,
-  getAnalyticsLinkSummaries,
+  getAnalyticsNavigation,
   isAnalyticsConfigured,
 } from "@/lib/analytics/queries"
 
 interface AnalyticsDetailPageProps {
   params: Promise<{ locale: string; analyticsId: string }>
-  searchParams: Promise<{ range?: string | string[] }>
+  searchParams: Promise<{
+    entryDomain?: string | string[]
+    range?: string | string[]
+  }>
 }
 
 type SessionWithToken = Session & { hasAccessToken: true }
@@ -53,6 +57,9 @@ export default async function AnalyticsDetailPage({
   const [{ locale, analyticsId }, query] = await Promise.all([params, searchParams])
   const t = await getTranslations({ locale, namespace: "analytics" })
   const range = parseAnalyticsRange(query.range)
+  const entryDomain = Array.isArray(query.entryDomain)
+    ? query.entryDomain[0] ?? "all"
+    : query.entryDomain ?? "all"
   const overviewPath = `/${locale}/analytics`
   const detailPath = `${overviewPath}/${encodeURIComponent(analyticsId)}`
 
@@ -72,21 +79,25 @@ export default async function AnalyticsDetailPage({
     )
   }
 
-  const queryRange = toQueryRange(range)
-  const [result, linkSummaries] = await Promise.all([
-    getAnalyticsDetail(analyticsId, queryRange),
-    getAnalyticsLinkSummaries(queryRange),
+  const queryScope = { range: toQueryRange(range), entryDomain }
+  const [result, navigation] = await Promise.all([
+    getAnalyticsDetail(analyticsId, queryScope),
+    getAnalyticsNavigation(queryScope),
   ])
-  const navigationLinks = toRankedLinks(linkSummaries)
+  const navigationLinks = toRankedLinks(navigation.links)
   const routeNavigation = (
     <AnalyticsRouteNavigation
       activeAnalyticsId={analyticsId}
       basePath={overviewPath}
       links={navigationLinks}
-      locale={locale}
       range={range}
+      entryDomain={navigation.scope.entryDomain}
     />
   )
+  const overviewActionHref = buildAnalyticsHref(overviewPath, {
+    entryDomain: navigation.scope.entryDomain,
+    range,
+  })
 
   if (!result) {
     return (
@@ -94,11 +105,18 @@ export default async function AnalyticsDetailPage({
         <AnalyticsPageHeader
           range={range}
           rangeBasePath={detailPath}
+          scope={{
+            entryDomain: navigation.scope.entryDomain,
+            availableEntryDomains: navigation.scope.availableEntryDomains.map((option) => ({
+              value: option.value,
+              requestCount: option.requests,
+            })),
+          }}
         />
         <AnalyticsStatePanel
           title={t("states.notFoundTitle")}
           description={t("states.notFoundDescription")}
-          action={{ href: overviewPath, label: t("detail.back") }}
+          action={{ href: overviewActionHref, label: t("detail.back") }}
         />
       </AnalyticsShell>
     )
@@ -111,6 +129,7 @@ export default async function AnalyticsDetailPage({
       <AnalyticsPageHeader
         range={range}
         rangeBasePath={detailPath}
+        scope={detail.scope}
       />
       {detail.hasData ? (
         <AnalyticsDetailDashboard data={detail} locale={locale} />
@@ -118,7 +137,7 @@ export default async function AnalyticsDetailPage({
         <AnalyticsStatePanel
           title={t("states.linkEmptyTitle")}
           description={t("states.linkEmptyDescription")}
-          action={{ href: overviewPath, label: t("detail.back") }}
+          action={{ href: overviewActionHref, label: t("detail.back") }}
         />
       )}
     </AnalyticsShell>

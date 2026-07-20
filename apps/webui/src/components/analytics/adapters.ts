@@ -1,19 +1,28 @@
 import type {
+  AnalyticsAutomationDimensionPoint,
+  AnalyticsAutomationOverview,
+  AnalyticsBotBreakdowns,
   AnalyticsDetail,
+  AnalyticsDimensionPoint,
   AnalyticsLinkSummary,
   AnalyticsOverview,
   AnalyticsRange as QueryAnalyticsRange,
+  AnalyticsScope,
 } from "@/lib/analytics/types"
 
 import type {
+  AnalyticsAutomationTrendPoint,
+  AnalyticsAutomationViewModel,
   AnalyticsBreakdownItem,
   AnalyticsBreakdowns,
   AnalyticsDataQuality,
   AnalyticsDetailViewModel,
   AnalyticsMetrics,
+  AnalyticsObservedEstimate,
   AnalyticsOverviewViewModel,
   AnalyticsRankedLink,
   AnalyticsRange,
+  AnalyticsScopeViewModel,
   AnalyticsTrendPoint,
 } from "./types"
 
@@ -54,27 +63,65 @@ function formatBreakdownLabel(value: string, kind: keyof AnalyticsBreakdowns) {
     return "Direct"
   }
 
-  return kind === "devices" || kind === "providers" ? titleCase(normalized) : normalized
+  const shouldTitleCase = [
+    "devices",
+    "providers",
+    "trafficClasses",
+    "botCategories",
+    "botConfidences",
+    "resourceClasses",
+    "matchKinds",
+    "outcomes",
+    "probes",
+  ].includes(kind)
+
+  return shouldTitleCase ? titleCase(normalized) : normalized
 }
 
 function mapBreakdown(
-  items: Array<{ key: string; requests: number; clicks: number }>,
+  items: AnalyticsDimensionPoint[],
   totalRequests: number,
   kind: keyof AnalyticsBreakdowns,
 ): AnalyticsBreakdownItem[] {
   return items.map((item) => ({
     code: kind === "countries" ? item.key.toUpperCase() : undefined,
-    label: formatBreakdownLabel(item.key, kind),
+    label: formatBreakdownLabel(item.label ?? item.key, kind),
     value: item.requests,
     share: safeRatio(item.requests, totalRequests),
   }))
 }
 
+function mapAutomationBreakdown(
+  items: AnalyticsAutomationDimensionPoint[],
+  totalRequests: number,
+  kind: keyof AnalyticsBreakdowns,
+): AnalyticsBreakdownItem[] {
+  return items.map((item) => ({
+    label: formatBreakdownLabel(item.label ?? item.key, kind),
+    value: item.estimatedRequests,
+    observedValue: item.observedRequests,
+    share: safeRatio(item.estimatedRequests, totalRequests),
+  }))
+}
+
+function mapScope(scope: AnalyticsScope): AnalyticsScopeViewModel {
+  return {
+    entryDomain: scope.entryDomain,
+    availableEntryDomains: scope.availableEntryDomains.map((option) => ({
+      value: option.value,
+      requestCount: option.requests,
+    })),
+  }
+}
+
 function mapMetrics(totals: AnalyticsOverview["totals"]): AnalyticsMetrics {
   return {
-    validClicks: totals.clicks,
+    estimatedNavigations: totals.clicks,
+    estimatedEntryNavigations: totals.entryClicks,
     totalRequests: totals.requests,
-    botRate: safeRatio(totals.bots + totals.previews, totals.requests),
+    entryRequests: totals.entryRequests,
+    declaredBotRate: safeRatio(totals.declaredBots, totals.requests),
+    suspectedAutomationRate: safeRatio(totals.suspectedAutomation, totals.requests),
     errorCount: totals.errors,
   }
 }
@@ -82,8 +129,10 @@ function mapMetrics(totals: AnalyticsOverview["totals"]): AnalyticsMetrics {
 function mapTrend(series: AnalyticsOverview["series"]): AnalyticsTrendPoint[] {
   return series.map((point) => ({
     timestamp: point.timestamp,
-    validClicks: point.clicks,
+    estimatedNavigations: point.clicks,
+    estimatedEntryNavigations: point.entryClicks,
     totalRequests: point.requests,
+    entryRequests: point.entryRequests,
   }))
 }
 
@@ -106,19 +155,72 @@ function mapQuality(
   }
 }
 
-function mapBreakdowns(
-  data: Pick<AnalyticsOverview, "countries" | "referrers" | "devices" | "providers" | "totals">,
-): AnalyticsBreakdowns {
+function mapBotBreakdowns(
+  botBreakdowns: AnalyticsBotBreakdowns,
+  totalRequests: number,
+): Pick<
+  AnalyticsBreakdowns,
+  | "trafficClasses"
+  | "botCategories"
+  | "botConfidences"
+  | "classifierVersions"
+  | "resourceClasses"
+  | "matchKinds"
+  | "outcomes"
+  | "probes"
+> {
   return {
+    trafficClasses: mapAutomationBreakdown(
+      botBreakdowns.trafficClasses,
+      totalRequests,
+      "trafficClasses",
+    ),
+    botCategories: mapAutomationBreakdown(
+      botBreakdowns.categories,
+      totalRequests,
+      "botCategories",
+    ),
+    botConfidences: mapAutomationBreakdown(
+      botBreakdowns.confidences,
+      totalRequests,
+      "botConfidences",
+    ),
+    classifierVersions: mapAutomationBreakdown(
+      botBreakdowns.classifierVersions,
+      totalRequests,
+      "classifierVersions",
+    ),
+    resourceClasses: mapAutomationBreakdown(
+      botBreakdowns.resourceClasses,
+      totalRequests,
+      "resourceClasses",
+    ),
+    matchKinds: mapAutomationBreakdown(
+      botBreakdowns.matchKinds,
+      totalRequests,
+      "matchKinds",
+    ),
+    outcomes: mapAutomationBreakdown(botBreakdowns.outcomes, totalRequests, "outcomes"),
+    probes: mapAutomationBreakdown(botBreakdowns.probes, totalRequests, "probes"),
+  }
+}
+
+function mapBreakdowns(data: AnalyticsOverview | AnalyticsDetail): AnalyticsBreakdowns {
+  return {
+    entryDomains: [],
     countries: mapBreakdown(data.countries, data.totals.requests, "countries"),
     referrers: mapBreakdown(data.referrers, data.totals.requests, "referrers"),
     devices: mapBreakdown(data.devices, data.totals.requests, "devices"),
     providers: mapBreakdown(data.providers, data.totals.requests, "providers"),
+    campaigns: mapBreakdown(data.campaigns, data.totals.requests, "campaigns"),
+    upstreamLinks: mapBreakdown(data.upstreamLinks, data.totals.requests, "upstreamLinks"),
+    ...mapBotBreakdowns(data.botBreakdowns, data.totals.requests),
   }
 }
 
 export function toOverviewViewModel(data: AnalyticsOverview): AnalyticsOverviewViewModel {
   return {
+    scope: mapScope(data.scope),
     metrics: mapMetrics(data.totals),
     trend: mapTrend(data.series),
     links: toRankedLinks(data.links),
@@ -133,14 +235,17 @@ export function toRankedLinks(links: AnalyticsLinkSummary[]): AnalyticsRankedLin
     analyticsId: link.analyticsId,
     path: link.path,
     kind: link.linkType,
-    validClicks: link.clicks,
+    estimatedNavigations: link.clicks,
+    estimatedEntryNavigations: link.entryClicks,
     totalRequests: link.requests,
+    entryRequests: link.entryRequests,
     changeRate: link.trendPercent === null ? null : toRatio(link.trendPercent),
   }))
 }
 
 export function toDetailViewModel(data: AnalyticsDetail): AnalyticsDetailViewModel {
   return {
+    scope: mapScope(data.scope),
     link: {
       analyticsId: data.link.analyticsId,
       path: data.link.path,
@@ -151,5 +256,90 @@ export function toDetailViewModel(data: AnalyticsDetail): AnalyticsDetailViewMod
     breakdowns: mapBreakdowns(data),
     quality: mapQuality(data),
     hasData: data.totals.requests > 0 || data.series.some((point) => point.requests > 0),
+  }
+}
+
+function observedEstimate(observed: number, estimated: number): AnalyticsObservedEstimate {
+  return { observed, estimated }
+}
+
+function emptyGeneralBreakdowns(): Pick<
+  AnalyticsBreakdowns,
+  "entryDomains" | "countries" | "referrers" | "devices" | "campaigns" | "upstreamLinks"
+> {
+  return {
+    entryDomains: [],
+    countries: [],
+    referrers: [],
+    devices: [],
+    campaigns: [],
+    upstreamLinks: [],
+  }
+}
+
+function mapAutomationTrend(data: AnalyticsAutomationOverview): AnalyticsAutomationTrendPoint[] {
+  return data.series.map((point) => ({
+    timestamp: point.timestamp,
+    declaredBots: observedEstimate(
+      point.observedDeclaredBots,
+      point.estimatedDeclaredBots,
+    ),
+    suspectedAutomation: observedEstimate(
+      point.observedSuspectedAutomation,
+      point.estimatedSuspectedAutomation,
+    ),
+    unmatched: observedEstimate(point.observedUnmatched, point.estimatedUnmatched),
+  }))
+}
+
+export function toAutomationViewModel(
+  data: AnalyticsAutomationOverview,
+): AnalyticsAutomationViewModel {
+  const totalEstimated = data.totals.estimatedRequests
+  const providerBreakdown = mapAutomationBreakdown(data.providers, totalEstimated, "providers")
+
+  return {
+    scope: mapScope(data.scope),
+    metrics: {
+      requests: observedEstimate(data.totals.observedRequests, data.totals.estimatedRequests),
+      declaredBots: observedEstimate(
+        data.totals.observedDeclaredBots,
+        data.totals.estimatedDeclaredBots,
+      ),
+      suspectedAutomation: observedEstimate(
+        data.totals.observedSuspectedAutomation,
+        data.totals.estimatedSuspectedAutomation,
+      ),
+      unmatched: observedEstimate(
+        data.totals.observedUnmatched,
+        data.totals.estimatedUnmatched,
+      ),
+      errors: observedEstimate(data.totals.observedErrors, data.totals.estimatedErrors),
+    },
+    trend: mapAutomationTrend(data),
+    links: data.links.map((link) => ({
+      analyticsId: link.analyticsId,
+      path: link.path,
+      kind: link.linkType,
+      observedRequests: link.observedRequests,
+      estimatedRequests: link.estimatedRequests,
+    })),
+    breakdowns: {
+      ...emptyGeneralBreakdowns(),
+      providers: providerBreakdown,
+      entryDomains: mapAutomationBreakdown(
+        data.entryDomains,
+        totalEstimated,
+        "entryDomains",
+      ),
+      ...mapBotBreakdowns(data.botBreakdowns, totalEstimated),
+    },
+    quality: {
+      coverageStart: data.series.find((point) => point.observedRequests > 0)?.timestamp ?? null,
+      coverageEnd: [...data.series].reverse().find((point) => point.observedRequests > 0)?.timestamp ?? null,
+      lastEventAt: [...data.series].reverse().find((point) => point.observedRequests > 0)?.timestamp ?? null,
+      notes: [],
+    },
+    hasData: data.totals.observedRequests > 0 || data.totals.estimatedRequests > 0,
   }
 }

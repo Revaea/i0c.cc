@@ -3,9 +3,14 @@ import { getServerSession } from "next-auth/next"
 import { getTranslations } from "next-intl/server"
 
 import { authOptions } from "@/auth/config"
-import { AnalyticsOverviewDashboard } from "@/components/analytics/analytics-dashboard"
-import { toOverviewViewModel, toQueryRange } from "@/components/analytics/adapters"
+import {
+  toAutomationViewModel,
+  toQueryRange,
+  toRankedLinks,
+} from "@/components/analytics/adapters"
+import { AnalyticsAutomationDashboard } from "@/components/analytics/analytics-dashboard"
 import { parseAnalyticsRange } from "@/components/analytics/format"
+import { buildAnalyticsHref } from "@/components/analytics/links"
 import {
   AnalyticsPageHeader,
   AnalyticsRouteNavigation,
@@ -13,9 +18,13 @@ import {
   AnalyticsStatePanel,
 } from "@/components/analytics/analytics-shell"
 import { SignInPanel } from "@/components/ui/sign-in-panel"
-import { getAnalyticsOverview, isAnalyticsConfigured } from "@/lib/analytics/queries"
+import {
+  getAnalyticsAutomationOverview,
+  getAnalyticsNavigation,
+  isAnalyticsConfigured,
+} from "@/lib/analytics/queries"
 
-interface AnalyticsPageProps {
+interface AnalyticsAutomationPageProps {
   params: Promise<{ locale: string }>
   searchParams: Promise<{
     entryDomain?: string | string[]
@@ -31,7 +40,10 @@ function hasAccessToken(session: Session | null): session is SessionWithToken {
   return session?.hasAccessToken === true
 }
 
-export default async function AnalyticsPage({ params, searchParams }: AnalyticsPageProps) {
+export default async function AnalyticsAutomationPage({
+  params,
+  searchParams,
+}: AnalyticsAutomationPageProps) {
   const session = (await getServerSession(authOptions)) as Session | null
 
   if (!hasAccessToken(session)) {
@@ -49,14 +61,12 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
     ? query.entryDomain[0] ?? "all"
     : query.entryDomain ?? "all"
   const basePath = `/${locale}/analytics`
+  const automationPath = `${basePath}/automation`
 
   if (!isAnalyticsConfigured()) {
     return (
       <AnalyticsShell>
-        <AnalyticsPageHeader
-          range={range}
-          rangeBasePath={basePath}
-        />
+        <AnalyticsPageHeader range={range} rangeBasePath={automationPath} />
         <AnalyticsStatePanel
           title={t("states.unconfiguredTitle")}
           description={t("states.unconfiguredDescription")}
@@ -66,37 +76,48 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
     )
   }
 
-  const overview = toOverviewViewModel(await getAnalyticsOverview({
-    range: toQueryRange(range),
-    entryDomain,
-  }))
+  const queryScope = { range: toQueryRange(range), entryDomain }
+  const [result, navigation] = await Promise.all([
+    getAnalyticsAutomationOverview(queryScope),
+    getAnalyticsNavigation(queryScope),
+  ])
+  const automation = toAutomationViewModel(result)
 
   return (
     <AnalyticsShell
       navigation={
         <AnalyticsRouteNavigation
           basePath={basePath}
-          links={overview.links}
+          links={toRankedLinks(navigation.links)}
           range={range}
-          entryDomain={overview.scope.entryDomain}
+          entryDomain={automation.scope.entryDomain}
+          isAutomationActive
         />
       }
     >
       <AnalyticsPageHeader
         range={range}
-        rangeBasePath={basePath}
-        scope={overview.scope}
+        rangeBasePath={automationPath}
+        scope={automation.scope}
       />
-      {overview.hasData ? (
-        <AnalyticsOverviewDashboard
-          data={overview}
+      {automation.hasData ? (
+        <AnalyticsAutomationDashboard
+          data={automation}
+          detailBasePath={basePath}
           locale={locale}
+          range={range}
         />
       ) : (
         <AnalyticsStatePanel
-          title={t("states.emptyTitle")}
-          description={t("states.emptyDescription")}
-          action={{ href: `/${locale}`, label: t("states.backToRules") }}
+          title={t("automation.states.emptyTitle")}
+          description={t("automation.states.emptyDescription")}
+          action={{
+            href: buildAnalyticsHref(basePath, {
+              entryDomain: automation.scope.entryDomain,
+              range,
+            }),
+            label: t("navigation.overview"),
+          }}
         />
       )}
     </AnalyticsShell>

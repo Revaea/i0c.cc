@@ -10,7 +10,11 @@ import {
   formatDay,
   formatPercent,
 } from "./format"
+import { buildAnalyticsHref } from "./links"
 import type {
+  AnalyticsAutomationLink,
+  AnalyticsAutomationMetrics,
+  AnalyticsAutomationTrendPoint,
   AnalyticsBreakdownItem,
   AnalyticsBreakdowns,
   AnalyticsDataQuality,
@@ -29,6 +33,11 @@ interface TrendChartProps {
   points: AnalyticsTrendPoint[]
   locale: string
   chartId: string
+  accessibleTitle?: string
+  description?: string
+  primaryLabel?: string
+  secondaryLabel?: string
+  title?: string
 }
 
 interface LinkRankingProps {
@@ -36,6 +45,25 @@ interface LinkRankingProps {
   locale: string
   range: AnalyticsRange
   detailBasePath: string
+  entryDomain: string
+}
+
+interface AutomationMetricCardsProps {
+  metrics: AnalyticsAutomationMetrics
+  locale: string
+}
+
+interface AutomationTrendChartProps {
+  points: AnalyticsAutomationTrendPoint[]
+  locale: string
+}
+
+interface AutomationLinkRankingProps {
+  links: AnalyticsAutomationLink[]
+  locale: string
+  range: AnalyticsRange
+  detailBasePath: string
+  entryDomain: string
 }
 
 interface BreakdownGridProps {
@@ -65,8 +93,13 @@ export function MetricCards({ metrics, locale }: MetricCardsProps) {
   const metricItems = [
     {
       label: t("metrics.humanClicks"),
-      value: formatCount(metrics.validClicks, locale),
+      value: formatCount(metrics.estimatedNavigations, locale),
       description: t("metrics.humanClicksDescription"),
+    },
+    {
+      label: t("metrics.entryHumanClicks"),
+      value: formatCount(metrics.estimatedEntryNavigations, locale),
+      description: t("metrics.entryHumanClicksDescription"),
     },
     {
       label: t("metrics.totalRequests"),
@@ -74,9 +107,19 @@ export function MetricCards({ metrics, locale }: MetricCardsProps) {
       description: t("metrics.totalRequestsDescription"),
     },
     {
-      label: t("metrics.botPreviewShare"),
-      value: formatPercent(metrics.botRate, locale),
-      description: t("metrics.botPreviewShareDescription"),
+      label: t("metrics.entryRequests"),
+      value: formatCount(metrics.entryRequests, locale),
+      description: t("metrics.entryRequestsDescription"),
+    },
+    {
+      label: t("metrics.declaredBotShare"),
+      value: formatPercent(metrics.declaredBotRate, locale),
+      description: t("metrics.declaredBotShareDescription"),
+    },
+    {
+      label: t("metrics.suspectedAutomationShare"),
+      value: formatPercent(metrics.suspectedAutomationRate, locale),
+      description: t("metrics.suspectedAutomationShareDescription"),
     },
     {
       label: t("metrics.errors"),
@@ -105,6 +148,73 @@ export function MetricCards({ metrics, locale }: MetricCardsProps) {
         ))}
       </div>
     </section>
+  )
+}
+
+export function AutomationMetricCards({ metrics, locale }: AutomationMetricCardsProps) {
+  const t = useTranslations("analytics")
+  const metricItems = [
+    { label: t("automation.metrics.requests"), values: metrics.requests },
+    { label: t("automation.metrics.declaredBots"), values: metrics.declaredBots },
+    {
+      label: t("automation.metrics.suspectedAutomation"),
+      values: metrics.suspectedAutomation,
+    },
+    { label: t("automation.metrics.unmatched"), values: metrics.unmatched },
+    { label: t("automation.metrics.errors"), values: metrics.errors },
+  ]
+
+  return (
+    <section aria-labelledby="analytics-automation-kpis-title">
+      <h2 id="analytics-automation-kpis-title" className="sr-only">
+        {t("automation.metrics.title")}
+      </h2>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        {metricItems.map((metric) => (
+          <article
+            key={metric.label}
+            className={cardClassName({ elevation: "flat", padding: "md", tone: "muted" })}
+          >
+            <p className="text-sm font-medium text-muted">{metric.label}</p>
+            <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
+              {t("automation.estimated")}
+            </p>
+            <p className="mt-1 text-3xl font-semibold tracking-tight text-ink tabular-nums">
+              {formatCount(metric.values.estimated, locale)}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-muted">
+              {t("automation.metrics.observedValue", {
+                count: formatCount(metric.values.observed, locale),
+              })}
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+export function AutomationTrendChart({ points, locale }: AutomationTrendChartProps) {
+  const t = useTranslations("analytics")
+  const chartPoints: AnalyticsTrendPoint[] = points.map((point) => ({
+    timestamp: point.timestamp,
+    estimatedNavigations: point.declaredBots.estimated,
+    estimatedEntryNavigations: point.declaredBots.observed,
+    totalRequests: point.suspectedAutomation.estimated,
+    entryRequests: point.suspectedAutomation.observed,
+  }))
+
+  return (
+    <TrendChart
+      points={chartPoints}
+      locale={locale}
+      chartId="analytics-automation-trend"
+      accessibleTitle={t("automation.trend.accessibleTitle")}
+      title={t("automation.trend.title")}
+      description={t("automation.trend.description")}
+      primaryLabel={t("automation.metrics.declaredBots")}
+      secondaryLabel={t("automation.metrics.suspectedAutomation")}
+    />
   )
 }
 
@@ -142,13 +252,24 @@ function getAreaPath(coordinates: Array<{ x: number; y: number }>) {
   return `${line} L ${last.x.toFixed(2)} ${baseline} L ${first.x.toFixed(2)} ${baseline} Z`
 }
 
-export function TrendChart({ points, locale, chartId }: TrendChartProps) {
+export function TrendChart({
+  points,
+  locale,
+  chartId,
+  accessibleTitle,
+  description,
+  primaryLabel,
+  secondaryLabel,
+  title,
+}: TrendChartProps) {
   const t = useTranslations("analytics")
+  const resolvedPrimaryLabel = primaryLabel ?? t("metrics.humanClicks")
+  const resolvedSecondaryLabel = secondaryLabel ?? t("metrics.totalRequests")
   const maxValue = Math.max(
     1,
-    ...points.flatMap((point) => [point.validClicks, point.totalRequests]),
+    ...points.flatMap((point) => [point.estimatedNavigations, point.totalRequests]),
   )
-  const clickCoordinates = getCoordinates(points, maxValue, (point) => point.validClicks)
+  const clickCoordinates = getCoordinates(points, maxValue, (point) => point.estimatedNavigations)
   const requestCoordinates = getCoordinates(points, maxValue, (point) => point.totalRequests)
   const labelIndices = Array.from(new Set([0, Math.floor((points.length - 1) / 2), points.length - 1]))
     .filter((index) => index >= 0)
@@ -157,19 +278,19 @@ export function TrendChart({ points, locale, chartId }: TrendChartProps) {
     <section className={cardClassName({ elevation: "flat", padding: "md", className: "sm:p-6" })}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-ink">{t("trend.title")}</h2>
+          <h2 className="text-lg font-semibold text-ink">{title ?? t("trend.title")}</h2>
           <p className="mt-1 text-sm text-muted">
-            {t("trend.description")}
+            {description ?? t("trend.description")}
           </p>
         </div>
         <div className="flex flex-wrap gap-4 text-xs font-medium text-muted" aria-hidden="true">
           <span className="inline-flex items-center gap-2">
             <span className="h-0.5 w-5 rounded-full bg-accent" />
-            {t("metrics.humanClicks")}
+            {resolvedPrimaryLabel}
           </span>
           <span className="inline-flex items-center gap-2">
             <span className="h-0.5 w-5 rounded-full bg-line-strong" />
-            {t("metrics.totalRequests")}
+            {resolvedSecondaryLabel}
           </span>
         </div>
       </div>
@@ -186,7 +307,9 @@ export function TrendChart({ points, locale, chartId }: TrendChartProps) {
             aria-labelledby={`${chartId}-title ${chartId}-description`}
             className="h-auto min-w-[42rem] w-full"
           >
-            <title id={`${chartId}-title`}>{t("trend.accessibleTitle")}</title>
+            <title id={`${chartId}-title`}>
+              {accessibleTitle ?? t("trend.accessibleTitle")}
+            </title>
             <desc id={`${chartId}-description`}>
               {t("trend.accessibleDescription", {
                 start: formatDay(points[0].timestamp, locale),
@@ -267,15 +390,15 @@ export function TrendChart({ points, locale, chartId }: TrendChartProps) {
             <thead>
               <tr>
                 <th scope="col">{t("trend.date")}</th>
-                <th scope="col">{t("metrics.humanClicks")}</th>
-                <th scope="col">{t("metrics.totalRequests")}</th>
+                <th scope="col">{resolvedPrimaryLabel}</th>
+                <th scope="col">{resolvedSecondaryLabel}</th>
               </tr>
             </thead>
             <tbody>
               {points.map((point) => (
                 <tr key={point.timestamp}>
                   <th scope="row">{point.label ?? formatDay(point.timestamp, locale)}</th>
-                  <td>{point.validClicks}</td>
+                  <td>{point.estimatedNavigations}</td>
                   <td>{point.totalRequests}</td>
                 </tr>
               ))}
@@ -315,7 +438,13 @@ function LinkKindBadge({ kind }: { kind?: string }) {
   )
 }
 
-export function LinkRanking({ links, locale, range, detailBasePath }: LinkRankingProps) {
+export function LinkRanking({
+  links,
+  locale,
+  range,
+  detailBasePath,
+  entryDomain,
+}: LinkRankingProps) {
   const t = useTranslations("analytics")
 
   return (
@@ -341,7 +470,10 @@ export function LinkRanking({ links, locale, range, detailBasePath }: LinkRankin
                       <LinkKindBadge kind={link.kind} />
                     </div>
                     <Link
-                      href={`${detailBasePath}/${encodeURIComponent(link.analyticsId)}?range=${range}`}
+                      href={buildAnalyticsHref(
+                        `${detailBasePath}/${encodeURIComponent(link.analyticsId)}`,
+                        { entryDomain, range },
+                      )}
                       className="mt-2 block truncate font-mono text-sm font-semibold text-ink hover:text-accent hover:underline"
                     >
                       {link.path}
@@ -349,7 +481,7 @@ export function LinkRanking({ links, locale, range, detailBasePath }: LinkRankin
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-lg font-semibold tabular-nums text-ink">
-                      {formatCount(link.validClicks, locale)}
+                      {formatCount(link.estimatedNavigations, locale)}
                     </p>
                     <p className="text-xs text-muted">{t("metrics.humanClicks")}</p>
                   </div>
@@ -387,7 +519,10 @@ export function LinkRanking({ links, locale, range, detailBasePath }: LinkRankin
                         <LinkKindBadge kind={link.kind} />
                         <div className="min-w-0">
                           <Link
-                            href={`${detailBasePath}/${encodeURIComponent(link.analyticsId)}?range=${range}`}
+                            href={buildAnalyticsHref(
+                              `${detailBasePath}/${encodeURIComponent(link.analyticsId)}`,
+                              { entryDomain, range },
+                            )}
                             className="block truncate font-mono text-sm font-semibold text-ink hover:text-accent hover:underline"
                           >
                             {link.path}
@@ -396,7 +531,7 @@ export function LinkRanking({ links, locale, range, detailBasePath }: LinkRankin
                       </div>
                     </th>
                     <td className="px-3 py-4 text-right text-sm font-semibold tabular-nums text-ink">
-                      {formatCount(link.validClicks, locale)}
+                      {formatCount(link.estimatedNavigations, locale)}
                     </td>
                     <td className="px-3 py-4 text-right text-sm tabular-nums text-muted">
                       {formatCount(link.totalRequests, locale)}
@@ -410,6 +545,70 @@ export function LinkRanking({ links, locale, range, detailBasePath }: LinkRankin
             </table>
           </div>
         </>
+      )}
+    </section>
+  )
+}
+
+export function AutomationLinkRanking({
+  links,
+  locale,
+  range,
+  detailBasePath,
+  entryDomain,
+}: AutomationLinkRankingProps) {
+  const t = useTranslations("analytics")
+
+  return (
+    <section className={cardClassName({ elevation: "flat", padding: "none" })}>
+      <div className="border-b border-line px-5 py-5 sm:px-6">
+        <h2 className="text-lg font-semibold text-ink">{t("automation.ranking.title")}</h2>
+        <p className="mt-1 text-sm text-muted">{t("automation.ranking.description")}</p>
+      </div>
+      {links.length === 0 ? (
+        <div className="px-6 py-12 text-center text-sm text-muted">
+          {t("automation.ranking.empty")}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[40rem] text-left">
+            <caption className="sr-only">{t("automation.ranking.tableCaption")}</caption>
+            <thead className="bg-panel-muted text-xs font-semibold uppercase tracking-wide text-muted">
+              <tr>
+                <th scope="col" className="px-6 py-3">{t("ranking.shortLink")}</th>
+                <th scope="col" className="px-3 py-3 text-right">
+                  {t("automation.estimated")}
+                </th>
+                <th scope="col" className="px-6 py-3 text-right">
+                  {t("automation.observed")}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {links.map((link) => (
+                <tr key={link.analyticsId}>
+                  <th scope="row" className="px-6 py-4 font-normal">
+                    <Link
+                      href={buildAnalyticsHref(
+                        `${detailBasePath}/${encodeURIComponent(link.analyticsId)}`,
+                        { entryDomain, range },
+                      )}
+                      className="font-mono text-sm font-semibold text-ink hover:text-accent hover:underline"
+                    >
+                      {link.path}
+                    </Link>
+                  </th>
+                  <td className="px-3 py-4 text-right text-sm font-semibold tabular-nums text-ink">
+                    {formatCount(link.estimatedRequests, locale)}
+                  </td>
+                  <td className="px-6 py-4 text-right text-sm tabular-nums text-muted">
+                    {formatCount(link.observedRequests, locale)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   )
@@ -445,8 +644,17 @@ function BreakdownCard({
               <li key={`${item.code ?? item.label}-${item.label}`}>
                 <div className="flex items-center justify-between gap-3 text-xs">
                   <span className="min-w-0 truncate font-medium text-ink">{displayLabel}</span>
-                  <span className="shrink-0 tabular-nums text-muted">
-                    {formatCount(item.value, locale)} · {formatPercent(item.share, locale)}
+                  <span className="shrink-0 text-right tabular-nums text-muted">
+                    <span className="block">
+                      {formatCount(item.value, locale)} · {formatPercent(item.share, locale)}
+                    </span>
+                    {item.observedValue === undefined ? null : (
+                      <span className="mt-0.5 block text-[10px]">
+                        {t("automation.breakdowns.observedValue", {
+                          count: formatCount(item.observedValue, locale),
+                        })}
+                      </span>
+                    )}
                   </span>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line">
@@ -477,11 +685,54 @@ export function BreakdownGrid({ breakdowns, locale }: BreakdownGridProps) {
         </h2>
         <p className="mt-1 text-sm text-muted">{t("breakdowns.description")}</p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <BreakdownCard title={t("breakdowns.countries")} items={breakdowns.countries} locale={locale} />
         <BreakdownCard title={t("breakdowns.referrers")} items={breakdowns.referrers} locale={locale} />
         <BreakdownCard title={t("breakdowns.devices")} items={breakdowns.devices} locale={locale} />
         <BreakdownCard title={t("breakdowns.providers")} items={breakdowns.providers} locale={locale} />
+        <BreakdownCard title={t("breakdowns.campaigns")} items={breakdowns.campaigns} locale={locale} />
+        <BreakdownCard title={t("breakdowns.upstreamLinks")} items={breakdowns.upstreamLinks} locale={locale} />
+      </div>
+    </section>
+  )
+}
+
+export function BotBreakdownGrid({
+  breakdowns,
+  locale,
+  includeDelivery = false,
+}: BreakdownGridProps & { includeDelivery?: boolean }) {
+  const t = useTranslations("analytics")
+  const cards: Array<[string, AnalyticsBreakdownItem[]]> = [
+    [t("automation.breakdowns.trafficClasses"), breakdowns.trafficClasses],
+    [t("automation.breakdowns.categories"), breakdowns.botCategories],
+    [t("automation.breakdowns.confidences"), breakdowns.botConfidences],
+    [t("automation.breakdowns.classifierVersions"), breakdowns.classifierVersions],
+    [t("automation.breakdowns.resourceClasses"), breakdowns.resourceClasses],
+    [t("automation.breakdowns.matchKinds"), breakdowns.matchKinds],
+    [t("automation.breakdowns.outcomes"), breakdowns.outcomes],
+    [t("automation.breakdowns.probes"), breakdowns.probes],
+  ]
+
+  if (includeDelivery) {
+    cards.unshift(
+      [t("automation.breakdowns.entryDomains"), breakdowns.entryDomains],
+      [t("breakdowns.providers"), breakdowns.providers],
+    )
+  }
+
+  return (
+    <section aria-labelledby="analytics-bot-breakdowns-title">
+      <div className="mb-4">
+        <h2 id="analytics-bot-breakdowns-title" className="text-lg font-semibold text-ink">
+          {t("automation.breakdowns.title")}
+        </h2>
+        <p className="mt-1 text-sm text-muted">{t("automation.breakdowns.description")}</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {cards.map(([title, items]) => (
+          <BreakdownCard key={title} title={title} items={items} locale={locale} />
+        ))}
       </div>
     </section>
   )

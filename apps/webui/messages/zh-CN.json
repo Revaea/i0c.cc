@@ -133,6 +133,7 @@
   "analytics": {
     "navigation": {
       "overview": "全部统计",
+      "automation": "机器人与自动化",
       "routes": "路由规则"
     },
     "page": {
@@ -152,12 +153,25 @@
       "label": "统计周期",
       "days": "{count} 天"
     },
+    "filters": {
+      "entryDomain": "入口域名",
+      "allDomains": "全部域名",
+      "unknownDomain": "未知域名"
+    },
     "metrics": {
       "title": "关键指标",
-      "humanClicks": "有效跳转",
-      "humanClicksDescription": "推测由真人发起的导航请求",
+      "humanClicks": "估算的人类导航",
+      "humanClicksDescription": "命中短链接且表现为浏览器导航的估算请求",
+      "entryHumanClicks": "估算的入口导航",
+      "entryHumanClicksDescription": "排除受控短链接续跳后的估算浏览器导航",
       "totalRequests": "请求总数",
       "totalRequestsDescription": "所有命中已跟踪链接的请求",
+      "entryRequests": "入口请求",
+      "entryRequestsDescription": "排除已验证短链接续跳后的请求",
+      "declaredBotShare": "已声明机器人占比",
+      "declaredBotShareDescription": "客户端主动声明为机器人或链接预览器的请求",
+      "suspectedAutomationShare": "疑似自动化占比",
+      "suspectedAutomationShareDescription": "被分类为可能自动化但未确认为机器人的请求",
       "botPreviewShare": "机器人与预览占比",
       "botPreviewShareDescription": "检测到的机器人与链接预览请求",
       "errors": "错误数",
@@ -191,6 +205,8 @@
       "referrers": "来源域名",
       "devices": "设备",
       "providers": "运行平台",
+      "campaigns": "显式渠道",
+      "upstreamLinks": "内部来源短链接",
       "unknown": "未知",
       "direct": "直接访问",
       "empty": "暂无数据。"
@@ -206,7 +222,7 @@
       "rawEventRetention": "原始事件保留期",
       "databasePolicy": "由运维策略决定",
       "days": "{count} 天",
-      "humanClickNote": "有效跳转会排除检测到的机器人和链接预览请求。",
+      "humanClickNote": "估算的人类导航会排除已声明机器人、疑似自动化和链接预览请求。",
       "cacheNote": "浏览器缓存永久重定向后，后续访问可能不会再次到达边缘运行时。"
     },
     "states": {
@@ -222,6 +238,48 @@
       "errorDescription": "数据服务返回了意外错误。你可以安全重试，不会丢失任何改动。",
       "retry": "重试",
       "backToRules": "返回规则"
+    },
+    "automation": {
+      "observed": "观测值",
+      "estimated": "估算值",
+      "metrics": {
+        "title": "自动化指标",
+        "requests": "全部流量",
+        "declaredBots": "已声明机器人",
+        "suspectedAutomation": "疑似自动化",
+        "unmatched": "未匹配请求",
+        "errors": "错误",
+        "observedValue": "观测 {count}"
+      },
+      "trend": {
+        "title": "自动化趋势",
+        "description": "按时间对比已声明机器人和疑似自动化的估算请求。",
+        "accessibleTitle": "已声明机器人与疑似自动化请求趋势"
+      },
+      "ranking": {
+        "title": "自动化访问最多的短链接",
+        "description": "按已声明机器人和疑似自动化的估算请求排序。",
+        "empty": "所选周期内尚未观测到自动化访问短链接。",
+        "tableCaption": "按自动化请求排序的短链接"
+      },
+      "breakdowns": {
+        "title": "自动化分类",
+        "description": "条形图使用估算值，并在下方显示观测值；疑似自动化不代表已确认机器人。",
+        "entryDomains": "入口域名",
+        "trafficClasses": "流量类别",
+        "categories": "机器人类别",
+        "confidences": "分类置信度",
+        "classifierVersions": "分类器版本",
+        "resourceClasses": "资源类别",
+        "matchKinds": "匹配方式",
+        "outcomes": "处理结果",
+        "probes": "探测类别",
+        "observedValue": "观测 {count}"
+      },
+      "states": {
+        "emptyTitle": "暂无自动化分析数据",
+        "emptyDescription": "运行时上报已声明机器人、疑似自动化或未匹配请求后，数据会显示在这里。"
+      }
     }
   },
   "qrCode": {

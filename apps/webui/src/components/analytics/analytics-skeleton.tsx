@@ -8,7 +8,8 @@ export function AnalyticsSkeleton() {
         role="status"
         aria-label="Loading analytics"
       >
-        <div className="mb-6 flex justify-end border-b border-line pb-5">
+        <div className="mb-6 flex flex-wrap justify-end gap-3 border-b border-line pb-5">
+          <div className="h-10 w-80 max-w-full rounded-xl bg-panel-muted" />
           <div className="h-10 w-64 rounded-xl bg-panel-muted" />
         </div>
 

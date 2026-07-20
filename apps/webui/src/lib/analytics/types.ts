@@ -8,11 +8,31 @@ export interface AnalyticsDateRange {
   end: string;
 }
 
+export interface AnalyticsQueryScope {
+  range: AnalyticsRange;
+  entryDomain: string;
+}
+
+export interface AnalyticsEntryDomainOption {
+  value: string;
+  requests: number;
+  entryRequests: number;
+}
+
+export interface AnalyticsScope {
+  entryDomain: string;
+  availableEntryDomains: AnalyticsEntryDomainOption[];
+}
+
 export interface AnalyticsMetricTotals {
   requests: number;
+  entryRequests: number;
   clicks: number;
+  entryClicks: number;
   previews: number;
   bots: number;
+  declaredBots: number;
+  suspectedAutomation: number;
   errors: number;
   avgLatencyMs: number | null;
 }
@@ -20,16 +40,39 @@ export interface AnalyticsMetricTotals {
 export interface AnalyticsSeriesPoint {
   timestamp: string;
   requests: number;
+  entryRequests: number;
   clicks: number;
+  entryClicks: number;
   previews: number;
   bots: number;
+  declaredBots: number;
+  suspectedAutomation: number;
   errors: number;
 }
 
 export interface AnalyticsDimensionPoint {
   key: string;
+  label?: string;
   requests: number;
   clicks: number;
+}
+
+export interface AnalyticsAutomationDimensionPoint {
+  key: string;
+  label?: string;
+  observedRequests: number;
+  estimatedRequests: number;
+}
+
+export interface AnalyticsBotBreakdowns {
+  trafficClasses: AnalyticsAutomationDimensionPoint[];
+  categories: AnalyticsAutomationDimensionPoint[];
+  confidences: AnalyticsAutomationDimensionPoint[];
+  classifierVersions: AnalyticsAutomationDimensionPoint[];
+  resourceClasses: AnalyticsAutomationDimensionPoint[];
+  matchKinds: AnalyticsAutomationDimensionPoint[];
+  outcomes: AnalyticsAutomationDimensionPoint[];
+  probes: AnalyticsAutomationDimensionPoint[];
 }
 
 export interface AnalyticsLinkSummary {
@@ -37,15 +80,20 @@ export interface AnalyticsLinkSummary {
   path: string;
   linkType: "redirect" | "proxy";
   requests: number;
+  entryRequests: number;
   clicks: number;
+  entryClicks: number;
   previews: number;
   bots: number;
+  declaredBots: number;
+  suspectedAutomation: number;
   errors: number;
   trendPercent: number | null;
 }
 
 export interface AnalyticsOverview {
   range: AnalyticsDateRange;
+  scope: AnalyticsScope;
   totals: AnalyticsMetricTotals;
   series: AnalyticsSeriesPoint[];
   links: AnalyticsLinkSummary[];
@@ -53,6 +101,9 @@ export interface AnalyticsOverview {
   referrers: AnalyticsDimensionPoint[];
   devices: AnalyticsDimensionPoint[];
   providers: AnalyticsDimensionPoint[];
+  campaigns: AnalyticsDimensionPoint[];
+  upstreamLinks: AnalyticsDimensionPoint[];
+  botBreakdowns: AnalyticsBotBreakdowns;
 }
 
 export interface AnalyticsLink {
@@ -63,6 +114,7 @@ export interface AnalyticsLink {
 
 export interface AnalyticsDetail {
   range: AnalyticsDateRange;
+  scope: AnalyticsScope;
   link: AnalyticsLink;
   totals: AnalyticsMetricTotals;
   series: AnalyticsSeriesPoint[];
@@ -70,4 +122,43 @@ export interface AnalyticsDetail {
   referrers: AnalyticsDimensionPoint[];
   devices: AnalyticsDimensionPoint[];
   providers: AnalyticsDimensionPoint[];
+  campaigns: AnalyticsDimensionPoint[];
+  upstreamLinks: AnalyticsDimensionPoint[];
+  botBreakdowns: AnalyticsBotBreakdowns;
+}
+
+export interface AnalyticsAutomationTotals {
+  observedRequests: number;
+  estimatedRequests: number;
+  observedDeclaredBots: number;
+  estimatedDeclaredBots: number;
+  observedSuspectedAutomation: number;
+  estimatedSuspectedAutomation: number;
+  observedUnmatched: number;
+  estimatedUnmatched: number;
+  observedErrors: number;
+  estimatedErrors: number;
+}
+
+export interface AnalyticsAutomationSeriesPoint extends AnalyticsAutomationTotals {
+  timestamp: string;
+}
+
+export interface AnalyticsAutomationLinkSummary {
+  analyticsId: string;
+  path: string;
+  linkType: "redirect" | "proxy";
+  observedRequests: number;
+  estimatedRequests: number;
+}
+
+export interface AnalyticsAutomationOverview {
+  range: AnalyticsDateRange;
+  scope: AnalyticsScope;
+  totals: AnalyticsAutomationTotals;
+  series: AnalyticsAutomationSeriesPoint[];
+  links: AnalyticsAutomationLinkSummary[];
+  providers: AnalyticsAutomationDimensionPoint[];
+  entryDomains: AnalyticsAutomationDimensionPoint[];
+  botBreakdowns: AnalyticsBotBreakdowns;
 }

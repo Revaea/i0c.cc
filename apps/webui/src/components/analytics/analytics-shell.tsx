@@ -3,11 +3,12 @@ import type { ReactNode } from "react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 
-import { formatCount } from "@/components/analytics/format"
+import { buildAnalyticsHref } from "@/components/analytics/links"
 import {
   analyticsRanges,
   type AnalyticsRankedLink,
   type AnalyticsRange,
+  type AnalyticsScopeViewModel,
 } from "@/components/analytics/types"
 import { AppSectionNavigation } from "@/components/ui/app-section-navigation"
 import { AppShell } from "@/components/ui/app-shell"
@@ -21,14 +22,16 @@ interface AnalyticsShellProps {
 interface AnalyticsPageHeaderProps {
   range: AnalyticsRange
   rangeBasePath: string
+  scope?: AnalyticsScopeViewModel
 }
 
 interface AnalyticsRouteNavigationProps {
   activeAnalyticsId?: string
   basePath: string
   links: AnalyticsRankedLink[]
-  locale: string
   range: AnalyticsRange
+  entryDomain: string
+  isAutomationActive?: boolean
 }
 
 interface AnalyticsStatePanelProps {
@@ -60,10 +63,18 @@ export function AnalyticsShell({ children, navigation }: AnalyticsShellProps) {
 export function AnalyticsPageHeader({
   range,
   rangeBasePath,
+  scope,
 }: AnalyticsPageHeaderProps) {
   return (
-    <div className="mb-6 flex justify-end border-b border-line pb-5">
-      <RangeFilter range={range} basePath={rangeBasePath} />
+    <div className="mb-6 flex flex-wrap justify-end gap-3 border-b border-line pb-5">
+      {scope ? (
+        <EntryDomainFilter range={range} basePath={rangeBasePath} scope={scope} />
+      ) : null}
+      <RangeFilter
+        range={range}
+        basePath={rangeBasePath}
+        entryDomain={scope?.entryDomain ?? "all"}
+      />
     </div>
   )
 }
@@ -72,8 +83,9 @@ export function AnalyticsRouteNavigation({
   activeAnalyticsId,
   basePath,
   links,
-  locale,
   range,
+  entryDomain,
+  isAutomationActive = false,
 }: AnalyticsRouteNavigationProps) {
   const t = useTranslations("analytics")
 
@@ -84,12 +96,12 @@ export function AnalyticsRouteNavigation({
       </p>
       <nav aria-label={t("navigation.routes")} className="space-y-1">
         <Link
-          href={`${basePath}?range=${range}`}
-          aria-current={!activeAnalyticsId ? "page" : undefined}
+          href={buildAnalyticsHref(basePath, { entryDomain, range })}
+          aria-current={!activeAnalyticsId && !isAutomationActive ? "page" : undefined}
           className={buttonClassName({
             className: "w-full justify-start",
             size: "sm",
-            variant: !activeAnalyticsId ? "selected" : "ghost",
+            variant: !activeAnalyticsId && !isAutomationActive ? "selected" : "ghost",
           })}
         >
           <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
@@ -103,13 +115,32 @@ export function AnalyticsRouteNavigation({
           <span className="truncate">{t("navigation.overview")}</span>
         </Link>
 
+        <Link
+          href={buildAnalyticsHref(`${basePath}/automation`, { entryDomain, range })}
+          aria-current={isAutomationActive ? "page" : undefined}
+          className={buttonClassName({
+            className: "w-full justify-start",
+            size: "sm",
+            variant: isAutomationActive ? "selected" : "ghost",
+          })}
+        >
+          <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
+            <path d="M6 8V6.5a4 4 0 0 1 8 0V8M4.5 8h11v7.5h-11V8Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M8 12h.01M12 12h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+          <span className="truncate">{t("navigation.automation")}</span>
+        </Link>
+
         {links.map((link) => {
           const isActive = link.analyticsId === activeAnalyticsId
 
           return (
             <Link
               key={link.analyticsId}
-              href={`${basePath}/${encodeURIComponent(link.analyticsId)}?range=${range}`}
+              href={buildAnalyticsHref(
+                `${basePath}/${encodeURIComponent(link.analyticsId)}`,
+                { entryDomain, range },
+              )}
               aria-current={isActive ? "page" : undefined}
               className={buttonClassName({
                 className: "w-full min-w-0 justify-start",
@@ -133,9 +164,6 @@ export function AnalyticsRouteNavigation({
                 />
               </svg>
               <span className="min-w-0 flex-1 truncate font-mono">{link.path}</span>
-              <span className="shrink-0 text-[11px] tabular-nums text-muted">
-                {formatCount(link.validClicks, locale)}
-              </span>
             </Link>
           )
         })}
@@ -144,7 +172,15 @@ export function AnalyticsRouteNavigation({
   )
 }
 
-export function RangeFilter({ range, basePath }: { range: AnalyticsRange; basePath: string }) {
+export function RangeFilter({
+  range,
+  basePath,
+  entryDomain,
+}: {
+  range: AnalyticsRange
+  basePath: string
+  entryDomain: string
+}) {
   const t = useTranslations("analytics")
 
   return (
@@ -159,7 +195,7 @@ export function RangeFilter({ range, basePath }: { range: AnalyticsRange; basePa
         return (
           <Link
             key={option}
-            href={`${basePath}?range=${option}`}
+            href={buildAnalyticsHref(basePath, { entryDomain, range: option })}
             aria-current={isActive ? "page" : undefined}
             className={buttonClassName({
               size: "sm",
@@ -167,6 +203,55 @@ export function RangeFilter({ range, basePath }: { range: AnalyticsRange; basePa
             })}
           >
             {t("range.days", { count: option })}
+          </Link>
+        )
+      })}
+    </div>
+  )
+}
+
+export function EntryDomainFilter({
+  range,
+  basePath,
+  scope,
+}: {
+  range: AnalyticsRange
+  basePath: string
+  scope: AnalyticsScopeViewModel
+}) {
+  const t = useTranslations("analytics")
+  const options = [
+    { value: "all", label: t("filters.allDomains") },
+    ...scope.availableEntryDomains.map((option) => ({
+      value: option.value,
+      label: option.value === "unknown" ? t("filters.unknownDomain") : option.value,
+    })),
+  ]
+
+  return (
+    <div
+      className="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-panel-muted p-1"
+      role="group"
+      aria-label={t("filters.entryDomain")}
+    >
+      {options.map((option) => {
+        const isActive = option.value === scope.entryDomain
+
+        return (
+          <Link
+            key={option.value}
+            href={buildAnalyticsHref(basePath, {
+              entryDomain: option.value,
+              range,
+            })}
+            aria-current={isActive ? "page" : undefined}
+            className={buttonClassName({
+              className: "shrink-0",
+              size: "sm",
+              variant: isActive ? "primary" : "ghost",
+            })}
+          >
+            {option.label}
           </Link>
         )
       })}
