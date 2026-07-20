@@ -26,6 +26,7 @@ interface AnalyticsOverviewDashboardProps {
 interface AnalyticsDetailDashboardProps {
   data: AnalyticsDetailViewModel
   locale: string
+  range: AnalyticsRange
 }
 
 interface AnalyticsAutomationDashboardProps {
@@ -44,7 +45,12 @@ export function AnalyticsOverviewDashboard({
   return (
     <div className="space-y-6">
       <MetricCards metrics={data.metrics} locale={locale} />
-      <TrendChart points={data.trend} locale={locale} chartId="analytics-overview-trend" />
+      <TrendChart
+        points={data.trend}
+        locale={locale}
+        range={range}
+        chartId="analytics-overview-trend"
+      />
       <LinkRanking
         links={data.links.slice(0, 10)}
         locale={locale}
@@ -58,11 +64,16 @@ export function AnalyticsOverviewDashboard({
   )
 }
 
-export function AnalyticsDetailDashboard({ data, locale }: AnalyticsDetailDashboardProps) {
+export function AnalyticsDetailDashboard({ data, locale, range }: AnalyticsDetailDashboardProps) {
   return (
     <div className="space-y-6">
       <MetricCards metrics={data.metrics} locale={locale} />
-      <TrendChart points={data.trend} locale={locale} chartId="analytics-detail-trend" />
+      <TrendChart
+        points={data.trend}
+        locale={locale}
+        range={range}
+        chartId="analytics-detail-trend"
+      />
       <BreakdownGrid breakdowns={data.breakdowns} locale={locale} />
       <DataQualityPanel quality={data.quality} locale={locale} />
     </div>
@@ -78,7 +89,7 @@ export function AnalyticsAutomationDashboard({
   return (
     <div className="space-y-6">
       <AutomationMetricCards metrics={data.metrics} locale={locale} />
-      <AutomationTrendChart points={data.trend} locale={locale} />
+      <AutomationTrendChart points={data.trend} locale={locale} range={range} />
       <BotBreakdownGrid breakdowns={data.breakdowns} locale={locale} />
       <AutomationLinkRanking
         links={data.links.slice(0, 10)}

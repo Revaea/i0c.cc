@@ -35,7 +35,6 @@ interface AnalyticsPageHeaderProps {
 
 interface AnalyticsRouteNavigationProps {
   basePath: string
-  isDetailActive?: boolean
   range: AnalyticsRange
   scope: AnalyticsScopeViewModel
   isAutomationActive?: boolean
@@ -52,8 +51,10 @@ interface AnalyticsStatePanelProps {
 
 export function AnalyticsShell({ children, navigation }: AnalyticsShellProps) {
   const navigationContent = (
-    <div className="space-y-4 p-5 sm:p-6">
-      <AppSectionNavigation />
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0 p-5 sm:p-6">
+        <AppSectionNavigation />
+      </div>
       {navigation}
     </div>
   )
@@ -129,16 +130,20 @@ function EntryDomainNavigation({
   scope: AnalyticsScopeViewModel
 }) {
   const t = useTranslations("analytics")
+  const orderedEntryDomains = [
+    ...scope.availableEntryDomains.filter((option) => option.value === "unknown"),
+    ...scope.availableEntryDomains.filter((option) => option.value !== "unknown"),
+  ]
   const options = [
     { value: "all", label: t("filters.allDomains") },
-    ...scope.availableEntryDomains.map((option) => ({
+    ...orderedEntryDomains.map((option) => ({
       value: option.value,
       label: option.value === "unknown" ? t("filters.unknownDomain") : option.value,
     })),
   ]
 
   return (
-    <section className="border-t border-line pt-5">
+    <section>
       <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted">
         {t("filters.entryDomain")}
       </p>
@@ -153,7 +158,7 @@ function EntryDomainNavigation({
                 entryDomain: option.value,
                 range,
               })}
-              aria-current={isActive ? "page" : undefined}
+              aria-current={isActive ? "true" : undefined}
               className={sidebarItemClassName({
                 className: "relative min-w-0",
                 isSelected: isActive,
@@ -175,30 +180,43 @@ function EntryDomainNavigation({
 
 export function AnalyticsRouteNavigation({
   basePath,
-  isDetailActive = false,
   range,
   scope,
   isAutomationActive = false,
 }: AnalyticsRouteNavigationProps) {
   const t = useTranslations("analytics")
   const entryDomain = scope.entryDomain
+  const entryDomainBasePath = isAutomationActive ? `${basePath}/automation` : basePath
+  const isOverviewActive = !isAutomationActive
 
   return (
-    <div className="space-y-5">
-      <section className="border-t border-line pt-5">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto border-t border-line px-5 py-5 sm:px-6">
+        <EntryDomainNavigation
+          basePath={entryDomainBasePath}
+          range={range}
+          scope={scope}
+        />
+      </div>
+
+      <section className="shrink-0 border-t border-line px-5 py-4 sm:px-6 sm:py-5">
         <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted">
           {t("navigation.analysis")}
         </p>
-        <nav aria-label={t("navigation.analysis")} className="space-y-1">
+        <nav
+          aria-label={t("navigation.analysis")}
+          className="grid grid-cols-2 gap-1 rounded-xl bg-panel-muted p-1"
+        >
           <Link
             href={buildAnalyticsHref(basePath, { entryDomain, range })}
-            aria-current={!isDetailActive && !isAutomationActive ? "page" : undefined}
-            className={sidebarItemClassName({
-              className: "relative",
-              isSelected: !isDetailActive && !isAutomationActive,
+            aria-current={isOverviewActive ? "page" : undefined}
+            className={buttonClassName({
+              className: "relative w-full min-w-0",
+              size: "sm",
+              variant: isOverviewActive ? "primary" : "ghost",
             })}
           >
-            <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 shrink-0 text-muted" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 shrink-0" aria-hidden="true">
               <path
                 d="M4 15V9m6 6V5m6 10v-3"
                 stroke="currentColor"
@@ -206,29 +224,28 @@ export function AnalyticsRouteNavigation({
                 strokeLinecap="round"
               />
             </svg>
-            <span className="min-w-0 flex-1 truncate">{t("navigation.overview")}</span>
+            <span className="min-w-0 truncate">{t("navigation.overview")}</span>
             <LinkPendingIndicator label={t("states.loading")} />
           </Link>
 
           <Link
             href={buildAnalyticsHref(`${basePath}/automation`, { entryDomain, range })}
             aria-current={isAutomationActive ? "page" : undefined}
-            className={sidebarItemClassName({
-              className: "relative",
-              isSelected: isAutomationActive,
+            className={buttonClassName({
+              className: "relative w-full min-w-0",
+              size: "sm",
+              variant: isAutomationActive ? "primary" : "ghost",
             })}
           >
-            <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 shrink-0 text-muted" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 shrink-0" aria-hidden="true">
               <path d="M6 8V6.5a4 4 0 0 1 8 0V8M4.5 8h11v7.5h-11V8Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M8 12h.01M12 12h.01" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
             </svg>
-            <span className="min-w-0 flex-1 truncate">{t("navigation.automation")}</span>
+            <span className="min-w-0 truncate">{t("navigation.automation")}</span>
             <LinkPendingIndicator label={t("states.loading")} />
           </Link>
         </nav>
       </section>
-
-      <EntryDomainNavigation basePath={basePath} range={range} scope={scope} />
     </div>
   )
 }
@@ -246,7 +263,7 @@ export function RangeFilter({
 
   return (
     <div
-      className="grid w-fit grid-cols-3 gap-1 rounded-xl bg-panel-muted p-1"
+      className="grid w-fit grid-cols-4 gap-1 rounded-xl bg-panel-muted p-1"
       role="group"
       aria-label={t("range.label")}
     >

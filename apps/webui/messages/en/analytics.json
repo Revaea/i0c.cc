@@ -1,9 +1,9 @@
 {
   "analytics": {
     "navigation": {
-      "analysis": "Analytics",
-      "overview": "Overview",
-      "automation": "Bots and automation"
+      "analysis": "Analysis views",
+      "overview": "Traffic overview",
+      "automation": "Automation"
     },
     "page": {
       "title": "Short-link analytics",
@@ -20,16 +20,16 @@
     },
     "range": {
       "label": "Analytics period",
-      "days": "{count} days"
+      "days": "{count, plural, one {# day} other {# days}}"
     },
     "refresh": {
       "label": "Refresh analytics",
       "pending": "Refreshing analytics"
     },
     "filters": {
-      "entryDomain": "Entry domain",
-      "allDomains": "All domains",
-      "unknownDomain": "Unknown domain"
+      "entryDomain": "Entry domains",
+      "allDomains": "All entry domains",
+      "unknownDomain": "Unidentified domain"
     },
     "labels": {
       "linkTypes": {
@@ -128,7 +128,8 @@
       "accessibleTitle": "Effective visits and total requests over time",
       "accessibleDescription": "A line chart covering {start} through {end}.",
       "tableCaption": "Analytics trend data",
-      "date": "Date"
+      "date": "Date",
+      "time": "Time"
     },
     "ranking": {
       "title": "Top routes",
@@ -171,7 +172,7 @@
       "unknownGeography": "Unknown geography",
       "rawEventRetention": "Raw-event retention",
       "databasePolicy": "Operator managed",
-      "days": "{count} days",
+      "days": "{count, plural, one {# day} other {# days}}",
       "humanClickNote": "Effective visits exclude declared bots, suspected automation, link previews, and controlled short-link hops.",
       "cacheNote": "Cached permanent redirects may not produce a new edge request for every browser visit.",
       "refreshNote": "Analytics queries are cached for 15 seconds to speed up filter changes. Refresh manually to load new data immediately."

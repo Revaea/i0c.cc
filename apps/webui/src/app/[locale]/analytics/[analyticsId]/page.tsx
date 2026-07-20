@@ -95,7 +95,6 @@ export default async function AnalyticsDetailPage({
   const routeNavigation = (
     <AnalyticsRouteNavigation
       basePath={overviewPath}
-      isDetailActive
       range={range}
       scope={navigationScope}
     />
@@ -133,7 +132,7 @@ export default async function AnalyticsDetailPage({
         rangeBasePath={detailPath}
       />
       {detail.hasData ? (
-        <AnalyticsDetailDashboard data={detail} locale={locale} />
+        <AnalyticsDetailDashboard data={detail} locale={locale} range={range} />
       ) : (
         <AnalyticsStatePanel
           title={t("states.linkEmptyTitle")}

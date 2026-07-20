@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 
   const range = parseRange(request);
   if (!range) {
-    return NextResponse.json({ error: "Range must be one of 7d, 30d, or 90d" }, { status: 400 });
+    return NextResponse.json({ error: "Range must be one of 1d, 7d, 30d, or 90d" }, { status: 400 });
   }
 
   if (!isAnalyticsConfigured()) {
