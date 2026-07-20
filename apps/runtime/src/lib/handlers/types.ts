@@ -15,6 +15,29 @@
 export type RouteType = "prefix" | "exact" | "proxy";
 export type AnalyticsProvider = "cloudflare" | "vercel" | "netlify" | "unknown";
 export type AnalyticsRequestClass = "human" | "link_preview" | "crawler" | "monitor" | "asset" | "unknown";
+export type AnalyticsEventKind = "link" | "runtime";
+export type AnalyticsTrafficClass = "browser_like" | "declared_bot" | "suspected_automation" | "unknown";
+export type AnalyticsBotCategory = "none" | "search" | "ai_crawler" | "social_preview" | "monitor" | "automation" | "security_probe" | "unknown";
+export type AnalyticsBotConfidence = "none" | "low" | "medium" | "high";
+export type AnalyticsResourceClass = "document" | "asset" | "api" | "other" | "unknown";
+export type AnalyticsDeviceType = "desktop" | "mobile" | "tablet" | "bot" | "unknown";
+export type AnalyticsProbeCategory = "none" | "wordpress" | "env_file" | "admin" | "vcs" | "path_traversal" | "scanner" | "other";
+export type AnalyticsLinkMatchKind = "exact" | "parameterized" | "prefix" | "catch_all";
+export type AnalyticsRuntimeMatchKind = "unmatched" | "system";
+export type AnalyticsRuntimeOutcome = "not_found" | "proxy_exhausted" | "config_unavailable" | "internal_error";
+
+export interface AnalyticsTrafficClassification {
+  trafficClass: AnalyticsTrafficClass;
+  botCategory: AnalyticsBotCategory;
+  botConfidence: AnalyticsBotConfidence;
+}
+
+export interface AnalyticsUpstreamAttribution {
+  upstreamEventId: string;
+  upstreamAnalyticsId: string;
+  upstreamEntryDomain: string;
+  upstreamProvider: AnalyticsProvider;
+}
 
 export type RouteValue = string | RouteConfig;
 export type RouteValueEntry = RouteValue | RouteValue[];
@@ -78,6 +101,7 @@ export interface HandlerOptions {
   country?: string;
   waitUntil?(promise: Promise<unknown>): void;
   now?: () => number;
+  random?: () => number;
 }
 
 export interface ResolvedRuntime {
@@ -91,4 +115,5 @@ export interface ResolvedRuntime {
   country?: string;
   waitUntil?: (promise: Promise<unknown>) => void;
   now: () => number;
+  random: () => number;
 }

@@ -29,6 +29,7 @@ export function resolveRuntimeOptions(options: HandlerOptions): ResolvedRuntime 
         }) as unknown as typeof fetch));
   const cacheTtlSeconds = options.cacheTtlSeconds ?? DEFAULT_CACHE_TTL_SECONDS;
   const now = options.now ?? (() => Date.now());
+  const random = options.random ?? (() => Math.random());
 
   return {
     configUrl: options.configUrl ?? DEFAULT_CONFIG_URL,
@@ -40,7 +41,8 @@ export function resolveRuntimeOptions(options: HandlerOptions): ResolvedRuntime 
     provider: options.provider ?? "unknown",
     country: options.country,
     waitUntil: options.waitUntil,
-    now
+    now,
+    random
   };
 }
 

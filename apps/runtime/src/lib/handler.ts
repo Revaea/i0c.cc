@@ -12,60 +12,58 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
-import { loadConfig, resolveRuntimeOptions } from "@handlers/loader";
-import { scheduleMatchedAnalytics } from "@handlers/analytics";
-import { applyTemplate, appendOriginalQuery, buildCompiledList, collectProxyRaceCandidates, flattenSlots, getSlotSource, resolvePrefixTarget } from "@handlers/matcher";
-import { generateRobots, generateSitemapXml, isRobotsAllowed } from "@handlers/seo";
-import { HandlerOptions, NormalizedRule, ResolvedRuntime, RouteValueEntry } from "@handlers/types";
-import { serveFavicon } from "@handlers/favicon-serve";
+import {
+  finalizeMatchedAnalytics,
+  finalizeRuntimeAnalytics,
+  prepareAnalyticsRequest
+} from "@handlers/analytics";
+import {
+  ANALYTICS_ATTRIBUTION_QUERY_PARAM,
+  clearAttributionCookie
+} from "@handlers/analytics-attribution";
 import { HTTPS_REDIRECT_STATUS } from "@handlers/constants";
-import { needsHttpsRedirect, respondUsingRule, shouldFallbackProxy } from "@handlers/response";
-import { inferEffectivePath, isLikelyStaticAssetPath, normalisePath, safeDecode } from "@handlers/utils";
+import { serveFavicon } from "@handlers/favicon-serve";
+import { loadConfig, resolveRuntimeOptions } from "@handlers/loader";
+import {
+  buildCompiledList,
+  collectProxyRaceCandidates,
+  flattenSlots,
+  getSlotSource,
+  resolveCompiledTarget
+} from "@handlers/matcher";
+import { respondUsingRule, shouldFallbackProxy } from "@handlers/response";
+import { generateRobots, generateSitemapXml, isRobotsAllowed } from "@handlers/seo";
 import { notFoundPageHtml } from "@handlers/templates";
-
-function finalizeMatchedResponse(
-  request: Request,
-  response: Response,
-  rule: NormalizedRule,
-  path: string,
-  isStaticAssetPath: boolean,
-  startedAt: number,
-  runtime: ResolvedRuntime
-): Response {
-  try {
-    scheduleMatchedAnalytics({
-      request,
-      response,
-      rule,
-      path,
-      isStaticAssetPath,
-      startedAt,
-      completedAt: runtime.now(),
-      runtime
-    });
-  } catch (error) {
-    console.error("[Analytics] Failed to prepare matched event", error);
-  }
-
-  return response;
-}
+import type { AnalyticsRequestContext } from "@handlers/analytics";
+import type { HandlerOptions, RouteValueEntry } from "@handlers/types";
+import { inferEffectivePath, isLikelyStaticAssetPath, normalisePath, safeDecode } from "@handlers/utils";
 
 export async function handleRedirectRequest(request: Request, options: HandlerOptions = {}): Promise<Response> {
   const runtime = resolveRuntimeOptions(options);
   const startedAt = runtime.now();
+  let analytics: AnalyticsRequestContext | undefined;
+  let effectivePath = "/";
 
   try {
-    const url = new URL(request.url);
-    const path = normalisePath(url.pathname);
+    const initialUrl = new URL(request.url);
 
-    if (needsHttpsRedirect(url)) {
-      const hostname = url.hostname.startsWith("www.") ? url.hostname.replace(/^www\./, "") : url.hostname;
-      const destination = `https://${hostname}${url.pathname}${url.search}`;
-      return Response.redirect(destination, HTTPS_REDIRECT_STATUS);
+    if (initialUrl.protocol !== "https:") {
+      const containsAttributionToken = initialUrl.searchParams.has(ANALYTICS_ATTRIBUTION_QUERY_PARAM);
+      const destination = `https://${initialUrl.host}${initialUrl.pathname}${initialUrl.search}`;
+      return createCanonicalRedirect(destination, containsAttributionToken);
     }
 
+    analytics = await prepareAnalyticsRequest(request, runtime);
+    if (analytics.cleanupResponse) {
+      return analytics.cleanupResponse;
+    }
+
+    const url = analytics.sanitizedUrl;
+    const path = normalisePath(url.pathname);
+    effectivePath = safeDecode(path);
+
     if (path === "/favicon.ico") {
-      return serveFavicon();
+      return clearAttributionCookie(serveFavicon(), analytics.hasAttributionCookie);
     }
 
     const redirectsConfig = await loadConfig(runtime);
@@ -73,9 +71,18 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
 
     if (!slotSource) {
       console.warn("[Handler] No slots configured.");
-      return new Response("503 No Slots configured", {
+      const response = new Response("503 No Slots configured", {
         status: 503,
         headers: { "Content-Type": "text/plain; charset=utf-8" }
+      });
+      return finalizeRuntimeAnalytics({
+        request,
+        response,
+        outcome: "config_unavailable",
+        effectivePath,
+        startedAt,
+        runtime,
+        analytics
       });
     }
 
@@ -86,24 +93,27 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
 
       if (path === "/robots.txt") {
         const robots = generateRobots(origin, runtime.envBindings);
-        return new Response(robots, {
+        const response = new Response(robots, {
           status: 200,
           headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" }
         });
+        return clearAttributionCookie(response, analytics.hasAttributionCookie);
       }
 
       if (!isRobotsAllowed(runtime.envBindings)) {
-        return new Response("Sitemap disabled", {
+        const response = new Response("Sitemap disabled", {
           status: 404,
           headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=300" }
         });
+        return clearAttributionCookie(response, analytics.hasAttributionCookie);
       }
 
       const sitemap = generateSitemapXml(origin, rawRules);
-      return new Response(sitemap, {
+      const response = new Response(sitemap, {
         status: 200,
         headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, max-age=3600" }
       });
+      return clearAttributionCookie(response, analytics.hasAttributionCookie);
     }
 
     const rawRules: Record<string, RouteValueEntry> = {};
@@ -112,25 +122,22 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
     const compiledList = buildCompiledList(rawRules);
     const decodedPath = safeDecode(path);
 
-    const effectivePath = inferEffectivePath(decodedPath, request.headers, compiledList);
+    effectivePath = inferEffectivePath(decodedPath, request.headers, compiledList);
     const isStaticAssetPath = isLikelyStaticAssetPath(effectivePath);
+    let hasProxyExhaustion = false;
 
     for (let index = 0; index < compiledList.length; index += 1) {
       const item = compiledList[index];
-      const { rule, regex, names, isParam, base } = item;
-      if (!rule.target) continue;
-
-      let targetUrl: string | null = null;
-      const match = effectivePath.match(regex);
-
-      if (match) {
-        const resolved = applyTemplate(rule.target, match, names);
-        targetUrl = appendOriginalQuery(resolved, url.search);
-      } else if ((rule.type === "prefix" || rule.type === "proxy") && !isParam) {
-        targetUrl = resolvePrefixTarget(effectivePath, url.search, rule, base);
+      const { rule, base } = item;
+      if (!rule.target) {
+        continue;
       }
 
-      if (!targetUrl) continue;
+      const resolved = resolveCompiledTarget(item, effectivePath, url.search);
+      if (!resolved) {
+        continue;
+      }
+      const { targetUrl, matchKind } = resolved;
 
       if (isStaticAssetPath && rule.type === "proxy") {
         const collected = collectProxyRaceCandidates(compiledList, index, effectivePath, url.search);
@@ -141,29 +148,32 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
         const { candidates, scanEnd } = collected;
 
         if (candidates.length > 1) {
-          const tasks = candidates.map(({ rule, targetUrl, base }) => {
+          const tasks = candidates.map(({ rule, targetUrl, base, matchKind }) => {
             const reqClone = request.clone() as Request;
             return (async () => {
               const response = await respondUsingRule(reqClone, rule, targetUrl, runtime, base);
               if (shouldFallbackProxy(response)) {
                 throw new Error(`proxy ${response.status}`);
               }
-              return { response, rule, base };
+              return { response, rule, base, matchKind };
             })();
           });
 
           try {
             const winner = await Promise.any(tasks);
-            return finalizeMatchedResponse(
+            return await finalizeMatchedAnalytics({
               request,
-              winner.response,
-              winner.rule,
-              winner.base,
-              isStaticAssetPath,
+              response: winner.response,
+              rule: winner.rule,
+              routePath: winner.base,
+              matchKind: winner.matchKind,
+              effectivePath,
               startedAt,
-              runtime
-            );
+              runtime,
+              analytics
+            });
           } catch {
+            hasProxyExhaustion = true;
             index = scanEnd - 1;
             continue;
           }
@@ -176,27 +186,71 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
       const response = await respondUsingRule(reqClone, rule, targetUrl, runtime, base);
 
       if (rule.type === "proxy") {
-        if (shouldFallbackProxy(response)) continue;
+        if (shouldFallbackProxy(response)) {
+          hasProxyExhaustion = true;
+          continue;
+        }
       }
 
-      return finalizeMatchedResponse(request, response, rule, base, isStaticAssetPath, startedAt, runtime);
-    }
-
-    {
-      return new Response(notFoundPageHtml, {
-        status: 404,
-        headers: {
-          "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "public, max-age=60"
-        }
+      return await finalizeMatchedAnalytics({
+        request,
+        response,
+        rule,
+        routePath: base,
+        matchKind,
+        effectivePath,
+        startedAt,
+        runtime,
+        analytics
       });
     }
 
-
+    const response = new Response(notFoundPageHtml, {
+      status: 404,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "public, max-age=60"
+      }
+    });
+    return finalizeRuntimeAnalytics({
+      request,
+      response,
+      outcome: hasProxyExhaustion ? "proxy_exhausted" : "not_found",
+      effectivePath,
+      startedAt,
+      runtime,
+      analytics
+    });
   } catch (error) {
     console.error("[Handler Critical Error]", error);
-    return new Response("Internal Server Error", { status: 500 });
+    const response = new Response("Internal Server Error", { status: 500 });
+    return analytics
+      ? finalizeRuntimeAnalytics({
+        request,
+        response,
+        outcome: "internal_error",
+        effectivePath,
+        startedAt,
+        runtime,
+        analytics
+      })
+      : response;
   }
+}
+
+function createCanonicalRedirect(destination: string, containsAttributionToken: boolean): Response {
+  if (!containsAttributionToken) {
+    return Response.redirect(destination, HTTPS_REDIRECT_STATUS);
+  }
+
+  return new Response(null, {
+    status: HTTPS_REDIRECT_STATUS,
+    headers: {
+      "Cache-Control": "private, no-store",
+      Location: destination,
+      "Referrer-Policy": "no-referrer"
+    }
+  });
 }
 
 export { resolveConfigUrlFromBindings, DEFAULT_CONFIG_URL } from "@handlers/config";

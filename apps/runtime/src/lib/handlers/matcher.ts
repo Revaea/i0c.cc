@@ -12,9 +12,14 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
-import { coerceRouteValues, isRecord, toRouteArray } from "./utils";
 import { DEFAULT_STATUS } from "./constants";
-import { CompiledEntry, NormalizedRule, RedirectsConfig, RouteConfig, RouteType, RouteValue, RouteValueEntry, SlotBranch } from "./types";
+import type { AnalyticsLinkMatchKind, CompiledEntry, NormalizedRule, RedirectsConfig, RouteConfig, RouteType, RouteValue, RouteValueEntry, SlotBranch } from "./types";
+import { coerceRouteValues, isRecord, toRouteArray } from "./utils";
+
+export interface ResolvedRuleTarget {
+  matchKind: AnalyticsLinkMatchKind;
+  targetUrl: string;
+}
 
 export function getSlotSource(config: RedirectsConfig | null): SlotBranch | null {
   if (!config) {
@@ -180,37 +185,58 @@ export function appendOriginalQuery(target: string, search: string): string {
   return target.includes("?") ? target : `${target}${search}`;
 }
 
+export function resolveCompiledTarget(
+  entry: CompiledEntry,
+  pathname: string,
+  search: string
+): ResolvedRuleTarget | null {
+  const match = pathname.match(entry.regex);
+  let targetUrl: string | null = null;
+
+  if (match) {
+    const resolved = applyTemplate(entry.rule.target, match, entry.names);
+    targetUrl = appendOriginalQuery(resolved, search);
+  } else if ((entry.rule.type === "prefix" || entry.rule.type === "proxy") && !entry.isParam) {
+    targetUrl = resolvePrefixTarget(pathname, search, entry.rule, entry.base);
+  }
+
+  if (!targetUrl) {
+    return null;
+  }
+
+  return {
+    targetUrl,
+    matchKind: resolveMatchKind(entry)
+  };
+}
+
 export function collectProxyRaceCandidates(
   compiledList: CompiledEntry[],
   startIndex: number,
   pathname: string,
   search: string
-): { candidates: Array<{ base: string; rule: NormalizedRule; targetUrl: string }>; scanEnd: number } | null {
+): { candidates: Array<{ base: string; matchKind: AnalyticsLinkMatchKind; rule: NormalizedRule; targetUrl: string }>; scanEnd: number } | null {
   const start = compiledList[startIndex];
   if (!start) {
     return null;
   }
 
   const { base } = start;
-  const candidates: Array<{ base: string; rule: NormalizedRule; targetUrl: string }> = [];
+  const candidates: Array<{ base: string; matchKind: AnalyticsLinkMatchKind; rule: NormalizedRule; targetUrl: string }> = [];
 
   const maybeAdd = (entry: CompiledEntry): void => {
     if (!entry.rule.target) {
       return;
     }
 
-    let targetUrl: string | null = null;
-    const match = pathname.match(entry.regex);
-
-    if (match) {
-      const resolved = applyTemplate(entry.rule.target, match, entry.names);
-      targetUrl = appendOriginalQuery(resolved, search);
-    } else if ((entry.rule.type === "prefix" || entry.rule.type === "proxy") && !entry.isParam) {
-      targetUrl = resolvePrefixTarget(pathname, search, entry.rule, entry.base);
-    }
-
-    if (targetUrl && entry.rule.type === "proxy") {
-      candidates.push({ base: entry.base, rule: entry.rule, targetUrl });
+    const resolved = resolveCompiledTarget(entry, pathname, search);
+    if (resolved && entry.rule.type === "proxy") {
+      candidates.push({
+        base: entry.base,
+        matchKind: resolved.matchKind,
+        rule: entry.rule,
+        targetUrl: resolved.targetUrl
+      });
     }
   };
 
@@ -228,4 +254,17 @@ export function collectProxyRaceCandidates(
   }
 
   return { candidates, scanEnd: scan };
+}
+
+function resolveMatchKind(entry: CompiledEntry): AnalyticsLinkMatchKind {
+  if (
+    entry.base.split("/").includes("*") ||
+    (entry.base === "/" && (entry.rule.type === "prefix" || entry.rule.type === "proxy"))
+  ) {
+    return "catch_all";
+  }
+  if (entry.isParam) {
+    return "parameterized";
+  }
+  return entry.rule.type === "exact" ? "exact" : "prefix";
 }
