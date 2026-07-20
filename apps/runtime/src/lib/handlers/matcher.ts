@@ -159,20 +159,19 @@ export function applyTemplate(target: string, match: RegExpMatchArray, names: st
 }
 
 export function resolvePrefixTarget(pathname: string, search: string, rule: NormalizedRule, base: string): string | null {
-  const targetBase = String(rule.target).replace(/\/$/, "");
-  const query = search || "";
+  const targetBase = String(rule.target);
 
   if (base === "/") {
     const rest = pathname === "/" ? "" : pathname;
-    const resolved = rule.appendPath ? `${targetBase}${rest}` : targetBase;
-    return `${resolved}${query}`;
+    const resolved = rule.appendPath ? appendTargetPath(targetBase, rest) : targetBase;
+    return appendOriginalQuery(resolved, search);
   }
 
   if (pathname === base || pathname.startsWith(`${base}/`)) {
     let rest = pathname.slice(base.length);
     rest = rest.startsWith("/") ? rest : rest ? `/${rest}` : "";
-    const resolved = rule.appendPath ? `${targetBase}${rest}` : targetBase;
-    return `${resolved}${query}`;
+    const resolved = rule.appendPath ? appendTargetPath(targetBase, rest) : targetBase;
+    return appendOriginalQuery(resolved, search);
   }
 
   return null;
@@ -182,7 +181,29 @@ export function appendOriginalQuery(target: string, search: string): string {
   if (!search) {
     return target;
   }
-  return target.includes("?") ? target : `${target}${search}`;
+
+  const fragmentIndex = target.indexOf("#");
+  const targetWithoutFragment = fragmentIndex >= 0 ? target.slice(0, fragmentIndex) : target;
+  if (targetWithoutFragment.includes("?")) {
+    return target;
+  }
+
+  const fragment = fragmentIndex >= 0 ? target.slice(fragmentIndex) : "";
+  return `${targetWithoutFragment}${search}${fragment}`;
+}
+
+function appendTargetPath(target: string, path: string): string {
+  if (!path) {
+    return target;
+  }
+
+  const queryIndex = target.indexOf("?");
+  const fragmentIndex = target.indexOf("#");
+  const suffixIndex = [queryIndex, fragmentIndex]
+    .filter((index) => index >= 0)
+    .reduce((first, index) => Math.min(first, index), target.length);
+  const targetPath = target.slice(0, suffixIndex).replace(/\/$/, "");
+  return `${targetPath}${path}${target.slice(suffixIndex)}`;
 }
 
 export function resolveCompiledTarget(
