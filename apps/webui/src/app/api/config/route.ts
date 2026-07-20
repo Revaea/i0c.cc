@@ -7,6 +7,7 @@ import {
   getWebUiReadRequestAuthorization,
 } from "@/auth/authorization";
 import { getRedirectConfig, updateRedirectConfig } from "@/lib/github";
+import { validateRedirectConfig } from "@/lib/redirects/config-validation";
 
 export async function GET(request: NextRequest) {
   const authorization = await getWebUiReadRequestAuthorization(request);
@@ -52,6 +53,36 @@ export async function PUT(request: NextRequest) {
   const parsed = updateSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
+  }
+
+  let config: unknown;
+  try {
+    config = JSON.parse(parsed.data.content);
+  } catch {
+    return NextResponse.json({ error: "Config content must be valid JSON" }, { status: 400 });
+  }
+
+  const validation = validateRedirectConfig(config);
+  if (validation.status === "unavailable") {
+    console.error("Redirect config schema could not be loaded", validation.error);
+    return NextResponse.json(
+      { error: "Redirect config validation is unavailable" },
+      { status: 500 },
+    );
+  }
+  if (validation.status === "invalid") {
+    const shownIssues = validation.issues
+      .slice(0, 5)
+      .map((issue) => `${issue.path}: ${issue.message}`);
+    const remainingCount = validation.issues.length - shownIssues.length;
+    const details = [
+      ...shownIssues,
+      ...(remainingCount > 0 ? [`and ${remainingCount} more`] : []),
+    ].join("; ");
+    return NextResponse.json(
+      { error: `Redirect config schema validation failed: ${details}` },
+      { status: 400 },
+    );
   }
 
   try {

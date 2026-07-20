@@ -2,14 +2,8 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import Ajv, { type AnySchema, type ValidateFunction } from "ajv";
-import addFormats from "ajv-formats";
-import redirectsSchema from "i0c-redirect-worker/redirects.schema.json";
 
-interface SchemaValidatorResult {
-  error: string | null;
-  validate: ValidateFunction | null;
-}
+import { validateRedirectConfig } from "@/lib/redirects/config-validation";
 
 interface JsonEditorProps {
   jsonDraft: string;
@@ -18,23 +12,7 @@ interface JsonEditorProps {
   isReadOnly: boolean;
 }
 
-function createSchemaValidator(): SchemaValidatorResult {
-  try {
-    const ajv = new Ajv({ allErrors: true, strict: false });
-    addFormats(ajv);
-    return {
-      error: null,
-      validate: ajv.compile(redirectsSchema as AnySchema),
-    };
-  } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : "Unknown schema error",
-      validate: null,
-    };
-  }
-}
-
-const schemaValidator = createSchemaValidator();
+const schemaAvailability = validateRedirectConfig(null);
 const lineHeightPx = 20;
 const paddingTopPx = 12;
 
@@ -49,8 +27,8 @@ export function JsonEditor({
   const [activeLine, setActiveLine] = useState(1);
   const [schemaValidationError, setSchemaValidationError] = useState<string | null>(null);
 
-  const schemaLoadError = schemaValidator.error
-    ? t("schemaLoadFail", { message: schemaValidator.error })
+  const schemaLoadError = schemaAvailability.status === "unavailable"
+    ? t("schemaLoadFail", { message: schemaAvailability.error })
     : null;
   const lineCount = useMemo(() => Math.max(1, jsonDraft.split("\n").length), [jsonDraft]);
   const lineNumbers = useMemo(() => {
@@ -83,12 +61,6 @@ export function JsonEditor({
         return;
       }
 
-      const validate = schemaValidator.validate;
-      if (!validate) {
-        setSchemaValidationError(null);
-        return;
-      }
-
       let data: unknown;
       try {
         data = JSON.parse(jsonDraft);
@@ -97,27 +69,23 @@ export function JsonEditor({
         return;
       }
 
-      const isValid = validate(data) as boolean;
-      if (isValid) {
+      const validation = validateRedirectConfig(data);
+      if (validation.status !== "invalid") {
         setSchemaValidationError(null);
         return;
       }
 
-      const errors = validate.errors as
-        | Array<{ instancePath?: string; message?: string }>
-        | null
-        | undefined;
-
-      if (!errors || errors.length === 0) {
+      if (validation.issues.length === 0) {
         setSchemaValidationError(t("schemaValidateFailUnknown"));
         return;
       }
 
-      const shown = errors.slice(0, 5).map((item) => {
-        const path = (item.instancePath || "(root)").trim() || "(root)";
-        return `${path}: ${item.message ?? "invalid"}`;
-      });
-      const more = errors.length > 5 ? t("schemaValidateMore", { count: errors.length - 5 }) : "";
+      const shown = validation.issues.slice(0, 5).map((issue) => (
+        `${issue.path}: ${issue.message}`
+      ));
+      const more = validation.issues.length > 5
+        ? t("schemaValidateMore", { count: validation.issues.length - 5 })
+        : "";
       setSchemaValidationError(t("schemaValidateFail", { lines: shown.join("\n"), more }));
     });
 

@@ -12,6 +12,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test": "tsx --test tests/**/*.test.ts",
     "lint": "eslint && node scripts/validate-messages.mjs",
     "analytics:migrate": "node scripts/analytics-migrate.mjs",
     "validate:redirects": "node scripts/validate-redirects.mjs",
@@ -47,6 +48,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }
