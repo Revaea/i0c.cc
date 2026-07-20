@@ -1,9 +1,9 @@
 {
   "analytics": {
     "navigation": {
+      "analysis": "Analytics",
       "overview": "Overview",
-      "automation": "Bots and automation",
-      "routes": "Route rules"
+      "automation": "Bots and automation"
     },
     "page": {
       "title": "Short-link analytics",
@@ -21,6 +21,10 @@
     "range": {
       "label": "Analytics period",
       "days": "{count} days"
+    },
+    "refresh": {
+      "label": "Refresh analytics",
+      "pending": "Refreshing analytics"
     },
     "filters": {
       "entryDomain": "Entry domain",
@@ -98,12 +102,14 @@
     },
     "metrics": {
       "title": "Key metrics",
+      "effectiveVisits": "Effective visits",
+      "effectiveVisitsDescription": "Estimated human entry visits after controlled continuation hops are excluded",
       "humanClicks": "Estimated human navigations",
       "humanClicksDescription": "Estimated browser-like navigation requests matched to links",
       "entryHumanClicks": "Estimated entry navigations",
       "entryHumanClicksDescription": "Estimated browser-like navigations excluding controlled continuation hops",
       "totalRequests": "Total requests",
-      "totalRequestsDescription": "All requests matched to tracked links",
+      "totalRequestsDescription": "All requests matched to tracked routes, including automated traffic",
       "entryRequests": "Entry requests",
       "entryRequestsDescription": "Requests excluding verified short-link continuation hops",
       "declaredBotShare": "Declared bot share",
@@ -112,26 +118,27 @@
       "suspectedAutomationShareDescription": "Requests classified as likely automated, not confirmed bots",
       "botPreviewShare": "Bot + preview share",
       "botPreviewShareDescription": "Detected bots and link unfurlers",
-      "errors": "Errors",
-      "errorsDescription": "Matched requests ending in an observed error"
+      "errors": "Processing errors",
+      "errorsDescription": "Matched requests that could not complete normally"
     },
     "trend": {
-      "title": "Request trend",
-      "description": "Human clicks compared with all observed requests.",
+      "title": "Visit trend",
+      "description": "Effective visits compared with all requests over time.",
       "empty": "No requests were observed in this period.",
-      "accessibleTitle": "Human clicks and total requests over time",
+      "accessibleTitle": "Effective visits and total requests over time",
       "accessibleDescription": "A line chart covering {start} through {end}.",
       "tableCaption": "Analytics trend data",
       "date": "Date"
     },
     "ranking": {
-      "title": "Top short links",
-      "description": "Ranked by human clicks in the selected period.",
-      "empty": "No tracked links have data for this period.",
+      "title": "Top routes",
+      "description": "Ranked by effective visits in the selected period. Select a route for its details.",
+      "empty": "No tracked routes have data for this period.",
       "requestCount": "{count} requests",
-      "tableCaption": "Short links ranked by human clicks",
+      "tableCaption": "Routes ranked by effective visits",
       "rank": "Rank",
-      "shortLink": "Short link",
+      "shortLink": "Route",
+      "type": "Type",
       "change": "Change",
       "changeCompared": "{value} vs previous period",
       "noComparison": "No comparison"
@@ -139,6 +146,10 @@
     "breakdowns": {
       "title": "Audience and delivery",
       "description": "Request-level dimensions, aggregated for privacy.",
+      "sourcesTitle": "Request sources",
+      "sourcesDescription": "Referrers, countries, and device types counted across all requests.",
+      "attributionTitle": "Delivery and attribution",
+      "attributionDescription": "Providers, campaigns, and internal-hop attribution counted across all requests.",
       "countries": "Countries",
       "referrers": "Referrers",
       "devices": "Devices",
@@ -147,11 +158,12 @@
       "upstreamLinks": "Internal source links",
       "unknown": "Unknown",
       "direct": "Direct",
-      "empty": "No data available."
+      "empty": "No data available.",
+      "itemValue": "{count} · {share}"
     },
     "quality": {
-      "title": "Data quality",
-      "description": "Coverage and known limits for interpreting these figures.",
+      "title": "Measurement notes",
+      "description": "Estimation rules, data coverage, and caching limits.",
       "notAvailable": "Not available",
       "notReported": "Not reported",
       "observedWindow": "Observed window",
@@ -160,10 +172,12 @@
       "rawEventRetention": "Raw-event retention",
       "databasePolicy": "Operator managed",
       "days": "{count} days",
-      "humanClickNote": "Estimated human navigations exclude declared bots, suspected automation, and link previews.",
-      "cacheNote": "Cached permanent redirects may not produce a new edge request for every browser visit."
+      "humanClickNote": "Effective visits exclude declared bots, suspected automation, link previews, and controlled short-link hops.",
+      "cacheNote": "Cached permanent redirects may not produce a new edge request for every browser visit.",
+      "refreshNote": "Analytics queries are cached for 15 seconds to speed up filter changes. Refresh manually to load new data immediately."
     },
     "states": {
+      "loading": "Loading analytics data",
       "unconfiguredTitle": "Analytics is not configured",
       "unconfiguredDescription": "Add the database and analytics environment variables, then run the analytics migration to start collecting requests.",
       "emptyTitle": "No analytics data yet",
@@ -182,11 +196,12 @@
       "estimated": "Estimated",
       "metrics": {
         "title": "Automation metrics",
-        "requests": "All traffic",
+        "description": "Large values estimate traffic from the sample rate; card footers show events actually received.",
+        "requests": "All requests",
         "declaredBots": "Declared bots",
         "suspectedAutomation": "Suspected automation",
-        "unmatched": "Unmatched requests",
-        "errors": "Errors",
+        "unmatched": "Unmatched routes",
+        "errors": "Processing errors",
         "observedValue": "{count} observed"
       },
       "trend": {
@@ -203,6 +218,10 @@
       "breakdowns": {
         "title": "Automation classification",
         "description": "Bars use estimated values with observed counts shown below. Suspected automation is not a confirmed bot.",
+        "detectionTitle": "Detection results",
+        "detectionDescription": "Why traffic was classified as a bot, suspected automation, or a security probe. Suspected does not mean confirmed.",
+        "handlingTitle": "Request handling",
+        "handlingDescription": "Which resources automation requested, whether a route matched, and how processing ended.",
         "entryDomains": "Entry domains",
         "trafficClasses": "Traffic classes",
         "categories": "Bot categories",

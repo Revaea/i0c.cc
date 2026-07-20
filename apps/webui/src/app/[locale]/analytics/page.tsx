@@ -57,6 +57,7 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
         <AnalyticsPageHeader
           range={range}
           rangeBasePath={basePath}
+          showRefresh={false}
         />
         <AnalyticsStatePanel
           title={t("states.unconfiguredTitle")}
@@ -77,7 +78,6 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
       navigation={
         <AnalyticsRouteNavigation
           basePath={basePath}
-          links={overview.links}
           range={range}
           scope={overview.scope}
         />
@@ -91,7 +91,9 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
       {overview.hasData ? (
         <AnalyticsOverviewDashboard
           data={overview}
+          detailBasePath={basePath}
           locale={locale}
+          range={range}
         />
       ) : (
         <AnalyticsStatePanel

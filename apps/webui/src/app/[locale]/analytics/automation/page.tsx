@@ -3,11 +3,7 @@ import { getServerSession } from "next-auth/next"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 
 import { authOptions } from "@/auth/config"
-import {
-  toAutomationViewModel,
-  toQueryRange,
-  toRankedLinks,
-} from "@/components/analytics/adapters"
+import { toAutomationViewModel, toQueryRange } from "@/components/analytics/adapters"
 import { AnalyticsAutomationDashboard } from "@/components/analytics/analytics-dashboard"
 import { parseAnalyticsRange } from "@/components/analytics/format"
 import { buildAnalyticsHref } from "@/components/analytics/links"
@@ -18,11 +14,7 @@ import {
   AnalyticsStatePanel,
 } from "@/components/analytics/analytics-shell"
 import { SignInPanel } from "@/components/ui/sign-in-panel"
-import {
-  getAnalyticsAutomationOverview,
-  getAnalyticsNavigation,
-  isAnalyticsConfigured,
-} from "@/lib/analytics/queries"
+import { getAnalyticsAutomationOverview, isAnalyticsConfigured } from "@/lib/analytics/queries"
 
 interface AnalyticsAutomationPageProps {
   params: Promise<{ locale: string }>
@@ -67,7 +59,11 @@ export default async function AnalyticsAutomationPage({
   if (!isAnalyticsConfigured()) {
     return (
       <AnalyticsShell>
-        <AnalyticsPageHeader range={range} rangeBasePath={automationPath} />
+        <AnalyticsPageHeader
+          range={range}
+          rangeBasePath={automationPath}
+          showRefresh={false}
+        />
         <AnalyticsStatePanel
           title={t("states.unconfiguredTitle")}
           description={t("states.unconfiguredDescription")}
@@ -78,18 +74,13 @@ export default async function AnalyticsAutomationPage({
   }
 
   const queryScope = { range: toQueryRange(range), entryDomain }
-  const [result, navigation] = await Promise.all([
-    getAnalyticsAutomationOverview(queryScope),
-    getAnalyticsNavigation(queryScope),
-  ])
-  const automation = toAutomationViewModel(result)
+  const automation = toAutomationViewModel(await getAnalyticsAutomationOverview(queryScope))
 
   return (
     <AnalyticsShell
       navigation={
         <AnalyticsRouteNavigation
           basePath={basePath}
-          links={toRankedLinks(navigation.links)}
           range={range}
           scope={automation.scope}
           isAutomationActive
