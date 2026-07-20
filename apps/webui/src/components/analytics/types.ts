@@ -43,7 +43,8 @@ export interface AnalyticsRankedLink {
 }
 
 export interface AnalyticsBreakdownItem {
-  label: string
+  key: string
+  label?: string
   value: number
   observedValue?: number
   share: number

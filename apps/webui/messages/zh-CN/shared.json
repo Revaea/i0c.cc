@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "title": "i0c.cc 配置控制台",
+    "description": "通过 WebUI 管理 redirects.json"
+  },
+  "auth": {
+    "signInTitle": "登录配置控制台",
+    "signInWithGithub": "使用 GitHub 登录"
+  },
+  "notFound": {
+    "title": "404 · 页面未找到",
+    "description": "你访问的页面不存在或可能已被移动。",
+    "returnHome": "返回首页"
+  },
+  "header": {
+    "console": "i0c.cc 控制台",
+    "workspaceLabel": "重定向管理",
+    "openNavigation": "展开导航",
+    "closeNavigation": "关闭导航",
+    "resizeNavigation": "调整导航宽度",
+    "hideGroups": "隐藏分组",
+    "showGroups": "展开分组",
+    "githubUser": "GitHub 用户",
+    "signedIn": "已登录",
+    "signOut": "退出",
+    "primaryNavigation": "主导航",
+    "rules": "规则",
+    "analytics": "统计",
+    "layout": "布局切换",
+    "layoutHelp": "调整桌面布局，以适配不同的屏幕与使用习惯。",
+    "layoutFull": "全部展开",
+    "layoutSidebarAdjustable": "全部展开，侧栏宽度可调",
+    "layoutBothAdjustable": "全部展开，侧栏与内容宽度均可调",
+    "layoutOriginal": "原始宽度",
+    "sidebarWidth": "侧栏宽度",
+    "contentWidth": "内容最大宽度",
+    "language": "语言",
+    "english": "English",
+    "chinese": "中文"
+  },
+  "common": {
+    "close": "关闭"
+  },
+  "qrCode": {
+    "openQRCode": "生成二维码",
+    "faviconAlt": "网站图标",
+    "faviconLabel": "Favicon 图标",
+    "download": "保存图片"
+  }
+}
