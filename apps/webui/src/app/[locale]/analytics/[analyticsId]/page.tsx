@@ -1,8 +1,7 @@
-import type { Session } from "next-auth"
-import { getServerSession } from "next-auth/next"
+import { redirect } from "next/navigation"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 
-import { authOptions } from "@/auth/config"
+import { getWebUiReadSessionAuthorization } from "@/auth/authorization"
 import { toDetailViewModel, toQueryRange } from "@/components/analytics/adapters"
 import { AnalyticsDetailDashboard } from "@/components/analytics/analytics-dashboard"
 import { parseAnalyticsRange } from "@/components/analytics/format"
@@ -28,26 +27,24 @@ interface AnalyticsDetailPageProps {
   }>
 }
 
-type SessionWithToken = Session & { hasAccessToken: true }
-
 export const dynamic = "force-dynamic"
-
-function hasAccessToken(session: Session | null): session is SessionWithToken {
-  return session?.hasAccessToken === true
-}
 
 export default async function AnalyticsDetailPage({
   params,
   searchParams,
 }: AnalyticsDetailPageProps) {
-  const session = (await getServerSession(authOptions)) as Session | null
+  const authorization = await getWebUiReadSessionAuthorization()
 
-  if (!hasAccessToken(session)) {
+  if (authorization.status === "unauthenticated") {
     return (
       <main className="flex min-h-screen items-center justify-center bg-canvas px-6">
         <SignInPanel />
       </main>
     )
+  }
+
+  if (authorization.status === "forbidden") {
+    redirect("/access-denied")
   }
 
   const [{ locale, analyticsId }, query] = await Promise.all([params, searchParams])
@@ -112,6 +109,7 @@ export default async function AnalyticsDetailPage({
           entryDomain={navigationScope.entryDomain}
           range={range}
           rangeBasePath={detailPath}
+          showRefresh={!authorization.isReadOnly}
         />
         <AnalyticsStatePanel
           title={t("states.notFoundTitle")}
@@ -130,6 +128,7 @@ export default async function AnalyticsDetailPage({
         entryDomain={detail.scope.entryDomain}
         range={range}
         rangeBasePath={detailPath}
+        showRefresh={!authorization.isReadOnly}
       />
       {detail.hasData ? (
         <AnalyticsDetailDashboard data={detail} locale={locale} range={range} />

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { isAnalyticsRequestAuthenticated } from "@/lib/analytics/auth";
+import {
+  createWebUiAuthorizationErrorResponse,
+  getWebUiReadRequestAuthorization,
+} from "@/auth/authorization";
 import { getAnalyticsDetail, isAnalyticsConfigured } from "@/lib/analytics/queries";
 import {
   analyticsRanges,
@@ -32,8 +35,9 @@ function isValidAnalyticsId(value: string): boolean {
 }
 
 export async function GET(request: Request, context: RouteContext) {
-  if (!await isAnalyticsRequestAuthenticated(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const authorization = await getWebUiReadRequestAuthorization(request);
+  if (authorization.status !== "authorized") {
+    return createWebUiAuthorizationErrorResponse(authorization.status);
   }
 
   const range = parseRange(request);

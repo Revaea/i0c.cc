@@ -14,7 +14,11 @@ import { RouteEntriesCatalog } from "@/components/redirects-groups/manager-sideb
 import { ManagerSidebarBody } from "./manager-sidebar-body";
 import { ManagerSidebarFooter } from "./manager-sidebar-footer";
 
-export function RedirectsGroupsManager() {
+interface RedirectsGroupsManagerProps {
+  isReadOnly?: boolean;
+}
+
+export function RedirectsGroupsManager({ isReadOnly = false }: RedirectsGroupsManagerProps) {
   const tGroups = useTranslations("groups");
   const tEntries = useTranslations("entries");
   const tEditor = useTranslations("editor");
@@ -69,6 +73,10 @@ export function RedirectsGroupsManager() {
   }, [previewJson]);
 
   const handleSave = useCallback(() => {
+    if (isReadOnly) {
+      return;
+    }
+
     if (editorMode === "json") {
       try {
         const normalized = JSON.stringify(JSON.parse(jsonDraft), null, 2);
@@ -82,7 +90,7 @@ export function RedirectsGroupsManager() {
     }
 
     save();
-  }, [applyJson, editorMode, jsonDraft, save, tEditor]);
+  }, [applyJson, editorMode, isReadOnly, jsonDraft, save, tEditor]);
 
   const handleSelectGroup = useCallback(
     (groupId: string) => {
@@ -104,9 +112,11 @@ export function RedirectsGroupsManager() {
               <div className="border-b border-line pb-5">
                 <SidebarSkeletonCatalog />
               </div>
-              <div>
-                <SidebarSkeletonFooter />
-              </div>
+              {isReadOnly ? null : (
+                <div>
+                  <SidebarSkeletonFooter />
+                </div>
+              )}
             </div>
           </div>
         }
@@ -144,7 +154,14 @@ export function RedirectsGroupsManager() {
     );
   }
 
-  const sidebarFooterNode = (
+  const sidebarFooterNode = isReadOnly ? (
+    <div className="border-l-2 border-line-strong px-3 py-1">
+      <p className="text-sm font-semibold text-ink">{tGroups("readOnlyTitle")}</p>
+      <p className="mt-1 text-xs leading-5 text-muted">
+        {tGroups("readOnlyDescription")}
+      </p>
+    </div>
+  ) : (
     <div className="flex flex-col">
       <ManagerSidebarFooter
         canUndo={canUndo}
@@ -168,6 +185,7 @@ export function RedirectsGroupsManager() {
       selectedGroupId={selectedGroupId}
       editingGroupId={editingGroupId}
       editingName={editingName}
+      isReadOnly={isReadOnly}
       onAddGroup={addGroup}
       onSelectGroup={handleSelectGroup}
       onBeginRename={beginRename}
@@ -183,9 +201,13 @@ export function RedirectsGroupsManager() {
       entries={selectedGroup.entries}
       title={tEditor("entries") ?? "Entries"}
       className="max-h-[38vh] border-b border-line pb-5"
-      onAddRule={() => addEntry(selectedGroup.id)}
+      onAddRule={isReadOnly ? undefined : () => addEntry(selectedGroup.id)}
       addRuleLabel={tEntries("addRule")}
-      onRemoveEntry={(entryId) => removeEntry(selectedGroup.id, entryId)}
+      onRemoveEntry={
+        isReadOnly
+          ? undefined
+          : (entryId) => removeEntry(selectedGroup.id, entryId)
+      }
       showLocateButton
     />
   ) : null;
@@ -214,6 +236,7 @@ export function RedirectsGroupsManager() {
             jsonDraft={jsonDraft}
             onJsonDraftChange={setJsonDraft}
             jsonError={jsonError}
+            isReadOnly={isReadOnly}
             rulesContent={
               selectedGroup ? (
                 <GroupEntriesEditor
@@ -222,6 +245,7 @@ export function RedirectsGroupsManager() {
                   onRemoveEntry={removeEntry}
                   onUpdateEntryKey={updateEntryKey}
                   onUpdateEntryValue={updateEntryValue}
+                  isReadOnly={isReadOnly}
                 />
               ) : (
                 <div>

@@ -1,6 +1,6 @@
-import type { Session } from "next-auth";
-import type { JWT } from "next-auth/jwt";
 import GitHubProvider from "next-auth/providers/github";
+
+import { canGitHubUserSignIn, isWebUiTokenAuthorized } from "./access-policy";
 
 function requireEnv(key: string): string {
   const value = process.env[key];
@@ -42,19 +42,37 @@ export const authOptions = {
     strategy: "jwt" as const
   },
   callbacks: {
-    async jwt({ token, account }) {
-      if (account?.access_token) {
-        (token as JWT & { accessToken?: string }).accessToken = account.access_token;
+    async signIn({ account }) {
+      if (
+        account?.provider !== "github" ||
+        !canGitHubUserSignIn(account.providerAccountId)
+      ) {
+        return "/access-denied";
       }
+
+      return true;
+    },
+    async jwt({ token, account }) {
+      if (account?.provider === "github") {
+        token.githubUserId = account.providerAccountId;
+
+        if (account.access_token) {
+          token.accessToken = account.access_token;
+        }
+      }
+
+      if (!isWebUiTokenAuthorized(token)) {
+        delete token.accessToken;
+      }
+
       return token;
     },
     async session({ session, token }) {
       // IMPORTANT: Never expose OAuth access tokens to the browser.
       // Keep tokens only in the server-side JWT and read them in API routes via getToken().
-      const accessToken = (token as JWT & { accessToken?: unknown }).accessToken;
-      if (typeof accessToken === "string" && accessToken.length > 0) {
-        (session as Session & { hasAccessToken?: boolean }).hasAccessToken = true;
-      }
+      const isAuthorized = isWebUiTokenAuthorized(token);
+      session.hasAccessToken = isAuthorized;
+      session.isAuthorized = isAuthorized;
       return session;
     }
   }

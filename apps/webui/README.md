@@ -28,6 +28,29 @@ This project provides two editing modes:
 
    The default OAuth scope is `read:user user:email public_repo`. If the target repository is private, set `GITHUB_OAUTH_SCOPE` to `read:user user:email repo`.
 
+   Choose the server-side WebUI access mode explicitly:
+
+   ```dotenv
+   # Any GitHub account may sign in. Repository writes still require GitHub permission.
+   WEBUI_ACCESS_MODE="authenticated"
+
+   # Or restrict the entire WebUI to GitHub numeric user IDs.
+   # WEBUI_ACCESS_MODE="allowlist"
+   # GITHUB_ALLOWED_USER_IDS="12345678,87654321"
+
+   # Or allow any GitHub user to sign in read-only while listed IDs retain management access.
+   # WEBUI_ACCESS_MODE="public-readonly"
+   # GITHUB_ALLOWED_USER_IDS="12345678,87654321"
+   ```
+
+   `WEBUI_ACCESS_MODE` is required. `GITHUB_ALLOWED_USER_IDS` is required only in
+   `allowlist` mode and optional in `public-readonly` mode. Find your numeric ID with
+   `gh api user --jq .id`. These variables are server-only and must not use the
+   `NEXT_PUBLIC_` prefix. `public-readonly` loads the configured rules through GitHub's
+   unauthenticated API for read-only accounts, so the target repository must be public.
+   Any GitHub user may sign in to inspect rules and analytics, while listed users may edit
+   config, create campaign URLs, and refresh analytics. Without listed IDs, no one can manage it.
+
 3. By default, `redirects.json` is loaded from the `data` branch of `Revaea/i0c.cc`, and the QR code domain defaults to `https://i0c.cc`. You may modify the following variables as needed:
 
    ```dotenv
@@ -117,13 +140,13 @@ Deploy this package from the monorepo with these Vercel settings:
 | Output Directory | Next.js default |
 
 Set the environment variables from [.env.example](.env.example) in Vercel. For production,
-`NEXTAUTH_URL` must match the deployed domain, `CRON_SECRET` must be configured for the daily
-retention request, and the GitHub OAuth callback URL must be
+`NEXTAUTH_URL` must match the deployed domain, `WEBUI_ACCESS_MODE` must be selected explicitly,
+`CRON_SECRET` must be configured for the daily retention request, and the GitHub OAuth callback URL must be
 `https://<your-domain>/api/auth/callback/github`.
 
 ## Features Overview
 
-- GitHub OAuth login, automatically retrieves access tokens and stores them in the session.
+- Configurable authenticated, numeric-ID allowlist, or GitHub-wide read-only access with allowlisted managers.
 - Visual editing of `redirects.json`: group tree management + rule form editing.
 - JSON editor: line numbers, current line highlighting, JSON syntax validation (error prompts for formatting issues).
 - Form behavior aligned with the schema (specification source: [https://raw.githubusercontent.com/Revaea/i0c.cc/main/apps/runtime/redirects.schema.json](https://raw.githubusercontent.com/Revaea/i0c.cc/main/apps/runtime/redirects.schema.json)).
@@ -135,6 +158,7 @@ retention request, and the GitHub OAuth callback URL must be
 
 - The OAuth app requires `repo` permissions to write to private repositories.
 - If the target repository is private, ensure the logged-in account has the appropriate write permissions.
+- `public-readonly` supports only public target repositories and is subject to GitHub's unauthenticated API limits.
 - For production deployment, make sure to configure the credentials in `.env.local` into the environment variable management of the respective platform.
 
 For the Chinese version, see [README.zh-CN.md](README.zh-CN.md).

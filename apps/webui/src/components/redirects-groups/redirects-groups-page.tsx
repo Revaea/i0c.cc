@@ -1,5 +1,9 @@
 import { RedirectsGroupsManager } from "@/components/redirects-groups";
 
-export function RedirectsGroupsPage() {
-  return <RedirectsGroupsManager />;
+interface RedirectsGroupsPageProps {
+  isReadOnly?: boolean;
+}
+
+export function RedirectsGroupsPage({ isReadOnly = false }: RedirectsGroupsPageProps) {
+  return <RedirectsGroupsManager isReadOnly={isReadOnly} />;
 }

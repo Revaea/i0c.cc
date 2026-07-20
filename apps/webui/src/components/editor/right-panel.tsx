@@ -43,6 +43,7 @@ export type RightPanelProps = {
   jsonDraft: string;
   onJsonDraftChange: (value: string) => void;
   jsonError: string | null;
+  isReadOnly: boolean;
   rulesContent: ReactNode;
 };
 
@@ -53,6 +54,7 @@ export function RightPanel({
   jsonDraft,
   onJsonDraftChange,
   jsonError,
+  isReadOnly,
   rulesContent,
 }: RightPanelProps) {
   const t = useTranslations("editor");
@@ -208,7 +210,13 @@ export function RightPanel({
             {t("json")}
           </Button>
         </div>
-        <p className="text-xs text-muted">{editorMode === "json" ? t("jsonPreferred") : t("editAndSave")}</p>
+        <p className="text-xs text-muted">
+          {isReadOnly
+            ? t("readOnlyHint")
+            : editorMode === "json"
+              ? t("jsonPreferred")
+              : t("editAndSave")}
+        </p>
       </div>
 
       {editorMode === "json" ? (
@@ -266,6 +274,7 @@ export function RightPanel({
               <textarea
                 ref={textareaRef}
                 value={jsonDraft}
+                readOnly={isReadOnly}
                 onChange={(e) => {
                   onJsonDraftChange(e.target.value);
                   autosizeTextarea();

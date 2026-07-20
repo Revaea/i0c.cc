@@ -1,23 +1,13 @@
-import { getServerSession } from "next-auth/next";
-import type { Session } from "next-auth";
+import { redirect } from "next/navigation";
 
+import { getWebUiReadSessionAuthorization } from "@/auth/authorization";
 import { SignInPanel } from "@/components/ui/sign-in-panel";
-import { authOptions } from "@/auth/config";
 import { RedirectsGroupsPage } from "@/components/redirects-groups/redirects-groups-page";
 
-type SessionWithToken = Session & { hasAccessToken: true };
-
-function hasAccessToken(session: Session | null): session is SessionWithToken {
-  return (
-    !!session &&
-    (session as Session & { hasAccessToken?: unknown }).hasAccessToken === true
-  );
-}
-
 export default async function Home() {
-  const session = (await getServerSession(authOptions)) as Session | null;
+  const authorization = await getWebUiReadSessionAuthorization();
 
-  if (!hasAccessToken(session)) {
+  if (authorization.status === "unauthenticated") {
     return (
       <main className="flex min-h-screen items-center justify-center bg-canvas px-6">
         <SignInPanel />
@@ -25,5 +15,9 @@ export default async function Home() {
     );
   }
 
-  return <RedirectsGroupsPage />;
+  if (authorization.status === "forbidden") {
+    redirect("/access-denied");
+  }
+
+  return <RedirectsGroupsPage isReadOnly={authorization.isReadOnly} />;
 }

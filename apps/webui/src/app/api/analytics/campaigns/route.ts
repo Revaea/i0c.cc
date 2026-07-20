@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { isAnalyticsRequestAuthenticated } from "@/lib/analytics/auth";
+import {
+  createWebUiAuthorizationErrorResponse,
+  getWebUiManagementRequestAuthorization,
+} from "@/auth/authorization";
 import {
   AnalyticsAttributionError,
   createCampaignUrl
@@ -18,8 +21,9 @@ const requestSchema = z.object({
 }).strict();
 
 export async function POST(request: Request) {
-  if (!await isAnalyticsRequestAuthenticated(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const authorization = await getWebUiManagementRequestAuthorization(request);
+  if (authorization.status !== "authorized") {
+    return createWebUiAuthorizationErrorResponse(authorization.status);
   }
 
   let body: unknown;

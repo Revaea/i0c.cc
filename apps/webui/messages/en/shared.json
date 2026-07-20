@@ -5,7 +5,10 @@
   },
   "auth": {
     "signInTitle": "Sign in to the config console",
-    "signInWithGithub": "Sign in with GitHub"
+    "signInWithGithub": "Sign in with GitHub",
+    "accessDeniedTitle": "Access denied",
+    "accessDeniedDescription": "This GitHub account is not allowed to access this deployment.",
+    "signOutAndReturn": "Sign out and return"
   },
   "notFound": {
     "title": "404 · Page not found",
@@ -22,6 +25,7 @@
     "showGroups": "Show groups",
     "githubUser": "GitHub user",
     "signedIn": "Signed in",
+    "signIn": "Sign in with GitHub",
     "signOut": "Sign out",
     "primaryNavigation": "Primary navigation",
     "rules": "Rules",

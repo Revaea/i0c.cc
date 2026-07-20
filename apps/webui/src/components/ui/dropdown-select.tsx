@@ -11,11 +11,13 @@ export function DropdownSelect({
   options,
   onChange,
   className,
+  disabled = false,
 }: {
   value: string;
   options: DropdownOption[];
   onChange: (next: string) => void;
   className?: string;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -46,9 +48,12 @@ export function DropdownSelect({
       <button
         type="button"
         onClick={() => setOpen((previous) => !previous)}
-        className={formControlClassName({ className: "relative w-full pl-3.5 pr-10 text-left" })}
+        disabled={disabled}
+        className={formControlClassName({
+          className: "relative w-full pl-3.5 pr-10 text-left disabled:cursor-default disabled:bg-panel-muted disabled:text-muted",
+        })}
         aria-haspopup="listbox"
-        aria-expanded={open}
+        aria-expanded={open && !disabled}
       >
         {selected?.label ?? value}
         <svg
@@ -62,7 +67,7 @@ export function DropdownSelect({
         </svg>
       </button>
 
-      {open ? (
+      {open && !disabled ? (
         <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-line bg-panel shadow-[0_18px_40px_-24px_rgb(23_32_51_/_45%)]">
           <div className="max-h-60 overflow-auto py-1">
             {options.map((option) => {

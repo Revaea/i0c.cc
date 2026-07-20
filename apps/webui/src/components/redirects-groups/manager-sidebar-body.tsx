@@ -14,6 +14,7 @@ export type ManagerSidebarBodyProps = {
   selectedGroupId: string | null;
   editingGroupId: string | null;
   editingName: string;
+  isReadOnly: boolean;
   onAddGroup: (parentId: string) => void;
   onSelectGroup: (groupId: string) => void;
   onBeginRename: (groupId: string) => void;
@@ -29,6 +30,7 @@ export function ManagerSidebarBody({
   selectedGroupId,
   editingGroupId,
   editingName,
+  isReadOnly,
   onAddGroup,
   onSelectGroup,
   onBeginRename,
@@ -48,16 +50,18 @@ export function ManagerSidebarBody({
             {tGroups("manager")}
           </h2>
           <div className="flex items-center gap-2">
-            <Button
-              onClick={() => onAddGroup(rootGroup.id)}
-              size="sm"
-              variant="secondary"
-            >
-              <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="2">
-                <path d="M12 6v12m6-6H6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              {tGroups("addGroup")}
-            </Button>
+            {isReadOnly ? null : (
+              <Button
+                onClick={() => onAddGroup(rootGroup.id)}
+                size="sm"
+                variant="secondary"
+              >
+                <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 6v12m6-6H6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {tGroups("addGroup")}
+              </Button>
+            )}
 
             {rootGroup.children.length > 0 ? (
               <Button
@@ -121,6 +125,7 @@ export function ManagerSidebarBody({
               selectedGroupId={selectedGroupId}
               editingGroupId={editingGroupId}
               editingName={editingName}
+              isReadOnly={isReadOnly}
               onSelectGroup={onSelectGroup}
               onAddChildGroup={onAddGroup}
               onBeginRenameGroup={onBeginRename}
