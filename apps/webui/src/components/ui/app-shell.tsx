@@ -1,41 +1,19 @@
 'use client';
 
-import type {
-  CSSProperties,
-  KeyboardEvent as ReactKeyboardEvent,
-  MouseEvent,
-  PointerEvent as ReactPointerEvent,
-  ReactNode,
-} from "react";
-import { useEffect, useRef, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 
-import { useAppLayout } from "@/components/ui/app-layout-provider";
 import { AppHeader } from "@/components/ui/app-header";
+import { useAppLayout } from "@/components/ui/app-layout-provider";
+import { useNavigationDrawer } from "@/components/ui/app-shell/use-navigation-drawer";
+import { useSidebarResize } from "@/components/ui/app-shell/use-sidebar-resize";
 import { Button } from "@/components/ui/button";
-import { layoutWidthLimits } from "@/components/ui/layout-switcher";
 
 interface AppShellProps {
   children: ReactNode;
   navigation: ReactNode;
-}
-
-const focusableSelector = [
-  "a[href]",
-  "button:not([disabled])",
-  "input:not([disabled])",
-  "select:not([disabled])",
-  "textarea:not([disabled])",
-  "[tabindex]:not([tabindex='-1'])",
-].join(",");
-
-const minSidebarWidth = layoutWidthLimits.sidebar.min;
-const maxSidebarWidth = layoutWidthLimits.sidebar.max;
-
-function clampSidebarWidth(width: number): number {
-  return Math.min(maxSidebarWidth, Math.max(minSidebarWidth, width));
 }
 
 export function AppShell({ children, navigation }: AppShellProps) {
@@ -47,159 +25,27 @@ export function AppShell({ children, navigation }: AppShellProps) {
     previewSidebarWidth,
   } = useAppLayout();
   const { contentWidth, mode: layoutMode, sidebarWidth } = layoutPreferences;
-  const [isNavigationOpen, setIsNavigationOpen] = useState(false);
-  const sidebarWidthRef = useRef(sidebarWidth);
-  const drawerRef = useRef<HTMLElement | null>(null);
-  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
-  const resizeSessionRef = useRef<{
-    pointerId: number;
-    startWidth: number;
-    startX: number;
-  } | null>(null);
-
-  useEffect(() => {
-    return () => {
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    };
-  }, []);
-
-  useEffect(() => {
-    sidebarWidthRef.current = sidebarWidth;
-  }, [sidebarWidth]);
-
-  useEffect(() => {
-    const desktopQuery = window.matchMedia("(min-width: 1024px)");
-    const handleDesktopChange = (event: MediaQueryListEvent) => {
-      if (event.matches) {
-        setIsNavigationOpen(false);
-      }
-    };
-
-    desktopQuery.addEventListener("change", handleDesktopChange);
-    return () => desktopQuery.removeEventListener("change", handleDesktopChange);
-  }, []);
-
-  useEffect(() => {
-    if (!isNavigationOpen) {
-      return;
-    }
-
-    const root = document.documentElement;
-    const previousOverflow = root.style.overflow;
-    root.style.overflow = "hidden";
-
-    const triggerElement = document.getElementById("app-navigation-trigger");
-    const frame = requestAnimationFrame(() => closeButtonRef.current?.focus());
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setIsNavigationOpen(false);
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      cancelAnimationFrame(frame);
-      document.removeEventListener("keydown", handleKeyDown);
-      root.style.overflow = previousOverflow;
-      triggerElement?.focus();
-    };
-  }, [isNavigationOpen]);
-
-  const closeNavigation = () => setIsNavigationOpen(false);
-
-  const handleNavigationClick = (event: MouseEvent<HTMLDivElement>) => {
-    if (!(event.target instanceof Element)) {
-      return;
-    }
-
-    if (event.target.closest("a, [data-navigation-close='true']")) {
-      closeNavigation();
-    }
-  };
-
-  const handleDrawerKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
-    if (event.key !== "Tab") {
-      return;
-    }
-
-    const drawer = drawerRef.current;
-    if (!drawer) {
-      return;
-    }
-
-    const focusableElements = Array.from(
-      drawer.querySelectorAll<HTMLElement>(focusableSelector),
-    );
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
-
-    if (!firstElement || !lastElement) {
-      event.preventDefault();
-      return;
-    }
-
-    if (event.shiftKey && document.activeElement === firstElement) {
-      event.preventDefault();
-      lastElement.focus();
-    } else if (!event.shiftKey && document.activeElement === lastElement) {
-      event.preventDefault();
-      firstElement.focus();
-    }
-  };
-
-  const handleResizePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    resizeSessionRef.current = {
-      pointerId: event.pointerId,
-      startWidth: sidebarWidthRef.current,
-      startX: event.clientX,
-    };
-    event.currentTarget.setPointerCapture(event.pointerId);
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-  };
-
-  const handleResizePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const session = resizeSessionRef.current;
-    if (!session || session.pointerId !== event.pointerId) {
-      return;
-    }
-
-    const nextWidth = clampSidebarWidth(session.startWidth + event.clientX - session.startX);
-    sidebarWidthRef.current = nextWidth;
-    previewSidebarWidth(nextWidth);
-  };
-
-  const finishSidebarResize = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const session = resizeSessionRef.current;
-    if (!session || session.pointerId !== event.pointerId) {
-      return;
-    }
-
-    layoutPreferences.onSidebarWidthChange(sidebarWidthRef.current);
-    resizeSessionRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-    document.body.style.cursor = "";
-    document.body.style.userSelect = "";
-  };
-
-  const handleResizeKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
-      return;
-    }
-
-    event.preventDefault();
-    const direction = event.key === "ArrowRight" ? 1 : -1;
-    const nextWidth = clampSidebarWidth(sidebarWidthRef.current + direction * 16);
-    sidebarWidthRef.current = nextWidth;
-    layoutPreferences.onSidebarWidthChange(nextWidth);
-  };
+  const {
+    closeButtonRef,
+    closeNavigation,
+    drawerRef,
+    handleDrawerKeyDown,
+    handleNavigationClick,
+    isNavigationOpen,
+    toggleNavigation,
+  } = useNavigationDrawer();
+  const {
+    finishSidebarResize,
+    handleResizeKeyDown,
+    handleResizePointerDown,
+    handleResizePointerMove,
+    maxSidebarWidth,
+    minSidebarWidth,
+  } = useSidebarResize({
+    onSidebarWidthChange: layoutPreferences.onSidebarWidthChange,
+    previewSidebarWidth,
+    sidebarWidth,
+  });
 
   const layoutGutter = layoutMode === "original"
     ? "max(0px, calc((100vw - 90rem) / 2))"
@@ -227,7 +73,7 @@ export function AppShell({ children, navigation }: AppShellProps) {
       <AppHeader
         navigationToggle={{
           isOpen: isNavigationOpen,
-          onToggle: () => setIsNavigationOpen((isOpen) => !isOpen),
+          onToggle: toggleNavigation,
         }}
         layoutPreferences={layoutPreferences}
       />
