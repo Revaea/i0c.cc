@@ -1,10 +1,22 @@
 import "server-only";
 
-const sourceIdPattern = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+const hostnameLabelPattern = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+
+function normalizeAnalyticsSourceId(value: string): string | null {
+  const sourceId = value.trim().toLowerCase().replace(/\.+$/, "");
+  if (sourceId.length === 0 || sourceId.length > 253) {
+    return null;
+  }
+
+  const labels = sourceId.split(".");
+  return labels.every((label) => label.length <= 63 && hostnameLabelPattern.test(label))
+    ? sourceId
+    : null;
+}
 
 export function readAnalyticsSourceId(): string | null {
-  const sourceId = process.env.ANALYTICS_SOURCE_ID?.trim();
-  return sourceId && sourceIdPattern.test(sourceId) ? sourceId : null;
+  const sourceId = process.env.ANALYTICS_SOURCE_ID;
+  return sourceId ? normalizeAnalyticsSourceId(sourceId) : null;
 }
 
 export function readAnalyticsIngestSecret(): string | null {

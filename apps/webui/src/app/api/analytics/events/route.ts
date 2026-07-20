@@ -2,9 +2,12 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
-import { readAnalyticsIngestSecret, readAnalyticsSourceId } from "@/lib/analytics/configuration";
+import {
+  readAnalyticsIngestSecret,
+  readAnalyticsSourceId,
+} from "@/lib/analytics/configuration";
 import { isDatabaseConfigured } from "@/lib/analytics/database";
-import { analyticsEventSchema } from "@/lib/analytics/event-schema";
+import { analyticsEventSchema, normalizeAnalyticsEvent } from "@/lib/analytics/event-schema";
 import { ingestAnalyticsEvent } from "@/lib/analytics/ingest";
 
 export const runtime = "nodejs";
@@ -149,16 +152,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid analytics event" }, { status: 400 });
   }
 
-  if (parsed.data.sourceId !== sourceId) {
+  const event = normalizeAnalyticsEvent(parsed.data, sourceId);
+
+  if (event.sourceId !== sourceId) {
     return NextResponse.json({ error: "Analytics source is not allowed" }, { status: 403 });
   }
 
-  if (!isEventTimestampValid(parsed.data.occurredAt, timestamp)) {
+  if (!isEventTimestampValid(event.occurredAt, timestamp)) {
     return NextResponse.json({ error: "Analytics event timestamp is outside the allowed window" }, { status: 400 });
   }
 
   try {
-    const result = await ingestAnalyticsEvent(parsed.data);
+    const result = await ingestAnalyticsEvent(event);
     return NextResponse.json(
       { accepted: true, duplicate: result.isDuplicate },
       { status: 202 },
