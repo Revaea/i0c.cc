@@ -306,12 +306,30 @@ async function getAvailableEntryDomains(
 ): Promise<AnalyticsEntryDomainOption[]> {
   const sql = getDatabase();
   const rows = await sql<EntryDomainRow[]>`
+    WITH entry_domain_totals AS (
+      SELECT
+        entry_domain,
+        SUM(requests)::DOUBLE PRECISION AS requests,
+        SUM(entry_requests)::DOUBLE PRECISION AS entry_requests
+      FROM link_stats_hourly_domain
+      WHERE source_id = ${sourceId}
+      GROUP BY entry_domain
+
+      UNION ALL
+
+      SELECT
+        entry_domain,
+        SUM(estimated_requests) AS requests,
+        SUM(entry_estimated_requests) AS entry_requests
+      FROM runtime_stats_hourly
+      WHERE source_id = ${sourceId}
+      GROUP BY entry_domain
+    )
     SELECT
       entry_domain,
-      0::BIGINT AS requests,
-      0::BIGINT AS entry_requests
-    FROM runtime_stats_hourly
-    WHERE source_id = ${sourceId}
+      SUM(requests) AS requests,
+      SUM(entry_requests) AS entry_requests
+    FROM entry_domain_totals
     GROUP BY entry_domain
     ORDER BY entry_domain ASC
   `;
