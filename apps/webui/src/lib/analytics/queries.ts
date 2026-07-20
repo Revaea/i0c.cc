@@ -28,7 +28,6 @@ import {
 import type {
   AnalyticsAutomationOverview,
   AnalyticsDetail,
-  AnalyticsLinkSummary,
   AnalyticsOverview,
   AnalyticsQueryScope,
   AnalyticsScope,
@@ -44,14 +43,6 @@ export type {
 
 export function isAnalyticsConfigured(): boolean {
   return isDatabaseConfigured() && readAnalyticsSourceId() !== null;
-}
-
-export async function getAnalyticsLinkSummaries(
-  input: AnalyticsQueryScope,
-): Promise<AnalyticsLinkSummary[]> {
-  const sourceId = resolveSourceId();
-  const { queryScope } = await resolveScope(sourceId, input);
-  return getLinkSummaries(sourceId, queryScope);
 }
 
 export async function getAnalyticsScope(input: AnalyticsQueryScope): Promise<AnalyticsScope> {

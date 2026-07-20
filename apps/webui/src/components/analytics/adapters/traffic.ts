@@ -111,7 +111,7 @@ export function toOverviewViewModel(data: AnalyticsOverview): AnalyticsOverviewV
   }
 }
 
-export function toRankedLinks(links: AnalyticsLinkSummary[]): AnalyticsRankedLink[] {
+function toRankedLinks(links: AnalyticsLinkSummary[]): AnalyticsRankedLink[] {
   return links.map((link) => ({
     analyticsId: link.analyticsId,
     path: link.path,
