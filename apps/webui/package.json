@@ -12,9 +12,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint && node scripts/validate-messages.mjs",
     "analytics:migrate": "node scripts/analytics-migrate.mjs",
-    "validate:redirects": "node scripts/validate-redirects.mjs"
+    "validate:redirects": "node scripts/validate-redirects.mjs",
+    "validate:messages": "node scripts/validate-messages.mjs"
   },
   "dependencies": {
     "@visx/axis": "^4.0.0",
