@@ -4,27 +4,20 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import {
-  fieldLabelClassName,
-  fieldLabelRowClassName,
-  formControlClassName,
-} from "@/components/ui/form-control";
-import { LabelWithTooltip } from "@/components/ui/label-with-tooltip";
-import { DropdownSelect } from "@/components/ui/dropdown-select";
-import { QRCodeButton } from "@/components/ui/qr-code";
+import { fieldLabelClassName } from "@/components/ui/form-control";
 import {
   asString,
   createEmptyConfig,
   getDestinationKey,
   getMode,
   isRecord,
-  normalizePriority,
-  normalizeStatus,
   setExclusiveDestination,
-  type DestinationKey,
   type RouteMode,
 } from "@/composables/editor/route-utils";
+
+import { RouteArrayEditor } from "./route-entry/array-editor";
+import { RouteObjectEditor } from "./route-entry/object-editor";
+import { RouteQuickEditor } from "./route-entry/quick-editor";
 
 export type RouteEntryEditorProps = {
   value: unknown;
@@ -35,22 +28,19 @@ export type RouteEntryEditorProps = {
   isReadOnly?: boolean;
 };
 
-export function RouteEntryEditor({ 
-  value, 
-  onChange, 
-  level = 0, 
-  allowArray = true, 
+export function RouteEntryEditor({
+  value,
+  onChange,
+  level = 0,
+  allowArray = true,
   pathKey = "",
   isReadOnly = false,
 }: RouteEntryEditorProps) {
   const t = useTranslations("routeEntry");
-
   const mode = useMemo(() => getMode(value), [value]);
-
   const stringValue = mode === "string" ? asString(value) : "";
   const configValue = mode === "object" && isRecord(value) ? value : null;
   const arrayValue = mode === "array" && Array.isArray(value) ? value : null;
-
   const stringDraftRef = useRef<string>(stringValue);
   const objectDraftRef = useRef<Record<string, unknown> | null>(configValue);
   const arrayDraftRef = useRef<unknown[] | null>(arrayValue);
@@ -188,245 +178,32 @@ export function RouteEntryEditor({
       </div>
 
       {mode === "string" ? (
-        <div className="mt-3">
-          <LabelWithTooltip label={t("targetLabel")} tooltip={t("targetTooltip")} />
-          <div className="flex gap-2">
-            <input
-              value={stringValue}
-              onChange={(e) => onChange(e.target.value)}
-              placeholder={t("targetPlaceholder")}
-              readOnly={isReadOnly}
-              className={formControlClassName({ className: "flex-1" })}
-            />
-            {pathKey && <QRCodeButton pathKey={pathKey} />}
-          </div>
-        </div>
+        <RouteQuickEditor
+          value={stringValue}
+          onChange={onChange}
+          pathKey={pathKey}
+          isReadOnly={isReadOnly}
+        />
       ) : null}
 
       {mode === "array" && arrayValue ? (
-        <div className="mt-4 space-y-3">
-          {arrayValue.length === 0 ? (
-            <Card elevation="flat" padding="sm" tone="muted" className="border-dashed">
-              <p className="text-sm text-muted">{t("noRuleItems")}</p>
-            </Card>
-          ) : null}
-
-          {arrayValue.map((item, index) => (
-            <Card key={index} elevation="flat" padding="sm">
-              <div className="flex items-center justify-between gap-3">
-                <p className={fieldLabelClassName}>{t("ruleItem", { index: index + 1 })}</p>
-                {isReadOnly ? null : (
-                  <Button
-                    onClick={() => {
-                      if (!window.confirm(t("confirmDeleteRule"))) return;
-                      const next = arrayValue.slice();
-                      if (next.length <= 1) {
-                        next[0] = "";
-                        onChange(next);
-                        return;
-                      }
-                      next.splice(index, 1);
-                      onChange(next);
-                    }}
-                    size="icon"
-                    variant="danger"
-                    title={t("deleteRule")}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2">
-                      <path
-                        d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path d="M10 11v6" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </Button>
-                )}
-              </div>
-              <div className="mt-3">
-                <RouteEntryEditor
-                  value={Array.isArray(item) ? "" : item}
-                  allowArray={false}
-                  level={level + 1}
-                  pathKey={pathKey}
-                  isReadOnly={isReadOnly}
-                  onChange={(nextItem) => {
-                    const safeNext = Array.isArray(nextItem) ? "" : nextItem;
-                    const next = arrayValue.slice();
-                    next[index] = safeNext;
-                    onChange(next);
-                  }}
-                />
-              </div>
-            </Card>
-          ))}
-
-          {isReadOnly ? null : (
-            <Button
-              onClick={() => onChange([...(arrayValue ?? []), ""])}
-              size="sm"
-              variant="secondary"
-            >
-              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2">
-                <path d="M12 6v12m6-6H6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              {t("addRuleItem")}
-            </Button>
-          )}
-        </div>
+        <RouteArrayEditor
+          value={arrayValue}
+          onChange={onChange}
+          level={level}
+          pathKey={pathKey}
+          isReadOnly={isReadOnly}
+          EntryEditor={RouteEntryEditor}
+        />
       ) : null}
 
       {mode === "object" && configValue ? (
-        <div className="mt-4 grid grid-cols-1 gap-3">
-          {(() => {
-            const routeType = ((configValue.type as string | undefined) ?? "prefix").trim();
-            const showAppendPath = routeType !== "exact";
-            const showStatus = routeType !== "proxy";
-            const detailCols = showStatus ? 3 : 2;
-            const statusValue = normalizeStatus(configValue.status);
-            const priorityValue = normalizePriority(configValue.priority);
-            const statusInvalid = showStatus && statusValue.trim() !== "" && !/^\d{3}$/.test(statusValue.trim());
-            const priorityInvalid = priorityValue.trim() !== "" && !/^-?\d+$/.test(priorityValue.trim());
-
-            return (
-              <>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <div>
-                    <LabelWithTooltip label={t("typeLabel")} tooltip={t("typeTooltip")} />
-                    <DropdownSelect
-                      value={(configValue.type as string | undefined) ?? "prefix"}
-                      disabled={isReadOnly}
-                      onChange={(next) => {
-                        const nextConfig: Record<string, unknown> = { ...configValue, type: next };
-                        if (next === "proxy") delete nextConfig.status;
-                        if (next === "exact") delete nextConfig.appendPath;
-                        onChange(nextConfig);
-                      }}
-                      options={[
-                        { value: "prefix", label: "prefix" },
-                        { value: "exact", label: "exact" },
-                        { value: "proxy", label: "proxy" },
-                      ]}
-                    />
-                  </div>
-
-                  {showAppendPath ? (
-                    <div>
-                      <label className={fieldLabelRowClassName + " " + fieldLabelClassName}>
-                        {t("appendPath")}
-                      </label>
-                      <div className="inline-flex h-10 w-full items-center gap-2 rounded-xl border border-line bg-panel px-3 text-sm text-ink">
-                        <input
-                          type="checkbox"
-                          checked={configValue.appendPath !== false}
-                          disabled={isReadOnly}
-                          onChange={(e) => onChange({ ...configValue, appendPath: e.target.checked })}
-                          className="h-4 w-4 rounded border-line-strong accent-accent"
-                        />
-                        <span className="text-sm text-ink">{t("appendPathHint")}</span>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className={"grid grid-cols-1 gap-2 " + (detailCols === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
-                  <div className={detailCols === 3 ? "sm:col-span-3" : "sm:col-span-2"}>
-                    <LabelWithTooltip label={t("targetLabel")} tooltip={t("targetTooltip")} />
-                    <div className="flex gap-2">
-                      <DropdownSelect
-                        className="w-28 shrink-0"
-                        value={getDestinationKey(configValue)}
-                        disabled={isReadOnly}
-                        onChange={(next) => {
-                          const nextKey = next as DestinationKey;
-                          const currentKey = getDestinationKey(configValue);
-                          const currentValue = asString(configValue[currentKey]);
-                          onChange(setExclusiveDestination(configValue, nextKey, currentValue));
-                        }}
-                        options={[
-                          { value: "target", label: "target" },
-                          { value: "to", label: "to" },
-                          { value: "url", label: "url" },
-                        ]}
-                      />
-                      <input
-                        value={asString(configValue[getDestinationKey(configValue)])}
-                        onChange={(e) => {
-                          const nextKey = getDestinationKey(configValue);
-                          onChange(setExclusiveDestination(configValue, nextKey, e.target.value));
-                        }}
-                        placeholder="https://example.com"
-                        readOnly={isReadOnly}
-                        className={formControlClassName({ className: "flex-1" })}
-                      />
-                      {pathKey && <QRCodeButton pathKey={pathKey} />}
-                    </div>
-                  </div>
-
-                  {showStatus ? (
-                    <div>
-                      <LabelWithTooltip label={t("statusLabel")} tooltip={t("statusTooltip")} />
-                      <input
-                        value={statusValue}
-                        onChange={(e) => {
-                          const raw = e.target.value.trim();
-                          const next = raw === "" ? undefined : raw;
-                          const nextConfig = { ...configValue };
-                          if (next === undefined) {
-                            delete nextConfig.status;
-                            onChange(nextConfig);
-                            return;
-                          }
-                          onChange({ ...nextConfig, status: next });
-                        }}
-                        placeholder="301"
-                        readOnly={isReadOnly}
-                        className={formControlClassName({
-                          className: "w-full " + (statusInvalid ? "border-rose-300" : ""),
-                        })}
-                      />
-                      {statusInvalid ? <p className="mt-1 text-xs text-rose-600">{t("statusInvalid")}</p> : null}
-                    </div>
-                  ) : null}
-
-                  <div>
-                    <LabelWithTooltip label={t("priorityLabel")} tooltip={t("priorityTooltip")} />
-                    <input
-                      value={priorityValue}
-                      onChange={(e) => {
-                        const raw = e.target.value.trim();
-                        const next = raw === "" ? undefined : raw;
-                        const nextConfig = { ...configValue };
-                        if (next === undefined) {
-                          delete nextConfig.priority;
-                          onChange(nextConfig);
-                          return;
-                        }
-                        onChange({ ...nextConfig, priority: next });
-                      }}
-                      placeholder="0"
-                      readOnly={isReadOnly}
-                      className={formControlClassName({
-                        className: "w-full " + (priorityInvalid ? "border-rose-300" : ""),
-                      })}
-                    />
-                    {priorityInvalid ? <p className="mt-1 text-xs text-rose-600">{t("priorityInvalid")}</p> : null}
-                  </div>
-                </div>
-
-                <div>
-                  <LabelWithTooltip label={t("analyticsIdLabel")} tooltip={t("analyticsIdTooltip")} />
-                  <input
-                    value={asString(configValue.analyticsId)}
-                    readOnly
-                    className="h-10 w-full rounded-xl border border-line bg-panel-muted px-3.5 font-mono text-xs text-muted outline-none"
-                  />
-                </div>
-              </>
-            );
-          })()}
-        </div>
+        <RouteObjectEditor
+          value={configValue}
+          onChange={onChange}
+          pathKey={pathKey}
+          isReadOnly={isReadOnly}
+        />
       ) : null}
     </div>
   );
