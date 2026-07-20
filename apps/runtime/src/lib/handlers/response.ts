@@ -36,6 +36,23 @@ const SENSITIVE_FORWARD_HEADER_PREFIXES = [
   "x-nf-",
   "x-vercel-"
 ] as const;
+const HOP_BY_HOP_HEADERS = [
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade"
+] as const;
+const REQUEST_BODY_HEADERS = [
+  "content-encoding",
+  "content-language",
+  "content-length",
+  "content-location",
+  "content-type"
+] as const;
+const HEADER_NAME_PATTERN = /^[!#$%&'*+.^_`|~0-9a-z-]+$/i;
 const MAX_PROXY_REDIRECTS = 5;
 
 function isIPv4(hostname: string): boolean {
@@ -105,6 +122,22 @@ function assertSafeProxyUrl(url: URL): void {
   }
 }
 
+function shouldSwitchRedirectToGet(status: number, method: string): boolean {
+  return (
+    ((status === 301 || status === 302) && method === "POST")
+    || (status === 303 && method !== "GET" && method !== "HEAD")
+  );
+}
+
+function prependProxyBasePath(pathname: string, basePath: string): string {
+  if (!basePath || basePath === "/") {
+    return pathname;
+  }
+
+  const prefix = basePath.endsWith("/") ? basePath.slice(0, -1) : basePath;
+  return pathname === "/" ? `${prefix}/` : `${prefix}${pathname}`;
+}
+
 export function shouldFallbackProxy(response: Response): boolean {
   return response.status === 404 || response.status >= 500;
 }
@@ -150,6 +183,7 @@ async function proxyRequest(
   }
 
   let effectiveMethod = originalMethod;
+  let shouldDropBodyHeaders = false;
 
   while (true) {
     const headers = new Headers(request.headers);
@@ -162,8 +196,19 @@ async function proxyRequest(
       return new Response("Bad Gateway: Upstream redirect blocked.", { status: 502 });
     }
 
+    const connectionHeaders = headers.get("connection")
+      ?.split(",")
+      .map((name) => name.trim().toLowerCase())
+      .filter((name) => HEADER_NAME_PATTERN.test(name)) ?? [];
+
     headers.delete("host");
     for (const name of SENSITIVE_FORWARD_HEADERS) {
+      headers.delete(name);
+    }
+    for (const name of HOP_BY_HOP_HEADERS) {
+      headers.delete(name);
+    }
+    for (const name of connectionHeaders) {
       headers.delete(name);
     }
     for (const name of [...headers.keys()]) {
@@ -171,10 +216,15 @@ async function proxyRequest(
         headers.delete(name);
       }
     }
+    if (shouldDropBodyHeaders) {
+      for (const name of REQUEST_BODY_HEADERS) {
+        headers.delete(name);
+      }
+    }
 
     // Re-assert forwarding headers after stripping user-controlled versions.
     headers.set("x-forwarded-host", originalHost);
-    headers.set("x-forwarded-proto", "https");
+    headers.set("x-forwarded-proto", originalUrl.protocol.slice(0, -1));
 
     headers.set("origin", currentUrlObj.origin);
     headers.set("referer", currentTarget);
@@ -218,8 +268,9 @@ async function proxyRequest(
 
       const nextUrl = nextUrlObj.toString();
 
-      if (status === 301 || status === 302 || status === 303) {
+      if (shouldSwitchRedirectToGet(status, effectiveMethod)) {
         effectiveMethod = "GET";
+        shouldDropBodyHeaders = true;
       }
 
       currentTarget = nextUrl;
@@ -258,16 +309,16 @@ async function proxyRequest(
     try {
       const locUrl = new URL(location, currentTarget);
       if (locUrl.origin === targetUrlObj.origin && originalHost) {
-        const rewritten = `https://${originalHost}${locUrl.pathname}${locUrl.search}`;
+        const rewrittenUrl = new URL(originalUrl.origin);
+        rewrittenUrl.pathname = prependProxyBasePath(locUrl.pathname, basePath);
+        rewrittenUrl.search = locUrl.search;
+        rewrittenUrl.hash = locUrl.hash;
+        const rewritten = rewrittenUrl.toString();
         finalLocation = rewritten !== originalUrl.href ? rewritten : locUrl.toString();
       } else {
         finalLocation = locUrl.toString();
       }
     } catch {
-    }
-
-    if (basePath && basePath !== "/" && finalLocation.startsWith("/") && !finalLocation.startsWith("//")) {
-      finalLocation = `${basePath}${finalLocation}`;
     }
 
     responseHeaders.set("Location", finalLocation);

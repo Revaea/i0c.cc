@@ -121,9 +121,11 @@ test("strips credentials and platform client metadata before proxying", async ()
       Authorization: "Bearer secret",
       "CF-Connecting-IP": "203.0.113.10",
       "CF-IPCountry": "US",
+      Connection: "keep-alive, X-Remove-Me",
       Cookie: "session=secret",
       Forwarded: "for=203.0.113.10",
       Host: "attacker.example",
+      "Keep-Alive": "timeout=5",
       "Proxy-Authorization": "Basic secret",
       "True-Client-IP": "203.0.113.10",
       "X-Nf-Client-Connection-IP": "203.0.113.10",
@@ -132,6 +134,7 @@ test("strips credentials and platform client metadata before proxying", async ()
       "X-Forwarded-For": "203.0.113.10",
       "X-Forwarded-Host": "attacker.example",
       "X-Forwarded-Proto": "http",
+      "X-Remove-Me": "connection-specific",
       "X-Request-ID": "request-1"
     }
   });
@@ -150,20 +153,125 @@ test("strips credentials and platform client metadata before proxying", async ()
     "authorization",
     "cf-connecting-ip",
     "cf-ipcountry",
+    "connection",
     "cookie",
     "forwarded",
+    "keep-alive",
     "proxy-authorization",
     "true-client-ip",
     "x-nf-client-connection-ip",
     "x-real-ip",
     "x-vercel-ip-country",
-    "x-forwarded-for"
+    "x-forwarded-for",
+    "x-remove-me"
   ]) {
     assert.equal(forwarded.headers.get(name), null, name);
   }
   assert.equal(forwarded.headers.get("x-forwarded-host"), "i0c.cc");
   assert.equal(forwarded.headers.get("x-forwarded-proto"), "https");
   assert.equal(forwarded.headers.get("x-request-id"), "request-1");
+});
+
+test("applies Fetch method semantics when following upstream redirects", async () => {
+  const postRequests: Array<{ body: string; contentType: string | null; method: string }> = [];
+  const postRuntime = createRuntime(async (input) => {
+    const request = input instanceof Request ? input : new Request(input);
+    postRequests.push({
+      body: await request.text(),
+      contentType: request.headers.get("content-type"),
+      method: request.method
+    });
+    return postRequests.length === 1
+      ? new Response(null, { status: 302, headers: { Location: "/next" } })
+      : new Response(null, { status: 204 });
+  });
+
+  const postResponse = await respondUsingRule(
+    new Request("https://i0c.cc/proxy", {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: "payload"
+    }),
+    proxyRule,
+    "https://example.com/start",
+    postRuntime,
+    "/proxy"
+  );
+
+  assert.equal(postResponse.status, 204);
+  assert.deepEqual(postRequests, [
+    { body: "payload", contentType: "text/plain", method: "POST" },
+    { body: "", contentType: null, method: "GET" }
+  ]);
+
+  const putRequests: Array<{ body: string; method: string }> = [];
+  const putRuntime = createRuntime(async (input) => {
+    const request = input instanceof Request ? input : new Request(input);
+    putRequests.push({ body: await request.text(), method: request.method });
+    return putRequests.length === 1
+      ? new Response(null, { status: 302, headers: { Location: "/next" } })
+      : new Response(null, { status: 204 });
+  });
+
+  const putResponse = await respondUsingRule(
+    new Request("https://i0c.cc/proxy", { method: "PUT", body: "payload" }),
+    proxyRule,
+    "https://example.com/start",
+    putRuntime,
+    "/proxy"
+  );
+
+  assert.equal(putResponse.status, 204);
+  assert.deepEqual(putRequests, [
+    { body: "payload", method: "PUT" },
+    { body: "payload", method: "PUT" }
+  ]);
+
+  const patchRequests: Array<{ body: string; method: string }> = [];
+  const patchRuntime = createRuntime(async (input) => {
+    const request = input instanceof Request ? input : new Request(input);
+    patchRequests.push({ body: await request.text(), method: request.method });
+    return patchRequests.length === 1
+      ? new Response(null, { status: 303, headers: { Location: "/next" } })
+      : new Response(null, { status: 204 });
+  });
+
+  const patchResponse = await respondUsingRule(
+    new Request("https://i0c.cc/proxy", { method: "PATCH", body: "payload" }),
+    proxyRule,
+    "https://example.com/start",
+    patchRuntime,
+    "/proxy"
+  );
+
+  assert.equal(patchResponse.status, 204);
+  assert.deepEqual(patchRequests, [
+    { body: "payload", method: "PATCH" },
+    { body: "", method: "GET" }
+  ]);
+});
+
+test("preserves the public protocol and proxy base path in rewritten locations", async () => {
+  let forwarded: Request | undefined;
+  const runtime = createRuntime(async (input) => {
+    forwarded = input instanceof Request ? input : new Request(input);
+    return new Response(null, {
+      status: 201,
+      headers: { Location: "/done?value=1#result" }
+    });
+  });
+
+  const response = await respondUsingRule(
+    new Request("http://localhost:3000/proxy/start"),
+    proxyRule,
+    "https://example.com/start",
+    runtime,
+    "/proxy"
+  );
+
+  assert.ok(forwarded);
+  assert.equal(forwarded.headers.get("x-forwarded-proto"), "http");
+  assert.equal(response.headers.get("location"), "http://localhost:3000/proxy/done?value=1#result");
 });
 
 test("returns a gateway error for malformed upstream redirects", async (context) => {
