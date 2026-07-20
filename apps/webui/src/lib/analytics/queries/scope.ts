@@ -127,7 +127,7 @@ async function queryAvailableEntryDomains(
 
 const getAvailableEntryDomains = unstable_cache(
   queryAvailableEntryDomains,
-  ["analytics-entry-domains-v1"],
+  ["analytics-entry-domains-v2"],
   { revalidate: analyticsCacheSeconds, tags: [analyticsCacheTag] },
 );
 
