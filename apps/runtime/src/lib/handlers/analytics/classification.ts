@@ -1,5 +1,5 @@
 /**
- * @file analytics-classification.ts
+ * @file classification.ts
  * @description
  * [EN] Privacy-safe request classification for analytics events.
  * Derives bounded traffic, resource, device, and probe categories without exporting raw paths or user agents.
@@ -15,7 +15,7 @@ import type {
   AnalyticsProbeCategory,
   AnalyticsResourceClass,
   AnalyticsTrafficClassification
-} from "./types";
+} from "../types";
 
 const SEARCH_BOT_PATTERN = /(googlebot|bingbot|duckduckbot|baiduspider|yandexbot|yahoo! slurp|applebot)/i;
 const AI_CRAWLER_PATTERN = /(gptbot|chatgpt-user|oai-searchbot|claudebot|claude-web|anthropic-ai|perplexitybot|bytespider|google-extended|ccbot|cohere-ai)/i;

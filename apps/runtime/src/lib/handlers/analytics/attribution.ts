@@ -1,5 +1,5 @@
 /**
- * @file analytics-attribution.ts
+ * @file attribution.ts
  * @description
  * [EN] Signed campaign and upstream attribution for short-link requests.
  * Verifies bounded HMAC tokens, sanitizes reserved query parameters, and manages the short-lived handoff cookie.
@@ -10,8 +10,8 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
-import { normalisePath, safeDecode } from "./utils";
-import type { AnalyticsProvider } from "./types";
+import { normalisePath, safeDecode } from "../utils";
+import type { AnalyticsProvider } from "../types";
 
 export const ANALYTICS_ATTRIBUTION_QUERY_PARAM = "_i0c_via";
 export const ANALYTICS_ATTRIBUTION_COOKIE = "__Host-i0c-attribution";

@@ -21,7 +21,7 @@ import {
   deriveAttributionHmacKey,
   extractAttributionQuery,
   verifyAttributionToken
-} from "../../src/lib/handlers/analytics-attribution";
+} from "../../src/lib/handlers/analytics/attribution";
 
 const attributionContext = "i0c.cc/analytics-attribution/v1";
 const sourceId = "i0c.cc";

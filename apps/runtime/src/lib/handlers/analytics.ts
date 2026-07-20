@@ -11,6 +11,7 @@
  */
 
 import {
+  ANALYTICS_ATTRIBUTION_QUERY_PARAM,
   attachUpstreamAttribution,
   clearAttributionCookie,
   createAttributionCleanupResponse,
@@ -18,18 +19,18 @@ import {
   readAttributionCookie,
   resolveAnalyticsEntryDomain,
   verifyAttributionToken
-} from "./analytics-attribution";
-import { scheduleAnalyticsEvent } from "./analytics-delivery";
+} from "./analytics/attribution";
+import { scheduleAnalyticsEvent } from "./analytics/delivery";
 import {
   createMatchedAnalyticsEvent,
   createRuntimeAnalyticsEvent
-} from "./analytics-events";
+} from "./analytics/events";
 import {
   createDefaultAnalyticsRuntimeSettings,
   resolveAnalyticsSettings
-} from "./analytics-settings";
-import type { VerifiedAttributionToken } from "./analytics-attribution";
-import type { AnalyticsRuntimeSettings } from "./analytics-settings";
+} from "./analytics/settings";
+import type { VerifiedAttributionToken } from "./analytics/attribution";
+import type { AnalyticsRuntimeSettings } from "./analytics/settings";
 import type {
   AnalyticsLinkMatchKind,
   AnalyticsRuntimeOutcome,
@@ -37,7 +38,8 @@ import type {
   ResolvedRuntime
 } from "./types";
 
-export type { AnalyticsRuntimeSettings } from "./analytics-settings";
+export type { AnalyticsRuntimeSettings } from "./analytics/settings";
+export { ANALYTICS_ATTRIBUTION_QUERY_PARAM, clearAttributionCookie };
 
 export interface AnalyticsRequestContext {
   attribution?: VerifiedAttributionToken;

@@ -13,14 +13,12 @@
  */
 
 import {
+  ANALYTICS_ATTRIBUTION_QUERY_PARAM,
+  clearAttributionCookie,
   finalizeMatchedAnalytics,
   finalizeRuntimeAnalytics,
   prepareAnalyticsRequest
 } from "@handlers/analytics";
-import {
-  ANALYTICS_ATTRIBUTION_QUERY_PARAM,
-  clearAttributionCookie
-} from "@handlers/analytics-attribution";
 import { HTTPS_REDIRECT_STATUS } from "@handlers/constants";
 import { serveFavicon } from "@handlers/favicon-serve";
 import { loadConfig, resolveRuntimeOptions } from "@handlers/loader";

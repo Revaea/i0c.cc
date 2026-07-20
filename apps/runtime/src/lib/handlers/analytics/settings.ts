@@ -1,5 +1,5 @@
 /**
- * @file analytics-settings.ts
+ * @file settings.ts
  * @description
  * [EN] Resolves and validates Runtime analytics configuration and attribution signing keys.
  * Keeps provider bindings, environment fallbacks, and delivery eligibility in one boundary.
@@ -13,9 +13,9 @@
 import {
   deriveAttributionHmacKey,
   normalizeAnalyticsHostname
-} from "./analytics-attribution";
-import { readBindingVar, readEnvVar } from "./env";
-import type { ResolvedRuntime } from "./types";
+} from "./attribution";
+import { readBindingVar, readEnvVar } from "../env";
+import type { ResolvedRuntime } from "../types";
 
 const ANALYTICS_ENDPOINT_KEY = "ANALYTICS_ENDPOINT";
 const ANALYTICS_WRITE_KEY = "ANALYTICS_WRITE_KEY";

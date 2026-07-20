@@ -1,5 +1,5 @@
 /**
- * @file analytics-delivery.ts
+ * @file delivery.ts
  * @description
  * [EN] Signs, schedules, and delivers Analytics V2 events to the configured collector.
  * Keeps best-effort background delivery and collector response handling isolated from request flow.
@@ -10,9 +10,9 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
-import type { AnalyticsEventV2 } from "./analytics-events";
-import type { AnalyticsDeliveryConfig } from "./analytics-settings";
-import type { ResolvedRuntime } from "./types";
+import type { ResolvedRuntime } from "../types";
+import type { AnalyticsEventV2 } from "./events";
+import type { AnalyticsDeliveryConfig } from "./settings";
 
 export function scheduleAnalyticsEvent(
   event: AnalyticsEventV2,
