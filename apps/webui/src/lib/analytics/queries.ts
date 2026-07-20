@@ -643,14 +643,14 @@ async function getLinkBotBreakdowns(
       GROUP BY probe_category
     ), ranked AS (
       SELECT *, ROW_NUMBER() OVER (
-        PARTITION BY dimension ORDER BY estimated_requests DESC, key ASC
+        PARTITION BY dimension ORDER BY observed_requests DESC, key ASC
       ) AS rank
       FROM dimensions
     )
     SELECT dimension, key, label, observed_requests, estimated_requests
     FROM ranked
     WHERE rank <= 10
-    ORDER BY dimension ASC, estimated_requests DESC, key ASC
+    ORDER BY dimension ASC, observed_requests DESC, key ASC
   `;
 
   return mapAutomationDimensions(rows);
@@ -912,14 +912,14 @@ async function getRuntimeBotBreakdowns(
       GROUP BY probe_category
     ), ranked AS (
       SELECT *, ROW_NUMBER() OVER (
-        PARTITION BY dimension ORDER BY estimated_requests DESC, key ASC
+        PARTITION BY dimension ORDER BY observed_requests DESC, key ASC
       ) AS rank
       FROM dimensions
     )
     SELECT dimension, key, label, observed_requests, estimated_requests
     FROM ranked
     WHERE rank <= 10
-    ORDER BY dimension ASC, estimated_requests DESC, key ASC
+    ORDER BY dimension ASC, observed_requests DESC, key ASC
   `;
 
   return mapAutomationDimensions(rows);
@@ -955,7 +955,7 @@ async function getAutomationDeliveryDimensions(
     )
     SELECT dimension, key, label, observed_requests, estimated_requests
     FROM dimensions
-    ORDER BY dimension ASC, estimated_requests DESC, key ASC
+    ORDER BY dimension ASC, observed_requests DESC, key ASC
   `;
 
   const providers: AnalyticsAutomationDimensionPoint[] = [];
@@ -999,7 +999,7 @@ async function getAutomationLinks(
       AND (${scope.entryDomain === "all"} OR stats.entry_domain = ${scope.entryDomain})
       AND stats.traffic_class IN ('declared_bot', 'suspected_automation')
     GROUP BY link.analytics_id, link.route_path, link.link_type
-    ORDER BY SUM(stats.estimated_requests) DESC, link.route_path ASC
+    ORDER BY SUM(stats.observed_requests) DESC, link.route_path ASC
     LIMIT 20
   `;
 

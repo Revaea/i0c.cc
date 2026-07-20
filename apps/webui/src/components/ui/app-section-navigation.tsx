@@ -3,7 +3,6 @@
 import { useTranslations } from "next-intl";
 
 import { buttonClassName } from "@/components/ui/button";
-import { LinkPendingIndicator } from "@/components/ui/link-pending-indicator";
 import { Link, usePathname } from "@/i18n/navigation";
 
 function getLinkClass(isActive: boolean): string {
@@ -16,7 +15,6 @@ function getLinkClass(isActive: boolean): string {
 
 export function AppSectionNavigation() {
   const t = useTranslations("header");
-  const tCommon = useTranslations("common");
   const pathname = usePathname();
   const rulesHref = "/";
   const analyticsHref = "/analytics";
@@ -42,7 +40,6 @@ export function AppSectionNavigation() {
           />
         </svg>
         <span className="truncate">{t("rules")}</span>
-        <LinkPendingIndicator label={tCommon("loading")} />
       </Link>
       <Link
         href={analyticsHref}
@@ -58,8 +55,15 @@ export function AppSectionNavigation() {
           />
         </svg>
         <span className="truncate">{t("analytics")}</span>
-        <LinkPendingIndicator label={tCommon("loading")} />
       </Link>
     </nav>
+  );
+}
+
+export function AppSectionNavigationHeader() {
+  return (
+    <div className="shrink-0 border-b border-line px-5 pb-5 pt-7 sm:px-6 sm:pt-10">
+      <AppSectionNavigation />
+    </div>
   );
 }

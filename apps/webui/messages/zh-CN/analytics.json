@@ -108,8 +108,8 @@
       "humanClicksDescription": "命中短链接且表现为浏览器导航的估算请求",
       "entryHumanClicks": "估算的入口导航",
       "entryHumanClicksDescription": "排除受控短链接续跳后的估算浏览器导航",
-      "totalRequests": "请求总数",
-      "totalRequestsDescription": "所有命中已跟踪路由的请求，包含自动化流量",
+      "totalRequests": "已匹配请求",
+      "totalRequestsDescription": "所有命中已跟踪路由的精确请求计数，包含自动化流量",
       "entryRequests": "入口请求",
       "entryRequestsDescription": "排除已验证短链接续跳后的请求",
       "declaredBotShare": "已声明机器人占比",
@@ -123,9 +123,9 @@
     },
     "trend": {
       "title": "访问趋势",
-      "description": "对比有效访问与全部请求随时间的变化。",
+      "description": "对比有效访问与已匹配请求随时间的变化。",
       "empty": "所选周期内尚未观测到请求。",
-      "accessibleTitle": "有效访问与请求总数趋势",
+      "accessibleTitle": "有效访问与已匹配请求趋势",
       "accessibleDescription": "折线图覆盖 {start} 至 {end}。",
       "tableCaption": "统计趋势数据",
       "date": "日期",
@@ -193,32 +193,32 @@
       "backToRules": "返回规则"
     },
     "automation": {
-      "observed": "观测值",
-      "estimated": "估算值",
+      "observed": "观测样本",
+      "estimated": "估算参考",
+      "estimatedValue": "估算总量约 {count}",
       "metrics": {
         "title": "自动化指标",
-        "description": "大号数字是按采样率还原的估算请求数，卡片底部是实际收到的事件数。",
-        "requests": "全部请求",
+        "description": "大号数字是实际写入的观测样本；下方估算值按采样率推算，仅供参考。",
+        "requests": "运行时请求",
         "declaredBots": "已声明机器人",
         "suspectedAutomation": "疑似自动化",
         "unmatched": "未匹配路由",
-        "errors": "处理错误",
-        "observedValue": "观测 {count}"
+        "errors": "处理错误"
       },
       "trend": {
         "title": "自动化趋势",
-        "description": "按时间对比已声明机器人和疑似自动化的估算请求。",
-        "accessibleTitle": "已声明机器人与疑似自动化请求趋势"
+        "description": "按时间对比实际写入的已声明机器人和疑似自动化样本。",
+        "accessibleTitle": "已声明机器人与疑似自动化观测样本趋势"
       },
       "ranking": {
         "title": "自动化访问最多的短链接",
-        "description": "按已声明机器人和疑似自动化的估算请求排序。",
+        "description": "按已声明机器人和疑似自动化的观测样本排序。",
         "empty": "所选周期内尚未观测到自动化访问短链接。",
         "tableCaption": "按自动化请求排序的短链接"
       },
       "breakdowns": {
         "title": "自动化分类",
-        "description": "条形图使用估算值，并在下方显示观测值；疑似自动化不代表已确认机器人。",
+        "description": "条形图使用观测样本，并在下方显示估算参考；疑似自动化不代表已确认机器人。",
         "detectionTitle": "识别结果",
         "detectionDescription": "说明流量为何被判断为机器人、疑似自动化或安全探测；疑似不等于确认。",
         "handlingTitle": "请求处理",
@@ -231,8 +231,7 @@
         "resourceClasses": "资源类别",
         "matchKinds": "匹配方式",
         "outcomes": "处理结果",
-        "probes": "探测类别",
-        "observedValue": "观测 {count}"
+        "probes": "探测类别"
       },
       "states": {
         "emptyTitle": "暂无自动化分析数据",

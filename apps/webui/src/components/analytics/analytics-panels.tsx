@@ -3,15 +3,13 @@ import { useTranslations } from "next-intl"
 
 import { cardClassName } from "@/components/ui/card"
 
+import { AnalyticsTrendChart } from "./analytics-trend-chart"
+import { DeviceDateTime } from "./device-date-time"
 import {
   formatChangeRate,
   formatCount,
-  formatDate,
-  formatDay,
-  formatHour,
   formatPercent,
 } from "./format"
-import { AnalyticsTrendChart } from "./analytics-trend-chart"
 import { buildAnalyticsHref } from "./links"
 import type {
   AnalyticsAutomationLink,
@@ -146,14 +144,14 @@ export function AutomationMetricCards({ metrics, locale }: AutomationMetricCards
           <article key={metric.label} className="bg-panel px-5 py-5">
             <p className="text-sm font-medium text-muted">{metric.label}</p>
             <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
-              {t("automation.estimated")}
+              {t("automation.observed")}
             </p>
             <p className="mt-1 text-3xl font-semibold tracking-tight text-ink tabular-nums">
-              {formatCount(metric.values.estimated, locale)}
+              {formatCount(metric.values.observed, locale)}
             </p>
             <p className="mt-2 text-xs leading-5 text-muted">
-              {t("automation.metrics.observedValue", {
-                count: formatCount(metric.values.observed, locale),
+              {t("automation.estimatedValue", {
+                count: formatCount(metric.values.estimated, locale),
               })}
             </p>
           </article>
@@ -167,9 +165,9 @@ export function AutomationTrendChart({ points, locale, range }: AutomationTrendC
   const t = useTranslations("analytics")
   const chartPoints: AnalyticsTrendPoint[] = points.map((point) => ({
     timestamp: point.timestamp,
-    estimatedNavigations: point.declaredBots.estimated,
-    estimatedEntryNavigations: point.declaredBots.estimated,
-    totalRequests: point.suspectedAutomation.estimated,
+    estimatedNavigations: point.declaredBots.observed,
+    estimatedEntryNavigations: point.declaredBots.observed,
+    totalRequests: point.suspectedAutomation.observed,
     entryRequests: point.suspectedAutomation.observed,
   }))
 
@@ -204,18 +202,12 @@ export function TrendChart({
   const resolvedSecondaryLabel = secondaryLabel ?? t("metrics.totalRequests")
   const resolvedAccessibleTitle = accessibleTitle ?? t("trend.accessibleTitle")
   const isHourly = range === 1
-  const chartData = points.map((point) => {
-    const label = point.label
-      ?? (isHourly ? formatDate(point.timestamp, locale) : formatDay(point.timestamp, locale))
-
-    return {
-      timestamp: point.timestamp,
-      label,
-      axisLabel: isHourly ? formatHour(point.timestamp, locale) : label,
-      primaryValue: point.estimatedEntryNavigations,
-      secondaryValue: point.totalRequests,
-    }
-  })
+  const chartData = points.map((point) => ({
+    timestamp: point.timestamp,
+    label: point.label,
+    primaryValue: point.estimatedEntryNavigations,
+    secondaryValue: point.totalRequests,
+  }))
 
   return (
     <section className={cardClassName({ elevation: "flat", padding: "md", className: "sm:p-6" })}>
@@ -249,38 +241,16 @@ export function TrendChart({
             locale={locale}
             chartId={chartId}
             accessibleTitle={resolvedAccessibleTitle}
-            accessibleDescription={t("trend.accessibleDescription", {
-              start: chartData[0].label,
-              end: chartData[chartData.length - 1].label,
+            accessibleDescriptionTemplate={t("trend.accessibleDescription", {
+              start: "{start}",
+              end: "{end}",
             })}
+            granularity={isHourly ? "hour" : "day"}
             primaryLabel={resolvedPrimaryLabel}
             secondaryLabel={resolvedSecondaryLabel}
+            tableCaption={t("trend.tableCaption")}
+            timeColumnLabel={t(isHourly ? "trend.time" : "trend.date")}
           />
-
-          <table className="sr-only">
-            <caption>{t("trend.tableCaption")}</caption>
-            <thead>
-              <tr>
-                <th scope="col">{t(isHourly ? "trend.time" : "trend.date")}</th>
-                <th scope="col">{resolvedPrimaryLabel}</th>
-                <th scope="col">{resolvedSecondaryLabel}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {points.map((point) => (
-                <tr key={point.timestamp}>
-                  <th scope="row">
-                    {point.label
-                      ?? (isHourly
-                        ? formatDate(point.timestamp, locale)
-                        : formatDay(point.timestamp, locale))}
-                  </th>
-                  <td>{point.estimatedEntryNavigations}</td>
-                  <td>{point.totalRequests}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
     </section>
@@ -455,10 +425,10 @@ export function AutomationLinkRanking({
               <tr>
                 <th scope="col" className="px-6 py-3">{t("ranking.shortLink")}</th>
                 <th scope="col" className="px-3 py-3 text-right">
-                  {t("automation.estimated")}
+                  {t("automation.observed")}
                 </th>
                 <th scope="col" className="px-6 py-3 text-right">
-                  {t("automation.observed")}
+                  {t("automation.estimated")}
                 </th>
               </tr>
             </thead>
@@ -477,10 +447,12 @@ export function AutomationLinkRanking({
                     </Link>
                   </th>
                   <td className="px-3 py-4 text-right text-sm font-semibold tabular-nums text-ink">
-                    {formatCount(link.estimatedRequests, locale)}
+                    {formatCount(link.observedRequests, locale)}
                   </td>
                   <td className="px-6 py-4 text-right text-sm tabular-nums text-muted">
-                    {formatCount(link.observedRequests, locale)}
+                    {t("automation.estimatedValue", {
+                      count: formatCount(link.estimatedRequests, locale),
+                    })}
                   </td>
                 </tr>
               ))}
@@ -630,10 +602,10 @@ function BreakdownCard({
                         share: formatPercent(item.share, locale),
                       })}
                     </span>
-                    {item.observedValue === undefined ? null : (
+                    {item.estimatedValue === undefined ? null : (
                       <span className="mt-0.5 block text-[10px]">
-                        {t("automation.breakdowns.observedValue", {
-                          count: formatCount(item.observedValue, locale),
+                        {t("automation.estimatedValue", {
+                          count: formatCount(item.estimatedValue, locale),
                         })}
                       </span>
                     )}
@@ -776,12 +748,21 @@ export function DataQualityPanel({ quality, locale }: DataQualityPanelProps) {
   const t = useTranslations("analytics")
   const coverage =
     quality.coverageStart && quality.coverageEnd
-      ? `${formatDate(quality.coverageStart, locale)} – ${formatDate(quality.coverageEnd, locale)}`
+      ? (
+          <>
+            <DeviceDateTime locale={locale} value={quality.coverageStart} />
+            {" – "}
+            <DeviceDateTime locale={locale} value={quality.coverageEnd} />
+          </>
+        )
       : t("quality.notAvailable")
 
   const items = [
     { label: t("quality.observedWindow"), value: coverage },
-    { label: t("quality.latestEvent"), value: formatDate(quality.lastEventAt, locale) },
+    {
+      label: t("quality.latestEvent"),
+      value: <DeviceDateTime locale={locale} value={quality.lastEventAt} />,
+    },
     {
       label: t("quality.unknownGeography"),
       value:

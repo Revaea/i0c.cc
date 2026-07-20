@@ -25,7 +25,11 @@ export function formatPercent(value: number, locale = fallbackLocale) {
   }).format(value)
 }
 
-export function formatDate(value: string | null | undefined, locale = fallbackLocale) {
+export function formatDate(
+  value: string | null | undefined,
+  locale = fallbackLocale,
+  timeZone?: string,
+) {
   if (!value) {
     return "—"
   }
@@ -38,10 +42,11 @@ export function formatDate(value: string | null | undefined, locale = fallbackLo
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone,
   }).format(date)
 }
 
-export function formatDay(value: string, locale = fallbackLocale) {
+export function formatDay(value: string, locale = fallbackLocale, timeZone?: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
     return value
@@ -50,10 +55,11 @@ export function formatDay(value: string, locale = fallbackLocale) {
   return new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric",
+    timeZone,
   }).format(date)
 }
 
-export function formatHour(value: string, locale = fallbackLocale) {
+export function formatHour(value: string, locale = fallbackLocale, timeZone?: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
     return value
@@ -62,6 +68,7 @@ export function formatHour(value: string, locale = fallbackLocale) {
   return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone,
   }).format(date)
 }
 

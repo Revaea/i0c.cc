@@ -108,8 +108,8 @@
       "humanClicksDescription": "Estimated browser-like navigation requests matched to links",
       "entryHumanClicks": "Estimated entry navigations",
       "entryHumanClicksDescription": "Estimated browser-like navigations excluding controlled continuation hops",
-      "totalRequests": "Total requests",
-      "totalRequestsDescription": "All requests matched to tracked routes, including automated traffic",
+      "totalRequests": "Matched requests",
+      "totalRequestsDescription": "Exact request count for tracked routes, including automated traffic",
       "entryRequests": "Entry requests",
       "entryRequestsDescription": "Requests excluding verified short-link continuation hops",
       "declaredBotShare": "Declared bot share",
@@ -123,9 +123,9 @@
     },
     "trend": {
       "title": "Visit trend",
-      "description": "Effective visits compared with all requests over time.",
+      "description": "Effective visits compared with matched requests over time.",
       "empty": "No requests were observed in this period.",
-      "accessibleTitle": "Effective visits and total requests over time",
+      "accessibleTitle": "Effective visits and matched requests over time",
       "accessibleDescription": "A line chart covering {start} through {end}.",
       "tableCaption": "Analytics trend data",
       "date": "Date",
@@ -193,32 +193,32 @@
       "backToRules": "Back to rules"
     },
     "automation": {
-      "observed": "Observed",
-      "estimated": "Estimated",
+      "observed": "Observed samples",
+      "estimated": "Estimated reference",
+      "estimatedValue": "Estimated total: about {count}",
       "metrics": {
         "title": "Automation metrics",
-        "description": "Large values estimate traffic from the sample rate; card footers show events actually received.",
-        "requests": "All requests",
+        "description": "Large values are samples actually stored; estimates below are sampling-adjusted references.",
+        "requests": "Runtime requests",
         "declaredBots": "Declared bots",
         "suspectedAutomation": "Suspected automation",
         "unmatched": "Unmatched routes",
-        "errors": "Processing errors",
-        "observedValue": "{count} observed"
+        "errors": "Processing errors"
       },
       "trend": {
         "title": "Automation trend",
-        "description": "Estimated declared-bot and suspected-automation requests over time.",
-        "accessibleTitle": "Declared-bot and suspected-automation requests over time"
+        "description": "Stored declared-bot and suspected-automation samples over time.",
+        "accessibleTitle": "Observed declared-bot and suspected-automation samples over time"
       },
       "ranking": {
         "title": "Links most visited by automation",
-        "description": "Tracked links ranked by estimated declared-bot and suspected-automation requests.",
+        "description": "Tracked links ranked by observed declared-bot and suspected-automation samples.",
         "empty": "No automated visits to tracked links were observed in this period.",
         "tableCaption": "Tracked links ranked by automated requests"
       },
       "breakdowns": {
         "title": "Automation classification",
-        "description": "Bars use estimated values with observed counts shown below. Suspected automation is not a confirmed bot.",
+        "description": "Bars use observed samples with estimated references shown below. Suspected automation is not a confirmed bot.",
         "detectionTitle": "Detection results",
         "detectionDescription": "Why traffic was classified as a bot, suspected automation, or a security probe. Suspected does not mean confirmed.",
         "handlingTitle": "Request handling",
@@ -231,8 +231,7 @@
         "resourceClasses": "Resource classes",
         "matchKinds": "Match kinds",
         "outcomes": "Outcomes",
-        "probes": "Probe categories",
-        "observedValue": "{count} observed"
+        "probes": "Probe categories"
       },
       "states": {
         "emptyTitle": "No automation analytics yet",

@@ -1,6 +1,6 @@
 "use client"
 
-import type { PointerEvent } from "react"
+import { useMemo, type PointerEvent } from "react"
 
 import { AxisBottom, AxisLeft } from "@visx/axis"
 import { localPoint } from "@visx/event"
@@ -11,27 +11,44 @@ import { scaleLinear } from "@visx/scale"
 import { AreaClosed, LinePath } from "@visx/shape"
 import { TooltipWithBounds, useTooltip } from "@visx/tooltip"
 
-import { formatCount } from "./format"
+import { useDeviceTimeZone } from "./device-time-zone"
+import { formatCount, formatDate, formatDay, formatHour } from "./format"
 
 export interface AnalyticsTrendChartDatum {
   timestamp: string
-  label: string
-  axisLabel: string
+  label?: string
   primaryValue: number
   secondaryValue: number
 }
+
+type AnalyticsTrendGranularity = "day" | "hour"
 
 interface AnalyticsTrendChartProps {
   data: AnalyticsTrendChartDatum[]
   locale: string
   chartId: string
   accessibleTitle: string
+  accessibleDescriptionTemplate: string
+  granularity: AnalyticsTrendGranularity
+  primaryLabel: string
+  secondaryLabel: string
+  tableCaption: string
+  timeColumnLabel: string
+}
+
+interface ResolvedAnalyticsTrendChartDatum extends AnalyticsTrendChartDatum {
+  axisLabel: string
+  label: string
+}
+
+interface TrendChartCanvasProps {
+  data: ResolvedAnalyticsTrendChartDatum[]
+  locale: string
+  chartId: string
+  accessibleTitle: string
   accessibleDescription: string
   primaryLabel: string
   secondaryLabel: string
-}
-
-interface TrendChartCanvasProps extends AnalyticsTrendChartProps {
   width: number
   height: number
 }
@@ -80,14 +97,10 @@ function getLabelIndices(length: number, maximumLabels: number) {
 
   const lastIndex = length - 1
   const intervals = Math.max(1, maximumLabels - 1)
+  const step = Math.ceil(lastIndex / intervals)
+  const labelCount = Math.floor(lastIndex / step) + 1
 
-  return Array.from(
-    new Set(
-      Array.from({ length: intervals + 1 }, (_, index) =>
-        Math.round((index / intervals) * lastIndex),
-      ),
-    ),
-  )
+  return Array.from({ length: labelCount }, (_, index) => index * step)
 }
 
 function TrendChartCanvas({
@@ -108,7 +121,7 @@ function TrendChartCanvas({
     tooltipTop,
     hideTooltip,
     showTooltip,
-  } = useTooltip<AnalyticsTrendChartDatum>()
+  } = useTooltip<ResolvedAnalyticsTrendChartDatum>()
   const innerWidth = Math.max(0, width - chartMargin.left - chartMargin.right)
   const innerHeight = Math.max(0, height - chartMargin.top - chartMargin.bottom)
   const maximumValue = Math.max(
@@ -181,10 +194,10 @@ function TrendChartCanvas({
         width={width}
         height={height}
         role="img"
-        aria-labelledby={`${chartId}-title ${chartId}-description`}
+        aria-label={accessibleTitle}
+        aria-describedby={`${chartId}-description`}
         className="block overflow-visible"
       >
-        <title id={`${chartId}-title`}>{accessibleTitle}</title>
         <desc id={`${chartId}-description`}>{accessibleDescription}</desc>
 
         <Group left={chartMargin.left} top={chartMargin.top}>
@@ -353,13 +366,85 @@ function TrendChartCanvas({
 }
 
 export function AnalyticsTrendChart(props: AnalyticsTrendChartProps) {
+  const {
+    accessibleDescriptionTemplate,
+    data,
+    granularity,
+    locale,
+    primaryLabel,
+    secondaryLabel,
+    tableCaption,
+    timeColumnLabel,
+  } = props
+  const timeZone = useDeviceTimeZone()
+  const localizedData = useMemo<ResolvedAnalyticsTrendChartDatum[]>(
+    () =>
+      data.map((point) => {
+        const label =
+          point.label
+          ?? (granularity === "hour"
+            ? formatDate(point.timestamp, locale, timeZone)
+            : formatDay(point.timestamp, locale, timeZone))
+
+        return {
+          ...point,
+          label,
+          axisLabel:
+            granularity === "hour"
+              ? formatHour(point.timestamp, locale, timeZone)
+              : label,
+        }
+      }),
+    [data, granularity, locale, timeZone],
+  )
+  const accessibleDescription = useMemo(() => {
+    const start = localizedData[0]?.label ?? ""
+    const end = localizedData[localizedData.length - 1]?.label ?? ""
+
+    return accessibleDescriptionTemplate
+      .split("{start}").join(start)
+      .split("{end}").join(end)
+  }, [accessibleDescriptionTemplate, localizedData])
+
   return (
-    <div className="h-72 min-w-[40rem] w-full sm:h-80">
-      <ParentSize debounceTime={50}>
-        {({ width, height }) => (
-          <TrendChartCanvas {...props} width={width} height={height} />
-        )}
-      </ParentSize>
-    </div>
+    <>
+      <div className="h-72 min-w-[40rem] w-full sm:h-80">
+        <ParentSize debounceTime={0}>
+          {({ width, height }) => (
+            <TrendChartCanvas
+              data={localizedData}
+              locale={locale}
+              chartId={props.chartId}
+              accessibleTitle={props.accessibleTitle}
+              accessibleDescription={accessibleDescription}
+              primaryLabel={primaryLabel}
+              secondaryLabel={secondaryLabel}
+              width={width}
+              height={height}
+            />
+          )}
+        </ParentSize>
+      </div>
+
+      <table className="sr-only">
+        <caption>{tableCaption}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{timeColumnLabel}</th>
+            <th scope="col">{primaryLabel}</th>
+            <th scope="col">{secondaryLabel}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {localizedData.map((point) => (
+            <tr key={point.timestamp}>
+              <th scope="row">{point.label}</th>
+              <td>{point.primaryValue}</td>
+              <td>{point.secondaryValue}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
   )
 }
