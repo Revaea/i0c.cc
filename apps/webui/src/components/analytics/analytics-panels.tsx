@@ -92,34 +92,14 @@ export function MetricCards({ metrics, locale }: MetricCardsProps) {
   const t = useTranslations("analytics")
   const metricItems = [
     {
-      label: t("metrics.humanClicks"),
-      value: formatCount(metrics.estimatedNavigations, locale),
-      description: t("metrics.humanClicksDescription"),
-    },
-    {
-      label: t("metrics.entryHumanClicks"),
+      label: t("metrics.effectiveVisits"),
       value: formatCount(metrics.estimatedEntryNavigations, locale),
-      description: t("metrics.entryHumanClicksDescription"),
+      description: t("metrics.effectiveVisitsDescription"),
     },
     {
       label: t("metrics.totalRequests"),
       value: formatCount(metrics.totalRequests, locale),
       description: t("metrics.totalRequestsDescription"),
-    },
-    {
-      label: t("metrics.entryRequests"),
-      value: formatCount(metrics.entryRequests, locale),
-      description: t("metrics.entryRequestsDescription"),
-    },
-    {
-      label: t("metrics.declaredBotShare"),
-      value: formatPercent(metrics.declaredBotRate, locale),
-      description: t("metrics.declaredBotShareDescription"),
-    },
-    {
-      label: t("metrics.suspectedAutomationShare"),
-      value: formatPercent(metrics.suspectedAutomationRate, locale),
-      description: t("metrics.suspectedAutomationShareDescription"),
     },
     {
       label: t("metrics.errors"),
@@ -133,17 +113,14 @@ export function MetricCards({ metrics, locale }: MetricCardsProps) {
       <h2 id="analytics-kpis-title" className="sr-only">
         {t("metrics.title")}
       </h2>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-3">
         {metricItems.map((metric) => (
-          <article
-            key={metric.label}
-            className={cardClassName({ elevation: "flat", padding: "md", tone: "muted" })}
-          >
+          <article key={metric.label} className="bg-panel px-5 py-5 sm:px-6">
             <p className="text-sm font-medium text-muted">{metric.label}</p>
-            <p className="mt-2 text-3xl font-semibold tracking-tight text-ink tabular-nums">
+            <p className="mt-2 text-3xl font-semibold tracking-tight text-ink tabular-nums sm:text-4xl">
               {metric.value}
             </p>
-            <p className="mt-2 text-xs leading-5 text-muted">{metric.description}</p>
+            <p className="mt-2 max-w-xs text-xs leading-5 text-muted">{metric.description}</p>
           </article>
         ))}
       </div>
@@ -169,12 +146,12 @@ export function AutomationMetricCards({ metrics, locale }: AutomationMetricCards
       <h2 id="analytics-automation-kpis-title" className="sr-only">
         {t("automation.metrics.title")}
       </h2>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <p className="mb-3 text-xs leading-5 text-muted">
+        {t("automation.metrics.description")}
+      </p>
+      <div className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 xl:grid-cols-5">
         {metricItems.map((metric) => (
-          <article
-            key={metric.label}
-            className={cardClassName({ elevation: "flat", padding: "md", tone: "muted" })}
-          >
+          <article key={metric.label} className="bg-panel px-5 py-5">
             <p className="text-sm font-medium text-muted">{metric.label}</p>
             <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
               {t("automation.estimated")}
@@ -199,7 +176,7 @@ export function AutomationTrendChart({ points, locale }: AutomationTrendChartPro
   const chartPoints: AnalyticsTrendPoint[] = points.map((point) => ({
     timestamp: point.timestamp,
     estimatedNavigations: point.declaredBots.estimated,
-    estimatedEntryNavigations: point.declaredBots.observed,
+    estimatedEntryNavigations: point.declaredBots.estimated,
     totalRequests: point.suspectedAutomation.estimated,
     entryRequests: point.suspectedAutomation.observed,
   }))
@@ -263,13 +240,17 @@ export function TrendChart({
   title,
 }: TrendChartProps) {
   const t = useTranslations("analytics")
-  const resolvedPrimaryLabel = primaryLabel ?? t("metrics.humanClicks")
+  const resolvedPrimaryLabel = primaryLabel ?? t("metrics.effectiveVisits")
   const resolvedSecondaryLabel = secondaryLabel ?? t("metrics.totalRequests")
   const maxValue = Math.max(
     1,
-    ...points.flatMap((point) => [point.estimatedNavigations, point.totalRequests]),
+    ...points.flatMap((point) => [point.estimatedEntryNavigations, point.totalRequests]),
   )
-  const clickCoordinates = getCoordinates(points, maxValue, (point) => point.estimatedNavigations)
+  const clickCoordinates = getCoordinates(
+    points,
+    maxValue,
+    (point) => point.estimatedEntryNavigations,
+  )
   const requestCoordinates = getCoordinates(points, maxValue, (point) => point.totalRequests)
   const labelIndices = Array.from(new Set([0, Math.floor((points.length - 1) / 2), points.length - 1]))
     .filter((index) => index >= 0)
@@ -398,7 +379,7 @@ export function TrendChart({
               {points.map((point) => (
                 <tr key={point.timestamp}>
                   <th scope="row">{point.label ?? formatDay(point.timestamp, locale)}</th>
-                  <td>{point.estimatedNavigations}</td>
+                  <td>{point.estimatedEntryNavigations}</td>
                   <td>{point.totalRequests}</td>
                 </tr>
               ))}
@@ -485,9 +466,9 @@ export function LinkRanking({
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-lg font-semibold tabular-nums text-ink">
-                      {formatCount(link.estimatedNavigations, locale)}
+                      {formatCount(link.estimatedEntryNavigations, locale)}
                     </p>
-                    <p className="text-xs text-muted">{t("metrics.humanClicks")}</p>
+                    <p className="text-xs text-muted">{t("metrics.effectiveVisits")}</p>
                   </div>
                 </div>
                 <div className="mt-4 flex items-center justify-between gap-4">
@@ -503,13 +484,14 @@ export function LinkRanking({
           </div>
 
           <div className="hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[44rem] text-left">
+            <table className="w-full min-w-[48rem] text-left">
               <caption className="sr-only">{t("ranking.tableCaption")}</caption>
               <thead className="bg-panel-muted text-xs font-semibold uppercase tracking-wide text-muted">
                 <tr>
                   <th scope="col" className="w-16 px-6 py-3">{t("ranking.rank")}</th>
                   <th scope="col" className="px-3 py-3">{t("ranking.shortLink")}</th>
-                  <th scope="col" className="px-3 py-3 text-right">{t("metrics.humanClicks")}</th>
+                  <th scope="col" className="px-3 py-3">{t("ranking.type")}</th>
+                  <th scope="col" className="px-3 py-3 text-right">{t("metrics.effectiveVisits")}</th>
                   <th scope="col" className="px-3 py-3 text-right">{t("metrics.totalRequests")}</th>
                   <th scope="col" className="px-6 py-3 text-right">{t("ranking.change")}</th>
                 </tr>
@@ -519,23 +501,19 @@ export function LinkRanking({
                   <tr key={link.analyticsId} className="transition hover:bg-panel-muted/70">
                     <td className="px-6 py-4 text-sm font-medium text-muted">{index + 1}</td>
                     <th scope="row" className="px-3 py-4 font-normal">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <LinkKindBadge kind={link.kind} />
-                        <div className="min-w-0">
-                          <Link
-                            href={buildAnalyticsHref(
-                              `${detailBasePath}/${encodeURIComponent(link.analyticsId)}`,
-                              { entryDomain, range },
-                            )}
-                            className="block truncate font-mono text-sm font-semibold text-ink hover:text-accent hover:underline"
-                          >
-                            {link.path}
-                          </Link>
-                        </div>
-                      </div>
+                      <Link
+                        href={buildAnalyticsHref(
+                          `${detailBasePath}/${encodeURIComponent(link.analyticsId)}`,
+                          { entryDomain, range },
+                        )}
+                        className="block truncate font-mono text-sm font-semibold text-ink hover:text-accent hover:underline"
+                      >
+                        {link.path}
+                      </Link>
                     </th>
+                    <td className="px-3 py-4"><LinkKindBadge kind={link.kind} /></td>
                     <td className="px-3 py-4 text-right text-sm font-semibold tabular-nums text-ink">
-                      {formatCount(link.estimatedNavigations, locale)}
+                      {formatCount(link.estimatedEntryNavigations, locale)}
                     </td>
                     <td className="px-3 py-4 text-right text-sm tabular-nums text-muted">
                       {formatCount(link.totalRequests, locale)}
@@ -619,6 +597,11 @@ export function AutomationLinkRanking({
 }
 
 type AnalyticsBreakdownKind = keyof AnalyticsBreakdowns
+type BreakdownCardConfig = [
+  title: string,
+  kind: AnalyticsBreakdownKind,
+  items: AnalyticsBreakdownItem[],
+]
 
 function useAnalyticsLabelFormatter(locale: string) {
   const t = useTranslations("analytics")
@@ -746,7 +729,10 @@ function BreakdownCard({
                   <span className="min-w-0 truncate font-medium text-ink">{displayLabel}</span>
                   <span className="shrink-0 text-right tabular-nums text-muted">
                     <span className="block">
-                      {formatCount(item.value, locale)} · {formatPercent(item.share, locale)}
+                      {t("breakdowns.itemValue", {
+                        count: formatCount(item.value, locale),
+                        share: formatPercent(item.share, locale),
+                      })}
                     </span>
                     {item.observedValue === undefined ? null : (
                       <span className="mt-0.5 block text-[10px]">
@@ -774,66 +760,38 @@ function BreakdownCard({
   )
 }
 
-export function BreakdownGrid({ breakdowns, locale }: BreakdownGridProps) {
-  const t = useTranslations("analytics")
-
-  return (
-    <section aria-labelledby="analytics-breakdowns-title">
-      <div className="mb-4">
-        <h2 id="analytics-breakdowns-title" className="text-lg font-semibold text-ink">
-          {t("breakdowns.title")}
-        </h2>
-        <p className="mt-1 text-sm text-muted">{t("breakdowns.description")}</p>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <BreakdownCard title={t("breakdowns.countries")} items={breakdowns.countries} locale={locale} kind="countries" />
-        <BreakdownCard title={t("breakdowns.referrers")} items={breakdowns.referrers} locale={locale} kind="referrers" />
-        <BreakdownCard title={t("breakdowns.devices")} items={breakdowns.devices} locale={locale} kind="devices" />
-        <BreakdownCard title={t("breakdowns.providers")} items={breakdowns.providers} locale={locale} kind="providers" />
-        <BreakdownCard title={t("breakdowns.campaigns")} items={breakdowns.campaigns} locale={locale} kind="campaigns" />
-        <BreakdownCard title={t("breakdowns.upstreamLinks")} items={breakdowns.upstreamLinks} locale={locale} kind="upstreamLinks" />
-      </div>
-    </section>
-  )
-}
-
-export function BotBreakdownGrid({
-  breakdowns,
+function BreakdownSection({
+  cards,
+  description,
+  id,
   locale,
-  includeDelivery = false,
-}: BreakdownGridProps & { includeDelivery?: boolean }) {
-  const t = useTranslations("analytics")
-  const cards: Array<[string, AnalyticsBreakdownKind, AnalyticsBreakdownItem[]]> = [
-    [t("automation.breakdowns.trafficClasses"), "trafficClasses", breakdowns.trafficClasses],
-    [t("automation.breakdowns.categories"), "botCategories", breakdowns.botCategories],
-    [t("automation.breakdowns.confidences"), "botConfidences", breakdowns.botConfidences],
-    [t("automation.breakdowns.classifierVersions"), "classifierVersions", breakdowns.classifierVersions],
-    [t("automation.breakdowns.resourceClasses"), "resourceClasses", breakdowns.resourceClasses],
-    [t("automation.breakdowns.matchKinds"), "matchKinds", breakdowns.matchKinds],
-    [t("automation.breakdowns.outcomes"), "outcomes", breakdowns.outcomes],
-    [t("automation.breakdowns.probes"), "probes", breakdowns.probes],
-  ]
-
-  if (includeDelivery) {
-    cards.unshift(
-      [t("automation.breakdowns.entryDomains"), "entryDomains", breakdowns.entryDomains],
-      [t("breakdowns.providers"), "providers", breakdowns.providers],
-    )
-  }
-
+  title,
+  columns = "three",
+}: {
+  cards: BreakdownCardConfig[]
+  description: string
+  id: string
+  locale: string
+  title: string
+  columns?: "three" | "four"
+}) {
   return (
-    <section aria-labelledby="analytics-bot-breakdowns-title">
+    <section aria-labelledby={`${id}-title`}>
       <div className="mb-4">
-        <h2 id="analytics-bot-breakdowns-title" className="text-lg font-semibold text-ink">
-          {t("automation.breakdowns.title")}
+        <h2 id={`${id}-title`} className="text-lg font-semibold text-ink">
+          {title}
         </h2>
-        <p className="mt-1 text-sm text-muted">{t("automation.breakdowns.description")}</p>
+        <p className="mt-1 text-sm text-muted">{description}</p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {cards.map(([title, kind, items]) => (
+      <div
+        className={`grid gap-4 sm:grid-cols-2 ${
+          columns === "four" ? "xl:grid-cols-4" : "xl:grid-cols-3"
+        }`}
+      >
+        {cards.map(([cardTitle, kind, items]) => (
           <BreakdownCard
             key={kind}
-            title={title}
+            title={cardTitle}
             items={items}
             locale={locale}
             kind={kind}
@@ -841,6 +799,80 @@ export function BotBreakdownGrid({
         ))}
       </div>
     </section>
+  )
+}
+
+export function BreakdownGrid({ breakdowns, locale }: BreakdownGridProps) {
+  const t = useTranslations("analytics")
+  const sourceCards: BreakdownCardConfig[] = [
+    [t("breakdowns.referrers"), "referrers", breakdowns.referrers],
+    [t("breakdowns.countries"), "countries", breakdowns.countries],
+    [t("breakdowns.devices"), "devices", breakdowns.devices],
+  ]
+  const attributionCards: BreakdownCardConfig[] = [
+    [t("breakdowns.providers"), "providers", breakdowns.providers],
+    [t("breakdowns.campaigns"), "campaigns", breakdowns.campaigns],
+    [t("breakdowns.upstreamLinks"), "upstreamLinks", breakdowns.upstreamLinks],
+  ]
+  const visibleAttributionCards = attributionCards.filter(([, , items]) => items.length > 0)
+
+  return (
+    <div className="space-y-6">
+      <BreakdownSection
+        cards={sourceCards}
+        description={t("breakdowns.sourcesDescription")}
+        id="analytics-sources"
+        locale={locale}
+        title={t("breakdowns.sourcesTitle")}
+      />
+
+      {visibleAttributionCards.length > 0 ? (
+        <BreakdownSection
+          cards={visibleAttributionCards}
+          description={t("breakdowns.attributionDescription")}
+          id="analytics-attribution"
+          locale={locale}
+          title={t("breakdowns.attributionTitle")}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+export function BotBreakdownGrid({ breakdowns, locale }: BreakdownGridProps) {
+  const t = useTranslations("analytics")
+  const detectionCards: BreakdownCardConfig[] = [
+    [t("automation.breakdowns.trafficClasses"), "trafficClasses", breakdowns.trafficClasses],
+    [t("automation.breakdowns.categories"), "botCategories", breakdowns.botCategories],
+    [t("automation.breakdowns.confidences"), "botConfidences", breakdowns.botConfidences],
+    [t("automation.breakdowns.probes"), "probes", breakdowns.probes],
+  ]
+  const handlingCards: BreakdownCardConfig[] = [
+    [t("automation.breakdowns.matchKinds"), "matchKinds", breakdowns.matchKinds],
+    [t("automation.breakdowns.outcomes"), "outcomes", breakdowns.outcomes],
+    [t("automation.breakdowns.resourceClasses"), "resourceClasses", breakdowns.resourceClasses],
+    [t("automation.breakdowns.classifierVersions"), "classifierVersions", breakdowns.classifierVersions],
+  ]
+
+  return (
+    <div className="space-y-6">
+      <BreakdownSection
+        cards={detectionCards}
+        columns="four"
+        description={t("automation.breakdowns.detectionDescription")}
+        id="analytics-bot-detection"
+        locale={locale}
+        title={t("automation.breakdowns.detectionTitle")}
+      />
+      <BreakdownSection
+        cards={handlingCards}
+        columns="four"
+        description={t("automation.breakdowns.handlingDescription")}
+        id="analytics-bot-handling"
+        locale={locale}
+        title={t("automation.breakdowns.handlingTitle")}
+      />
+    </div>
   )
 }
 
@@ -871,31 +903,48 @@ export function DataQualityPanel({ quality, locale }: DataQualityPanelProps) {
   ]
 
   return (
-    <section className={cardClassName({ elevation: "flat", padding: "md", className: "sm:p-6" })}>
-      <div>
-        <h2 className="text-lg font-semibold text-ink">{t("quality.title")}</h2>
-        <p className="mt-1 text-sm text-muted">
-          {t("quality.description")}
-        </p>
+    <details className="group rounded-2xl border border-line bg-panel">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 [&::-webkit-details-marker]:hidden">
+        <span>
+          <span className="block text-sm font-semibold text-ink">{t("quality.title")}</span>
+          <span className="mt-0.5 block text-xs leading-5 text-muted">
+            {t("quality.description")}
+          </span>
+        </span>
+        <svg
+          viewBox="0 0 20 20"
+          fill="none"
+          className="h-4 w-4 shrink-0 text-muted transition-transform group-open:rotate-180"
+          aria-hidden="true"
+        >
+          <path d="m6 8 4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </summary>
+      <div className="border-t border-line px-5 pb-5 pt-4">
+        <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
+          {items.map((item) => (
+            <div key={item.label}>
+              <dt className="text-xs font-medium text-muted">{item.label}</dt>
+              <dd className="mt-1 break-words text-sm font-semibold leading-5 text-ink">
+                {item.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <ul className="mt-4 space-y-2 border-t border-line pt-4 text-xs leading-5 text-muted">
+          {[
+            t("quality.humanClickNote"),
+            t("quality.cacheNote"),
+            t("quality.refreshNote"),
+            ...(quality.notes ?? []),
+          ].map((note) => (
+            <li key={note} className="flex gap-2">
+              <span aria-hidden="true">•</span>
+              <span>{note}</span>
+            </li>
+          ))}
+        </ul>
       </div>
-      <dl className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {items.map((item) => (
-          <div key={item.label} className="rounded-xl border border-line bg-panel-muted p-4">
-            <dt className="text-xs font-medium text-muted">{item.label}</dt>
-            <dd className="mt-2 break-words text-sm font-semibold leading-5 text-ink">
-              {item.value}
-            </dd>
-          </div>
-        ))}
-      </dl>
-      <ul className="mt-5 space-y-2 border-t border-line pt-5 text-xs leading-5 text-muted">
-        {[t("quality.humanClickNote"), t("quality.cacheNote"), ...(quality.notes ?? [])].map((note) => (
-          <li key={note} className="flex gap-2">
-            <span aria-hidden="true">•</span>
-            <span>{note}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
+    </details>
   )
 }

@@ -545,7 +545,7 @@ async function emitAnalyticsEvent(
       "X-Analytics-Signature": `sha256=${signature}`
     },
     body,
-    redirect: "error"
+    redirect: "manual"
   });
   if (!response.ok) {
     throw new Error(`collector responded with ${response.status}`);

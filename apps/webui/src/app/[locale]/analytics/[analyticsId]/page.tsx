@@ -3,11 +3,7 @@ import { getServerSession } from "next-auth/next"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 
 import { authOptions } from "@/auth/config"
-import {
-  toDetailViewModel,
-  toQueryRange,
-  toRankedLinks,
-} from "@/components/analytics/adapters"
+import { toDetailViewModel, toQueryRange } from "@/components/analytics/adapters"
 import { AnalyticsDetailDashboard } from "@/components/analytics/analytics-dashboard"
 import { parseAnalyticsRange } from "@/components/analytics/format"
 import { buildAnalyticsHref } from "@/components/analytics/links"
@@ -20,7 +16,7 @@ import {
 import { SignInPanel } from "@/components/ui/sign-in-panel"
 import {
   getAnalyticsDetail,
-  getAnalyticsNavigation,
+  getAnalyticsScope,
   isAnalyticsConfigured,
 } from "@/lib/analytics/queries"
 
@@ -63,47 +59,49 @@ export default async function AnalyticsDetailPage({
     : query.entryDomain ?? "all"
   const overviewPath = `/${locale}/analytics`
   const detailPath = `${overviewPath}/${encodeURIComponent(analyticsId)}`
+  const requestedOverviewHref = buildAnalyticsHref(overviewPath, {
+    entryDomain,
+    range,
+  })
 
   if (!isAnalyticsConfigured()) {
     return (
       <AnalyticsShell>
         <AnalyticsPageHeader
+          backAction={{ href: requestedOverviewHref, label: t("detail.back") }}
+          entryDomain={entryDomain}
           range={range}
           rangeBasePath={detailPath}
+          showRefresh={false}
         />
         <AnalyticsStatePanel
           title={t("states.unconfiguredTitle")}
           description={t("states.unconfiguredDescription")}
-          action={{ href: overviewPath, label: t("detail.back") }}
         />
       </AnalyticsShell>
     )
   }
 
   const queryScope = { range: toQueryRange(range), entryDomain }
-  const [result, navigation] = await Promise.all([
-    getAnalyticsDetail(analyticsId, queryScope),
-    getAnalyticsNavigation(queryScope),
-  ])
-  const navigationLinks = toRankedLinks(navigation.links)
+  const result = await getAnalyticsDetail(analyticsId, queryScope)
+  const scope = result?.scope ?? await getAnalyticsScope(queryScope)
   const navigationScope = {
-    entryDomain: navigation.scope.entryDomain,
-    availableEntryDomains: navigation.scope.availableEntryDomains.map((option) => ({
+    entryDomain: scope.entryDomain,
+    availableEntryDomains: scope.availableEntryDomains.map((option) => ({
       value: option.value,
       requestCount: option.requests,
     })),
   }
   const routeNavigation = (
     <AnalyticsRouteNavigation
-      activeAnalyticsId={analyticsId}
       basePath={overviewPath}
-      links={navigationLinks}
+      isDetailActive
       range={range}
       scope={navigationScope}
     />
   )
   const overviewActionHref = buildAnalyticsHref(overviewPath, {
-    entryDomain: navigation.scope.entryDomain,
+    entryDomain: scope.entryDomain,
     range,
   })
 
@@ -111,6 +109,7 @@ export default async function AnalyticsDetailPage({
     return (
       <AnalyticsShell navigation={routeNavigation}>
         <AnalyticsPageHeader
+          backAction={{ href: overviewActionHref, label: t("detail.back") }}
           entryDomain={navigationScope.entryDomain}
           range={range}
           rangeBasePath={detailPath}
@@ -118,7 +117,6 @@ export default async function AnalyticsDetailPage({
         <AnalyticsStatePanel
           title={t("states.notFoundTitle")}
           description={t("states.notFoundDescription")}
-          action={{ href: overviewActionHref, label: t("detail.back") }}
         />
       </AnalyticsShell>
     )
@@ -129,6 +127,7 @@ export default async function AnalyticsDetailPage({
   return (
     <AnalyticsShell navigation={routeNavigation}>
       <AnalyticsPageHeader
+        backAction={{ href: overviewActionHref, label: t("detail.back") }}
         entryDomain={detail.scope.entryDomain}
         range={range}
         rangeBasePath={detailPath}
@@ -139,7 +138,6 @@ export default async function AnalyticsDetailPage({
         <AnalyticsStatePanel
           title={t("states.linkEmptyTitle")}
           description={t("states.linkEmptyDescription")}
-          action={{ href: overviewActionHref, label: t("detail.back") }}
         />
       )}
     </AnalyticsShell>
