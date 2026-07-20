@@ -5,12 +5,10 @@ import { getWebUiReadSessionAuthorization } from "@/auth/authorization"
 import { AnalyticsOverviewDashboard } from "@/components/analytics/analytics-dashboard"
 import { toOverviewViewModel, toQueryRange } from "@/components/analytics/adapters"
 import { parseAnalyticsRange } from "@/components/analytics/format"
-import {
-  AnalyticsPageHeader,
-  AnalyticsRouteNavigation,
-  AnalyticsShell,
-  AnalyticsStatePanel,
-} from "@/components/analytics/analytics-shell"
+import { AnalyticsPageHeader } from "@/components/analytics/analytics-page-header"
+import { AnalyticsRouteNavigation } from "@/components/analytics/analytics-route-navigation"
+import { AnalyticsShell } from "@/components/analytics/analytics-shell"
+import { AnalyticsStatePanel } from "@/components/analytics/analytics-state-panel"
 import { SignInPanel } from "@/components/ui/sign-in-panel"
 import { getAnalyticsOverview, isAnalyticsConfigured } from "@/lib/analytics/queries"
 
