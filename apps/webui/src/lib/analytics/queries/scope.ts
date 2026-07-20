@@ -150,3 +150,14 @@ export async function resolveScope(
     queryScope: { entryDomain, range },
   };
 }
+
+export async function normalizeAnalyticsQueryScope(
+  sourceId: string,
+  input: AnalyticsQueryScope,
+): Promise<AnalyticsQueryScope> {
+  const { queryScope } = await resolveScope(sourceId, input);
+  return {
+    range: queryScope.range.publicRange.key,
+    entryDomain: queryScope.entryDomain,
+  };
+}
