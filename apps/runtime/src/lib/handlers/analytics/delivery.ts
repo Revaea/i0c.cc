@@ -71,12 +71,20 @@ async function emitAnalyticsEvent(
       continue;
     }
 
+    await discardCollectorResponse(response);
     if (response.ok) {
       return;
     }
     if (attempt === maximumDeliveryAttempts || !isRetryableStatus(response.status)) {
       throw new Error(`collector responded with ${response.status}`);
     }
+  }
+}
+
+async function discardCollectorResponse(response: Response): Promise<void> {
+  try {
+    await response.body?.cancel();
+  } catch {
   }
 }
 

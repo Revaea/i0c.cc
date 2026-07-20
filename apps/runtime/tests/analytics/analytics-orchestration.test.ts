@@ -222,11 +222,16 @@ test("delivers the sampled Analytics V2 runtime event contract", async () => {
 
 test("retries one transient collector failure", async () => {
   let deliveryAttempts = 0;
+  let discardedResponses = 0;
   let deliveryPromise: Promise<unknown> | undefined;
   const runtime = createRuntime({
     fetchImpl: async () => {
       deliveryAttempts += 1;
-      return new Response(null, { status: deliveryAttempts === 1 ? 503 : 202 });
+      return new Response(new ReadableStream({
+        cancel() {
+          discardedResponses += 1;
+        }
+      }), { status: deliveryAttempts === 1 ? 503 : 202 });
     },
     waitUntil: (promise) => {
       deliveryPromise = promise;
@@ -248,6 +253,7 @@ test("retries one transient collector failure", async () => {
   assert.ok(deliveryPromise);
   await deliveryPromise;
   assert.equal(deliveryAttempts, 2);
+  assert.equal(discardedResponses, 2);
 });
 
 test("does not retry a rejected collector request", async (context) => {
