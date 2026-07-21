@@ -90,17 +90,19 @@ function getYAxis(maxValue: number, intervalCount: number) {
   }
 }
 
-function getLabelIndices(length: number, maximumLabels: number) {
+function getLabelTicks(length: number, maximumLabels: number) {
   if (length <= maximumLabels) {
     return Array.from({ length }, (_, index) => index)
   }
 
   const lastIndex = length - 1
-  const intervals = Math.max(1, maximumLabels - 1)
-  const step = Math.ceil(lastIndex / intervals)
-  const labelCount = Math.floor(lastIndex / step) + 1
+  const labelCount = Math.max(2, Math.min(length, maximumLabels))
+  const step = lastIndex / (labelCount - 1)
 
-  return Array.from({ length: labelCount }, (_, index) => index * step)
+  return Array.from(
+    { length: labelCount },
+    (_, index) => index * step,
+  )
 }
 
 function TrendChartCanvas({
@@ -145,7 +147,7 @@ function TrendChartCanvas({
     clamp: true,
   })
   const maximumLabels = Math.max(2, Math.floor(innerWidth / 120) + 1)
-  const labelIndices = getLabelIndices(data.length, maximumLabels)
+  const labelTicks = getLabelTicks(data.length, maximumLabels)
   const activeIndex = tooltipData
     ? data.findIndex((point) => point.timestamp === tooltipData.timestamp)
     : -1
@@ -335,7 +337,7 @@ function TrendChartCanvas({
           <AxisBottom
             top={innerHeight}
             scale={xScale}
-            tickValues={labelIndices}
+            tickValues={labelTicks}
             hideAxisLine
             hideTicks
             tickFormat={(value) => data[Math.round(Number(value))]?.axisLabel ?? ""}
@@ -343,11 +345,11 @@ function TrendChartCanvas({
               fill: "var(--muted)",
               fontSize: 11,
               textAnchor:
-                labelIndices.length === 1
+                labelTicks.length === 1
                   ? "middle"
                   : index === 0
                     ? "start"
-                    : index === labelIndices.length - 1
+                    : index === labelTicks.length - 1
                       ? "end"
                       : "middle",
               dy: 12,
