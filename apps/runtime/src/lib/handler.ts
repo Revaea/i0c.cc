@@ -140,13 +140,21 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
       });
     }
 
-    const response = new Response(notFoundPageHtml, {
-      status: 404,
-      headers: {
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "public, max-age=60"
-      }
-    });
+    const response = dispatch.hasProxyExhaustion
+      ? new Response("Bad Gateway: All upstream proxies failed.", {
+        status: 502,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-store"
+        }
+      })
+      : new Response(notFoundPageHtml, {
+        status: 404,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "public, max-age=60"
+        }
+      });
     return finalizeRuntimeAnalytics({
       request,
       response,
