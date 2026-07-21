@@ -15,29 +15,37 @@ The Runtime never connects to PostgreSQL. Collector delivery is best effort and 
 
 ## Configuration
 
-Configure every Runtime deployment with the same values:
+The collector endpoint and source namespace are versioned in `packages/config/src/index.ts`:
 
-```dotenv
-ANALYTICS_ENDPOINT="https://u.i0c.cc/api/analytics/events"
-ANALYTICS_WRITE_KEY="replace-with-a-32-byte-random-secret"
-ANALYTICS_SOURCE_ID="i0c.cc"
+```ts
+analytics: {
+  ingestEndpoint: "https://u.i0c.cc/api/analytics/events",
+  sourceId: "i0c.cc",
+}
 ```
 
-Configure the WebUI with:
+Configure every Runtime deployment with the shared signing secret:
+
+```dotenv
+ANALYTICS_WRITE_KEY="replace-with-a-32-byte-random-secret"
+```
+
+Configure the WebUI deployment with:
 
 ```dotenv
 DATABASE_URL="postgresql://user:password@host/database?sslmode=require"
 ANALYTICS_INGEST_SECRET="replace-with-a-32-byte-random-secret"
-ANALYTICS_SOURCE_ID="i0c.cc"
 CRON_SECRET="replace-with-a-32-byte-random-secret"
 ```
+
+The Runtime and WebUI do not read the former non-sensitive analytics environment variables. Values left in provider dashboards are ignored; edit `@i0c/config`, rebuild, and redeploy to change them.
 
 `ANALYTICS_WRITE_KEY` and `ANALYTICS_INGEST_SECRET` must contain exactly the same secret. Do not reuse the GitHub OAuth, NextAuth, or database credentials.
 
 `CRON_SECRET` independently protects the daily retention endpoint. Vercel sends it in the
 `Authorization` header for scheduled requests; do not reuse another application secret.
 
-`ANALYTICS_SOURCE_ID` is both the logical statistics namespace and its base hostname. It is normalized to lowercase. With `i0c.cc`, events may report `i0c.cc` or any subdomain of `i0c.cc`; other hostnames are stored as `unknown`. This bounds entry-domain cardinality without requiring a separate domain-list variable.
+`analytics.sourceId` is both the logical statistics namespace and its base hostname. It is normalized to lowercase. With `i0c.cc`, events may report `i0c.cc` or any subdomain of `i0c.cc`; other hostnames are stored as `unknown`. This bounds entry-domain cardinality without requiring a separate domain-list setting.
 
 ## Entry domain and provider
 

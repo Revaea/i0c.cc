@@ -24,40 +24,15 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
 
 2. 在 GitHub 创建 OAuth App，回调地址填写 `http(s)://<localhost:3000 或 你的域名>/api/auth/callback/github`，然后将 `Client ID`、`Client Secret` 写入 `.env.local` 的 `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`。如果是部署在 ▲ Vercel，将配置写到环境变量便好。
 
-   默认 OAuth scope 是 `read:user user:email public_repo`。如果目标仓库是私有仓库，请将 `GITHUB_OAUTH_SCOPE` 设置为 `read:user user:email repo`。
-
-   必须明确选择服务端 WebUI 访问模式：
-
-   ```dotenv
-   # 任意 GitHub 账号均可登录；写入仓库仍需 GitHub 权限。
-   WEBUI_ACCESS_MODE="authenticated"
-
-   # 或将整个 WebUI 限制为指定 GitHub 数字用户 ID。
-   # WEBUI_ACCESS_MODE="allowlist"
-   # GITHUB_ALLOWED_USER_IDS="12345678,87654321"
-
-   # 或允许任意 GitHub 用户登录后只读查看，同时让名单内用户保留管理权限。
-   # WEBUI_ACCESS_MODE="public-readonly"
-   # GITHUB_ALLOWED_USER_IDS="12345678,87654321"
-   ```
-
-   `WEBUI_ACCESS_MODE` 为必填项；只有 `allowlist` 模式要求填写
-   `GITHUB_ALLOWED_USER_IDS`；该变量在 `public-readonly` 模式下选填。可以使用
-   `gh api user --jq .id` 查询自己的数字 ID。这些变量只能配置在服务端，不能添加
-   `NEXT_PUBLIC_` 前缀。`public-readonly` 为只读账号通过 GitHub 未认证 API 加载指定规则，
+   OAuth scope、访问模式和管理者 GitHub 数字用户 ID 统一配置在
+   [../../packages/config/src/index.ts](../../packages/config/src/index.ts)。公开目标仓库使用
+   `read:user user:email public_repo`，私有目标仓库则将 `public_repo` 改为 `repo`。
+   可以使用 `gh api user --jq .id` 查询自己的数字 ID。`access.mode` 可设为 `authenticated`、`allowlist`
+   或 `public-readonly`；`allowlist` 必须配置管理者 ID，`public-readonly` 可按需配置。`public-readonly` 为只读账号通过 GitHub 未认证 API 加载指定规则，
    因此目标仓库必须公开；任意 GitHub 用户登录后都可以查看规则和统计，名单内用户可以编辑配置、
    生成渠道链接并手动刷新统计。如果未配置名单，则任何人都不能管理。
 
-3. 设置信息（`redirects.json` 默认为 `Revaea/i0c.cc` 的 `data` 分支，二维码域名默认为 `https://i0c.cc`，可根据需要修改以下变量）：
-
-   ```dotenv
-   GITHUB_REPO_OWNER="Revaea"
-   GITHUB_REPO_NAME="i0c.cc"
-   GITHUB_TARGET_BRANCH="data"
-   GITHUB_CONFIG_PATH="redirects.json"
-
-   NEXT_PUBLIC_DOMAIN="https://your-domain.com"
-   ```
+3. 重定向仓库、分支、JSON 路径和 Runtime 规范地址同样配置在 [../../packages/config/src/index.ts](../../packages/config/src/index.ts)。仓库默认值从 `Revaea/i0c.cc` 的 `data` 分支读取 `redirects.json`，二维码使用 `https://i0c.cc`。
 
 4. 生成 `NEXTAUTH_SECRET` 并写入 `.env.local`。生产环境将 `NEXTAUTH_URL` 设为 `https://你的域名`，开发环境可将 `NEXTAUTH_URL` 设为 `http://localhost:3000`。
 
@@ -77,7 +52,7 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
    pnpm webui:dev
    ```
 
-6. 打开 [http://localhost:3000](http://localhost:3000) 或 **你的域名**，使用拥有仓库写入权限的 GitHub 账号登录后即可编辑 `redirects.json`。
+6. 打开 [http://localhost:3000](http://localhost:3000) 或 **你的域名**并登录。已配置的管理者可以编辑 `redirects.json`，其他获准用户则获得所选访问模式定义的权限。
 
 ## 短链接统计
 
@@ -88,7 +63,6 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
    ```dotenv
    DATABASE_URL="postgresql://user:password@host/database?sslmode=require"
    ANALYTICS_INGEST_SECRET="replace-with-a-separate-strong-secret"
-   ANALYTICS_SOURCE_ID="i0c.cc"
    CRON_SECRET="replace-with-an-independent-strong-secret"
    ```
 
@@ -101,12 +75,10 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
 3. 配置每个 Runtime 部署，将签名后的事件发送到 WebUI：
 
    ```dotenv
-   ANALYTICS_ENDPOINT="https://u.i0c.cc/api/analytics/events"
    ANALYTICS_WRITE_KEY="the-same-value-as-ANALYTICS_INGEST_SECRET"
-   ANALYTICS_SOURCE_ID="i0c.cc"
    ```
 
-`ANALYTICS_SOURCE_ID` 必须是共享的基础域名，而不是平台名称。使用 `i0c.cc` 时，`i0c.cc`、`www.i0c.cc`、`api.i0c.cc`、`vc.i0c.cc`、`nf.i0c.cc` 可以分别统计，无需再维护一份域名列表。命名空间之外的域名会存为 `unknown`。
+收集端地址和统计 source ID 来自 `@i0c/config`。source ID 必须是共享的基础域名，而不是平台名称。使用 `i0c.cc` 时，`i0c.cc`、`www.i0c.cc`、`api.i0c.cc`、`vc.i0c.cc`、`nf.i0c.cc` 可以分别统计，无需再维护一份域名列表。命名空间之外的域名会存为 `unknown`。
 
 使用 GitHub 登录后，可以在 `/<locale>/analytics` 查看 1、7、30 和 90 天范围的统计。1 天趋势使用小时桶，更长范围使用天桶。入口域名筛选会一致作用于总数、趋势、路由、国家或地区、设备、平台、来源域名、渠道、内部来源和自动化分析。`/<locale>/analytics/automation` 会把已声明机器人、疑似自动化和未匹配 Runtime 请求的观测值与抽样估算值分开展示。
 
@@ -133,11 +105,13 @@ Runtime 会发送匹配流量对应的配置规则路径、入口域名、平台
 | Build Command | `pnpm build` |
 | Output Directory | Next.js default |
 
-将 [.env.example](.env.example) 中的环境变量配置到 Vercel。生产环境的 `NEXTAUTH_URL` 必须和部署域名一致，必须明确设置 `WEBUI_ACCESS_MODE`，并配置 `CRON_SECRET` 供每日保留请求使用；GitHub OAuth callback URL 必须是 `https://<你的域名>/api/auth/callback/github`。
+保持开启 Vercel 的 **Include source files outside of the Root Directory in the Build Step**，让构建能够包含 `@i0c/config`。将 [.env.example](.env.example) 中的部署绑定与密钥配置到 Vercel。生产环境的 `NEXTAUTH_URL` 必须和部署域名一致，并配置 `CRON_SECRET` 供每日保留请求使用；GitHub OAuth callback URL 必须是 `https://<你的域名>/api/auth/callback/github`。
+
+WebUI 不会把原有非敏感环境变量作为覆盖值或回退值读取。Vercel 中遗留的旧值会被忽略，确认版本化配置部署正常后即可删除。
 
 ## 功能概览
 
-- 可选择任意已登录用户、数字用户 ID 白名单或带白名单管理员的 GitHub 全员只读模式。
+- 通过版本化配置选择任意已登录用户、数字用户 ID 白名单或带指定管理员的 GitHub 全员只读模式。
 - 可视化编辑 `redirects.json`：分组树管理 + 规则表单编辑。
 - JSON 编辑器：行号、当前行高亮、JSON 语法校验（格式错误提示）。
 - 表单行为对齐 Schema（规范来源：[https://raw.githubusercontent.com/Revaea/i0c.cc/main/apps/runtime/redirects.schema.json](https://raw.githubusercontent.com/Revaea/i0c.cc/main/apps/runtime/redirects.schema.json)）。

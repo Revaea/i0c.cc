@@ -26,10 +26,12 @@
 | Vercel | `apps/runtime` | `pnpm build:vc` | `.vercel/output` |
 | Netlify | `apps/runtime` | `pnpm build:nf` | `dist` |
 
+构建时必须使用完整的 monorepo 检出。Vercel 需要保持开启 **Include source files outside of the Root Directory in the Build Step**，让构建能够包含 `@i0c/config`。
+
 部署完成后：
 
-- 在目标平台的环境配置中设置 `REDIRECTS_CONFIG_URL`，或者设置仓库、分支、路径三个变量，让运行时能够读取正确的 `redirects.json`。
-- 如果覆盖了额外的处理选项，例如缓存绑定，请同步这些密钥到各个环境。
+- 需要修改重定向数据源或其他 Runtime 非敏感配置时，编辑 [../../packages/config/src/index.ts](../../packages/config/src/index.ts)，然后重新构建并部署。
+- 在需要投递统计事件的每个平台设置 `ANALYTICS_WRITE_KEY`。
 - 更新公共重定向逻辑后重新执行包构建，然后再部署。
 
 ## 选择适配器
@@ -42,32 +44,27 @@
 
 ## 环境变量与配置
 
-### SEO 配置
+非敏感配置统一维护在 [../../packages/config/src/index.ts](../../packages/config/src/index.ts)。Runtime 不会再把旧环境变量作为覆盖值或回退值读取，平台后台遗留的旧值会被忽略。
 
-- `ROBOTS_POLICY`：控制 `robots.txt` 策略。
-  - 设为 `allow`：生成 `Allow: /` 并包含 `Sitemap.xml`。
-  - 设为默认或其他值：输出 `Disallow: /` 并省略 `Sitemap.xml`。
+### 版本化 Runtime 配置
 
-### 配置重定向数据源
+共享配置负责：
 
-无需改代码即可切换 `redirects.json` 的来源。只要在部署环境中设置下面任意变量，runtime 就会自动从平台环境中读取。
+- `redirects.github`：用于构建 Raw 重定向数据地址的 GitHub 所有者、仓库、分支和 JSON 路径。
+- `runtime.canonicalOrigin`：WebUI 二维码等共享消费者使用的 Runtime 规范公开地址。
+- `runtime.robotsPolicy`：设为 `allow` 时开放 `robots.txt` 并提供 sitemap；设为 `disallow` 时阻止抓取并关闭 sitemap。
+- `analytics.ingestEndpoint`：WebUI 统计收集端的 HTTPS 地址。
+- `analytics.sourceId`：所有平台共用的小写基础域名和稳定统计命名空间。
 
-本地参考配置可以复制 [.env.example](.env.example)，再按你的部署目标调整。
+自定义适配器仍可通过 `HandlerOptions.configUrl` 显式传入地址；内置 Cloudflare、Vercel、Netlify 适配器始终使用版本化重定向数据源。
 
-- `REDIRECTS_CONFIG_URL`（回退：`CONFIG_URL`）：指定 `redirects.json` 的完整 URL，会优先生效。
-- `REDIRECTS_CONFIG_REPO`（回退：`CONFIG_REPO`）：GitHub 仓库，格式为 `owner/name`。
-- `REDIRECTS_CONFIG_BRANCH`（回退：`CONFIG_BRANCH`）：承载数据文件的分支。
-- `REDIRECTS_CONFIG_PATH`（回退：`CONFIG_PATH`）：仓库内的文件路径。
+### 配置统计密钥
 
-如果提供了仓库、分支或路径，运行时会自动拼出 raw.githubusercontent.com 地址。未设置任何变量时，默认值为仓库 `Revaea/i0c.cc`、分支 `data`、文件 `redirects.json`。
+只有版本化收集端地址、source ID 均有效并设置下面的密钥时，才会启用统计事件投递：
 
-### 配置统计事件投递
-
-只有同时设置下面三个变量时才会启用统计事件投递：
-
-- `ANALYTICS_ENDPOINT`：WebUI 收集端的 HTTPS 地址，通常以 `/api/analytics/events` 结尾。仅本地开发可使用回环地址的 HTTP URL。
 - `ANALYTICS_WRITE_KEY`：用于为每次请求签名的长随机密钥。WebUI 收集端的 `ANALYTICS_INGEST_SECRET` 必须设置为相同值。
-- `ANALYTICS_SOURCE_ID`：稳定的基础域名和统计命名空间，例如 `i0c.cc`。如果 Cloudflare、Vercel、Netlify 的流量应汇总到同一个面板，请使用相同的小写值。
+
+本地占位值见 [.env.example](.env.example)。内置 Runtime 不再从环境中读取其他配置项。
 
 匹配成功的重定向和代理事件会全量发送；未匹配和系统结果按 10% 抽样，使任意机器人和探测流量可以分析，又不必上报每个 404。Cloudflare、Vercel、Netlify 分别使用平台的后台执行能力。收集端故障只会记录日志，不会改变重定向响应；当前属于尽力投递，没有重试队列。每次请求都使用 HMAC-SHA256 签名，签名放在 `X-Analytics-Signature`，签名时间戳放在 `X-Analytics-Timestamp`。
 

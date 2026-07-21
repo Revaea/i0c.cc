@@ -26,10 +26,12 @@ Use these settings when the platform asks for project or build configuration:
 | Vercel | `apps/runtime` | `pnpm build:vc` | `.vercel/output` |
 | Netlify | `apps/runtime` | `pnpm build:nf` | `dist` |
 
+Build from a full monorepo checkout. On Vercel, keep **Include source files outside of the Root Directory in the Build Step** enabled so the build can include `@i0c/config`.
+
 After deploying:
 
-- Set `REDIRECTS_CONFIG_URL` or the repo/branch/path trio in your platform dashboard so the runtime can load the correct `redirects.json`.
-- Sync secrets across environments if you override other handler options, such as cache bindings.
+- Edit [../../packages/config/src/index.ts](../../packages/config/src/index.ts) when the redirect source or other non-sensitive Runtime settings need to change, then rebuild and redeploy.
+- Set `ANALYTICS_WRITE_KEY` on every provider that should deliver analytics events.
 - Re-run the package build after updating shared redirect logic, then redeploy.
 
 ## Choose an adapter
@@ -42,32 +44,27 @@ Need a custom runtime? Import `handleRedirectRequest` from [src/lib/handler.ts](
 
 ## Environment variables and configuration
 
-### SEO configuration
+Non-sensitive settings are versioned in [../../packages/config/src/index.ts](../../packages/config/src/index.ts). The Runtime does not read legacy environment variables as overrides or fallbacks; values left in provider dashboards are ignored.
 
-- `ROBOTS_POLICY`: Controls the `robots.txt` policy.
-  - Set to `allow`: Generates `Allow: /` and includes `Sitemap.xml`.
-  - Set to default or other values: Outputs `Disallow: /` and omits `Sitemap.xml`.
+### Versioned Runtime configuration
 
-### Configure the redirects source
+The shared configuration owns:
 
-You can override the default GitHub location without touching the code. Set any of the environment variables below; the runtime will pick them up automatically from the platform environment.
+- `redirects.github`: GitHub owner, repository, branch, and JSON path used to construct the raw redirect source URL.
+- `runtime.canonicalOrigin`: Canonical public Runtime origin used by shared consumers such as the WebUI QR code.
+- `runtime.robotsPolicy`: Set to `allow` to publish an open `robots.txt` and sitemap; set to `disallow` to block crawling and omit the sitemap.
+- `analytics.ingestEndpoint`: HTTPS WebUI collector endpoint.
+- `analytics.sourceId`: Lowercase base hostname and stable statistics namespace shared by all providers.
 
-For local reference, copy [.env.example](.env.example) and adjust the values for your deployment.
+Programmatic consumers can still pass `HandlerOptions.configUrl` for an explicitly constructed custom adapter. The built-in Cloudflare, Vercel, and Netlify adapters always use the versioned redirect source.
 
-- `REDIRECTS_CONFIG_URL` (fallback: `CONFIG_URL`): Absolute URL of the `redirects.json`. This short-circuits the repo/branch/path logic.
-- `REDIRECTS_CONFIG_REPO` (fallback: `CONFIG_REPO`): GitHub repo in `owner/name` form.
-- `REDIRECTS_CONFIG_BRANCH` (fallback: `CONFIG_BRANCH`): Branch that hosts the data file.
-- `REDIRECTS_CONFIG_PATH` (fallback: `CONFIG_PATH`): Path to the JSON file inside the repo.
+### Configure the analytics secret
 
-If repo, branch, or path are provided, the handler automatically constructs the raw GitHub URL. With no environment overrides, the defaults remain `Revaea/i0c.cc`, branch `data`, file `redirects.json`.
+Analytics delivery is disabled unless the versioned endpoint and source ID are valid and this secret is set:
 
-### Configure analytics delivery
-
-Analytics delivery is disabled unless all three variables below are set:
-
-- `ANALYTICS_ENDPOINT`: HTTPS URL of the WebUI collector, normally ending in `/api/analytics/events`. Loopback HTTP URLs are accepted for local development only.
 - `ANALYTICS_WRITE_KEY`: Long random secret used to sign each request. Set the WebUI collector's `ANALYTICS_INGEST_SECRET` to the same value.
-- `ANALYTICS_SOURCE_ID`: Stable base hostname and statistics namespace, such as `i0c.cc`. Use the same lowercase value across Cloudflare, Vercel, and Netlify when their traffic belongs in one dashboard.
+
+Copy [.env.example](.env.example) for the local placeholder. No other built-in Runtime setting is read from the environment.
 
 Matched redirect and proxy events are sent at full rate. Unmatched and system outcomes are sampled at 10% so arbitrary bot and probe traffic can be analyzed without sending every 404. Cloudflare, Vercel, and Netlify use their platform background-execution mechanism; collector failures are logged and never change the redirect response. Delivery is best effort and currently has no retry queue. Each request is signed with HMAC-SHA256 in `X-Analytics-Signature`; the signed timestamp is sent in `X-Analytics-Timestamp`.
 

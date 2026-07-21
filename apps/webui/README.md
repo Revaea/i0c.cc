@@ -26,41 +26,18 @@ This project provides two editing modes:
 
 2. Create an OAuth App on GitHub, set the callback URL to `http(s)://<localhost:3000 or your domain>/api/auth/callback/github`, and write the `Client ID` and `Client Secret` into `.env.local` as `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`. If deploying on ▲ Vercel, configure these as environment variables.
 
-   The default OAuth scope is `read:user user:email public_repo`. If the target repository is private, set `GITHUB_OAUTH_SCOPE` to `read:user user:email repo`.
-
-   Choose the server-side WebUI access mode explicitly:
-
-   ```dotenv
-   # Any GitHub account may sign in. Repository writes still require GitHub permission.
-   WEBUI_ACCESS_MODE="authenticated"
-
-   # Or restrict the entire WebUI to GitHub numeric user IDs.
-   # WEBUI_ACCESS_MODE="allowlist"
-   # GITHUB_ALLOWED_USER_IDS="12345678,87654321"
-
-   # Or allow any GitHub user to sign in read-only while listed IDs retain management access.
-   # WEBUI_ACCESS_MODE="public-readonly"
-   # GITHUB_ALLOWED_USER_IDS="12345678,87654321"
-   ```
-
-   `WEBUI_ACCESS_MODE` is required. `GITHUB_ALLOWED_USER_IDS` is required only in
-   `allowlist` mode and optional in `public-readonly` mode. Find your numeric ID with
-   `gh api user --jq .id`. These variables are server-only and must not use the
-   `NEXT_PUBLIC_` prefix. `public-readonly` loads the configured rules through GitHub's
+   Configure the OAuth scope, access mode, and manager GitHub numeric user IDs in
+   [../../packages/config/src/index.ts](../../packages/config/src/index.ts). Use
+   `read:user user:email public_repo` for a public target repository or replace `public_repo`
+   with `repo` for a private repository. Find a numeric user ID with `gh api user --jq .id`.
+   `access.mode` accepts `authenticated`, `allowlist`, or `public-readonly`. Manager IDs are
+   required by `allowlist` and optional for `public-readonly`.
+   `public-readonly` loads the configured rules through GitHub's
    unauthenticated API for read-only accounts, so the target repository must be public.
    Any GitHub user may sign in to inspect rules and analytics, while listed users may edit
    config, create campaign URLs, and refresh analytics. Without listed IDs, no one can manage it.
 
-3. By default, `redirects.json` is loaded from the `data` branch of `Revaea/i0c.cc`, and the QR code domain defaults to `https://i0c.cc`. You may modify the following variables as needed:
-
-   ```dotenv
-   GITHUB_REPO_OWNER="Revaea"
-   GITHUB_REPO_NAME="i0c.cc"
-   GITHUB_TARGET_BRANCH="data"
-   GITHUB_CONFIG_PATH="redirects.json"
-
-   NEXT_PUBLIC_DOMAIN="https://your-domain.com"
-   ```
+3. The redirect repository, branch, JSON path, and canonical Runtime origin are also defined in [../../packages/config/src/index.ts](../../packages/config/src/index.ts). The checked-in defaults load `redirects.json` from the `data` branch of `Revaea/i0c.cc` and use `https://i0c.cc` for QR codes.
 
 4. Generate `NEXTAUTH_SECRET` and write it into `.env.local`. For production, set `NEXTAUTH_URL` to `https://your-domain`; for development, set it to `http://localhost:3000`.
 
@@ -80,7 +57,7 @@ This project provides two editing modes:
    pnpm webui:dev
    ```
 
-6. Open [http://localhost:3000](http://localhost:3000) or **your domain**, log in with a GitHub account that has write access to the repository, and start editing `redirects.json`.
+6. Open [http://localhost:3000](http://localhost:3000) or **your domain** and sign in. Configured managers can edit `redirects.json`; other permitted users receive the access defined by the selected mode.
 
 ## Short-link analytics
 
@@ -91,7 +68,6 @@ The analytics feature uses standard PostgreSQL and does not depend on a vendor-s
    ```dotenv
    DATABASE_URL="postgresql://user:password@host/database?sslmode=require"
    ANALYTICS_INGEST_SECRET="replace-with-a-separate-strong-secret"
-   ANALYTICS_SOURCE_ID="i0c.cc"
    CRON_SECRET="replace-with-an-independent-strong-secret"
    ```
 
@@ -104,12 +80,10 @@ The analytics feature uses standard PostgreSQL and does not depend on a vendor-s
 3. Configure every runtime deployment to send signed events to the WebUI:
 
    ```dotenv
-   ANALYTICS_ENDPOINT="https://u.i0c.cc/api/analytics/events"
    ANALYTICS_WRITE_KEY="the-same-value-as-ANALYTICS_INGEST_SECRET"
-   ANALYTICS_SOURCE_ID="i0c.cc"
    ```
 
-`ANALYTICS_SOURCE_ID` must be the shared base hostname, not a provider name. With `i0c.cc`, `i0c.cc`, `www.i0c.cc`, `api.i0c.cc`, `vc.i0c.cc`, and `nf.i0c.cc` can be reported independently without configuring a second domain list. Hostnames outside that namespace are stored as `unknown`.
+The collector endpoint and analytics source ID come from `@i0c/config`. The source ID must be the shared base hostname, not a provider name. With `i0c.cc`, `i0c.cc`, `www.i0c.cc`, `api.i0c.cc`, `vc.i0c.cc`, and `nf.i0c.cc` can be reported independently without configuring a second domain list. Hostnames outside that namespace are stored as `unknown`.
 
 After GitHub sign-in, analytics are available at `/<locale>/analytics` with 1, 7, 30, and 90-day ranges. The 1-day trend uses hourly buckets; longer ranges use daily buckets. The entry-domain filter applies consistently to totals, trends, routes, geography, devices, providers, referrers, campaigns, internal sources, and automation analysis. `/<locale>/analytics/automation` separates observed values from sampling-adjusted estimates for declared bots, suspected automation, and unmatched Runtime requests.
 
@@ -139,14 +113,15 @@ Deploy this package from the monorepo with these Vercel settings:
 | Build Command | `pnpm build` |
 | Output Directory | Next.js default |
 
-Set the environment variables from [.env.example](.env.example) in Vercel. For production,
-`NEXTAUTH_URL` must match the deployed domain, `WEBUI_ACCESS_MODE` must be selected explicitly,
-`CRON_SECRET` must be configured for the daily retention request, and the GitHub OAuth callback URL must be
+Keep **Include source files outside of the Root Directory in the Build Step** enabled so Vercel includes `@i0c/config`. Set the deployment bindings and secrets from [.env.example](.env.example) in Vercel. For production,
+`NEXTAUTH_URL` must match the deployed domain, `CRON_SECRET` must be configured for the daily retention request, and the GitHub OAuth callback URL must be
 `https://<your-domain>/api/auth/callback/github`.
+
+The WebUI does not read former non-sensitive environment variables as overrides or fallbacks. Values left in Vercel are ignored and can be removed after the versioned configuration deployment is verified.
 
 ## Features Overview
 
-- Configurable authenticated, numeric-ID allowlist, or GitHub-wide read-only access with allowlisted managers.
+- Versioned authenticated, numeric-ID allowlist, or GitHub-wide read-only access with configured managers.
 - Visual editing of `redirects.json`: group tree management + rule form editing.
 - JSON editor: line numbers, current line highlighting, JSON syntax validation (error prompts for formatting issues).
 - Form behavior aligned with the schema (specification source: [https://raw.githubusercontent.com/Revaea/i0c.cc/main/apps/runtime/redirects.schema.json](https://raw.githubusercontent.com/Revaea/i0c.cc/main/apps/runtime/redirects.schema.json)).

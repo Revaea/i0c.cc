@@ -8,6 +8,7 @@ Monorepo for i0c.cc, containing the edge redirect runtime and the WebUI manageme
 |---------|------|-------------|
 | Runtime | [apps/runtime](apps/runtime) | Universal redirect runtime for Cloudflare Workers, Vercel Edge Functions, and Netlify Edge Functions. |
 | WebUI | [apps/webui](apps/webui) | Next.js management panel for editing `redirects.json` and querying short-link analytics. |
+| Configuration | [packages/config](packages/config) | Version-controlled, non-sensitive settings shared by the Runtime and WebUI. |
 
 ## Live previews
 
@@ -38,7 +39,7 @@ Use these settings when the platform asks for project or build configuration:
 | Vercel | `apps/runtime` | `pnpm build:vc` | `.vercel/output` |
 | Netlify | `apps/runtime` | `pnpm build:nf` | `dist` |
 
-After deploying, set `REDIRECTS_CONFIG_URL` or the repo/branch/path environment variables if your `redirects.json` is hosted somewhere other than the defaults. To enable analytics, configure the three Runtime variables documented in [docs/analytics.md](docs/analytics.md) on every provider.
+Build from a full monorepo checkout so the Runtime can import the shared workspace package. On Vercel, keep **Include source files outside of the Root Directory in the Build Step** enabled. Non-sensitive Runtime settings come from [packages/config/src/index.ts](packages/config/src/index.ts); analytics delivery only requires the `ANALYTICS_WRITE_KEY` secret on each provider.
 
 ### WebUI
 
@@ -55,7 +56,13 @@ Use these settings on Vercel:
 | Build Command | `pnpm build` |
 | Output Directory | Next.js default |
 
-The WebUI needs GitHub OAuth and repository access environment variables. Analytics additionally requires PostgreSQL, migrations, and a collector secret. See [apps/webui/README.md](apps/webui/README.md) for details.
+Keep **Include source files outside of the Root Directory in the Build Step** enabled so Vercel includes the shared workspace package. The WebUI environment contains only OAuth and deployment bindings, database access, and secrets. See [apps/webui/README.md](apps/webui/README.md) for details.
+
+## Application configuration
+
+Edit [packages/config/src/index.ts](packages/config/src/index.ts) to change the redirect source, canonical Runtime origin, robots policy, analytics namespace and collector endpoint, GitHub OAuth scope, or WebUI access policy. Both applications read these values from `@i0c/config` at build time, so a configuration change requires rebuilding and redeploying the affected applications.
+
+The former non-sensitive environment variables are not read as overrides or fallbacks. Existing values left in a provider dashboard are ignored and can be removed after the new deployment is verified. Secrets and deployment-specific bindings remain in each application's environment example.
 
 ## Local development
 
