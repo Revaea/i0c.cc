@@ -73,3 +73,22 @@ test("rejects duplicate analytics IDs across routes", () => {
     )),
   );
 });
+
+test("does not confuse a slot group containing a target entry with a route", () => {
+  const analyticsId = "eb5deba4-32b7-476f-b7f3-4b5c598a397c";
+  const result = validateRedirectConfig({
+    Slots: {
+      Main: {
+        target: "https://example.com/ignored",
+        "/docs": { analyticsId, target: "https://example.com/docs" },
+        "/guide": { analyticsId, target: "https://example.com/guide" },
+      },
+    },
+  });
+
+  assert.equal(result.status, "invalid");
+  assert.ok(
+    result.status === "invalid"
+    && result.issues.some((issue) => issue.path === "/Slots/Main/~1guide/analyticsId"),
+  );
+});

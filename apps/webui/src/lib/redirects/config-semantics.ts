@@ -5,6 +5,16 @@ export interface RedirectConfigSemanticIssue {
 
 const slotKeys = ["Slots", "slots", "SLOT"] as const;
 const destinationKeys = ["target", "to", "url"] as const;
+const routeConfigKeys = new Set([
+  "analyticsId",
+  "type",
+  "target",
+  "to",
+  "url",
+  "appendPath",
+  "status",
+  "priority",
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -15,7 +25,8 @@ function escapeJsonPointerSegment(value: string): string {
 }
 
 function isRouteConfig(value: Record<string, unknown>): boolean {
-  return destinationKeys.some((key) => key in value);
+  return destinationKeys.some((key) => key in value)
+    && Object.keys(value).every((key) => routeConfigKeys.has(key));
 }
 
 function visitSlotValue(
