@@ -8,7 +8,8 @@ import type {
   AnalyticsSeriesPoint,
 } from "../types";
 import { toIsoString, toNumber, type DatabaseNumber } from "./database-values";
-import { resolveSeriesBucket, type ResolvedQueryScope } from "./scope";
+import { resolveSeriesBucket } from "./range";
+import type { ResolvedQueryScope } from "./scope";
 
 interface MetricsRow {
   requests: DatabaseNumber;
