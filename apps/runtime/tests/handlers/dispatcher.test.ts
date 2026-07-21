@@ -174,3 +174,38 @@ test("races static asset proxies and returns a successful candidate", async () =
   assert.equal(result.match.rule.target, "https://second.example");
   assert.equal(result.hasProxyExhaustion, false);
 });
+
+test("aborts slower proxy candidates after the race has a winner", async () => {
+  let didAbortSlowerCandidate = false;
+  const runtime = createRuntime(async (input) => {
+    const request = input instanceof Request ? input : new Request(input);
+    if (request.url.startsWith("https://first.example/")) {
+      return new Response("asset", { status: 200 });
+    }
+
+    return new Promise<Response>((_resolve, reject) => {
+      request.signal.addEventListener("abort", () => {
+        didAbortSlowerCandidate = true;
+        reject(request.signal.reason);
+      }, { once: true });
+    });
+  });
+  const compiledList = buildCompiledList({
+    "/assets": [
+      { type: "proxy", target: "https://first.example", priority: 1 },
+      { type: "proxy", target: "https://second.example", priority: 2 }
+    ]
+  });
+
+  const result = await dispatchRouteRequest({
+    request: new Request("https://i0c.cc/assets/app.js"),
+    runtime,
+    compiledList,
+    effectivePath: "/assets/app.js",
+    search: "",
+    isStaticAssetPath: true
+  });
+
+  assert.equal(result.match?.rule.target, "https://first.example");
+  assert.equal(didAbortSlowerCandidate, true);
+});

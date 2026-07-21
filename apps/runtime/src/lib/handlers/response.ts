@@ -238,13 +238,16 @@ async function proxyRequest(
       method: effectiveMethod,
       headers,
       body: forwardBody,
-      redirect: "manual"
+      redirect: "manual",
+      signal: request.signal
     });
 
     try {
       lastResponse = await runtime.fetchImpl(forwarded);
     } catch (e) {
-      console.error(`Proxy fetch failed for ${currentTarget}:`, e);
+      if (!request.signal.aborted) {
+        console.error(`Proxy fetch failed for ${currentTarget}:`, e);
+      }
       return new Response("Bad Gateway: Upstream fetch failed.", { status: 502 });
     }
 

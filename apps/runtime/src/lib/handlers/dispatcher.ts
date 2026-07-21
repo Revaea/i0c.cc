@@ -40,6 +40,13 @@ interface DispatchedRoute {
   matchKind: AnalyticsLinkMatchKind;
 }
 
+interface ProxyRaceCandidate {
+  base: string;
+  matchKind: AnalyticsLinkMatchKind;
+  rule: NormalizedRule;
+  targetUrl: string;
+}
+
 export interface DispatchRouteResult {
   match: DispatchedRoute | null;
   hasProxyExhaustion: boolean;
@@ -50,6 +57,67 @@ async function discardProxyResponse(response: Response): Promise<void> {
     await response.body?.cancel();
   } catch {
   }
+}
+
+async function raceProxyCandidates(
+  request: Request,
+  runtime: ResolvedRuntime,
+  candidates: ProxyRaceCandidate[]
+): Promise<DispatchedRoute> {
+  const controllers = candidates.map(() => new AbortController());
+  const tasks = candidates.map((candidate, candidateIndex) => {
+    const controller = controllers[candidateIndex];
+    const abortFromRequest = () => controller.abort(request.signal.reason);
+    if (request.signal.aborted) {
+      abortFromRequest();
+    } else {
+      request.signal.addEventListener("abort", abortFromRequest, { once: true });
+    }
+    const requestClone = new Request(request.clone(), {
+      signal: controller.signal
+    });
+    return (async () => {
+      try {
+        const response = await respondUsingRule(
+          requestClone,
+          candidate.rule,
+          candidate.targetUrl,
+          runtime,
+          candidate.base
+        );
+        if (shouldFallbackProxy(response)) {
+          await discardProxyResponse(response);
+          throw new Error(`proxy ${response.status}`);
+        }
+        return {
+          candidateIndex,
+          match: {
+            response,
+            rule: candidate.rule,
+            routePath: candidate.base,
+            matchKind: candidate.matchKind
+          }
+        };
+      } finally {
+        request.signal.removeEventListener("abort", abortFromRequest);
+      }
+    })();
+  });
+
+  const winner = await Promise.any(tasks);
+  controllers.forEach((controller, candidateIndex) => {
+    if (candidateIndex !== winner.candidateIndex) {
+      controller.abort();
+    }
+  });
+  void Promise.allSettled(tasks).then(async (results) => {
+    await Promise.all(results.map(async (result, candidateIndex) => {
+      if (candidateIndex !== winner.candidateIndex && result.status === "fulfilled") {
+        await discardProxyResponse(result.value.match.response);
+      }
+    }));
+  });
+  return winner.match;
 }
 
 export async function dispatchRouteRequest({
@@ -88,31 +156,8 @@ export async function dispatchRouteRequest({
 
       const { candidates, scanEnd } = collected;
       if (candidates.length > 1) {
-        const tasks = candidates.map((candidate) => {
-          const requestClone = request.clone() as Request;
-          return (async () => {
-            const response = await respondUsingRule(
-              requestClone,
-              candidate.rule,
-              candidate.targetUrl,
-              runtime,
-              candidate.base
-            );
-            if (shouldFallbackProxy(response)) {
-              await discardProxyResponse(response);
-              throw new Error(`proxy ${response.status}`);
-            }
-            return {
-              response,
-              rule: candidate.rule,
-              routePath: candidate.base,
-              matchKind: candidate.matchKind
-            };
-          })();
-        });
-
         try {
-          const match = await Promise.any(tasks);
+          const match = await raceProxyCandidates(request, runtime, candidates);
           return { match, hasProxyExhaustion };
         } catch {
           hasProxyExhaustion = true;
