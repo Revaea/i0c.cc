@@ -1,11 +1,11 @@
 /**
  * @file utils.ts
  * @description
- * [EN] Utility Functions.
+ * [EN] Runtime core utility functions.
  * Provides pure helper functions for common operations like JSON parsing, URL decoding,
  * path normalization, and data type coercion.
  *
- * [CN] 工具函数。
+ * [CN] Runtime 核心工具函数。
  * 提供纯辅助函数，用于 JSON 解析、URL 解码、路径标准化和数据类型转换等常见操作。
  *
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.

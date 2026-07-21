@@ -1,9 +1,9 @@
 /**
  * @file templates.ts
  * @description
- * [EN] Self-contained 404 page shared by every runtime adapter.
+ * [EN] Runtime-owned self-contained 404 resource shared by every adapter.
  *
- * [CN] 所有 Runtime 适配器共用的独立 404 页面。
+ * [CN] 所有 Runtime 适配器共用的自包含 404 资源。
  *
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */

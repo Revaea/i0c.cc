@@ -13,8 +13,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { respondUsingRule } from "../../src/lib/handlers/response";
-import type { NormalizedRule, ResolvedRuntime } from "../../src/lib/handlers/types";
+import { respondUsingRule } from "../../src/lib/handlers/routing/response";
+import type { NormalizedRule, ResolvedRuntime } from "../../src/lib/handlers/core/types";
 
 const proxyRule: NormalizedRule = {
   type: "proxy",

@@ -13,8 +13,8 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
-import { DEFAULT_STATUS, HSTS_HEADER_VALUE } from "./constants";
-import { NormalizedRule, ResolvedRuntime } from "./types";
+import { DEFAULT_STATUS, HSTS_HEADER_VALUE } from "../core/constants";
+import { NormalizedRule, ResolvedRuntime } from "../core/types";
 
 const SENSITIVE_FORWARD_HEADERS = [
   "cookie",

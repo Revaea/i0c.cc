@@ -10,7 +10,7 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
-import type { ResolvedRuntime } from "../types";
+import type { ResolvedRuntime } from "../core/types";
 import type { AnalyticsEventV2 } from "./events";
 import type { AnalyticsDeliveryConfig } from "./settings";
 

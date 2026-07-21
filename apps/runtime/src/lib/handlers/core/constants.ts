@@ -1,11 +1,11 @@
 /**
  * @file constants.ts
  * @description
- * [EN] Global Constants.
+ * [EN] Runtime core constants.
  * Stores system-wide constant values such as HTTP status codes, cache TTLs, and header values
  * to maintain a single source of truth and avoid magic numbers.
  *
- * [CN] 全局常量。
+ * [CN] Runtime 核心常量。
  * 存储系统范围的常量值，如 HTTP 状态码、缓存 TTL 和响应头值，
  * 以维护单一事实来源并避免代码中出现魔法数字。
  *

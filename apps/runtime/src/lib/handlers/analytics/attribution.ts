@@ -10,8 +10,8 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
-import { normalisePath, safeDecode } from "../utils";
-import type { AnalyticsProvider } from "../types";
+import { normalisePath, safeDecode } from "../core/utils";
+import type { AnalyticsProvider } from "../core/types";
 
 export const ANALYTICS_ATTRIBUTION_QUERY_PARAM = "_i0c_via";
 export const ANALYTICS_ATTRIBUTION_COOKIE = "__Host-i0c-attribution";

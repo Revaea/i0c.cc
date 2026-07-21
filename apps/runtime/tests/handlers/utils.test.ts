@@ -13,8 +13,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildCompiledList } from "../../src/lib/handlers/matcher";
-import { inferEffectivePath } from "../../src/lib/handlers/utils";
+import { buildCompiledList } from "../../src/lib/handlers/routing/matcher";
+import { inferEffectivePath } from "../../src/lib/handlers/core/utils";
 
 const compiledList = buildCompiledList({
   "/docs": {

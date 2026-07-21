@@ -1,7 +1,7 @@
 /**
  * @file env.ts
  * @description
- * [EN] Runtime Secret Binding Abstraction.
+ * [EN] Runtime secret binding abstraction.
  * Reads secret values safely across Node.js and edge platform bindings.
  *
  * [CN] Runtime 密钥绑定抽象层。

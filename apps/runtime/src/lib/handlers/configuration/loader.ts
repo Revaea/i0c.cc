@@ -13,9 +13,9 @@
  */
 
 import { DEFAULT_CONFIG_URL } from "./config";
-import { safeParseJson } from "./utils";
-import { DEFAULT_CACHE_TTL_SECONDS } from "./constants";
-import { HandlerOptions, MemoryCacheEntry, RedirectsConfig, ResolvedRuntime } from "./types";
+import { safeParseJson } from "../core/utils";
+import { DEFAULT_CACHE_TTL_SECONDS } from "../core/constants";
+import { HandlerOptions, MemoryCacheEntry, RedirectsConfig, ResolvedRuntime } from "../core/types";
 
 const memoryCache = new Map<string, MemoryCacheEntry>();
 const inFlightLoads = new Map<string, Promise<RedirectsConfig | null>>();

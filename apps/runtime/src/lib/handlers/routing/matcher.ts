@@ -12,9 +12,9 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
-import { DEFAULT_STATUS } from "./constants";
-import type { AnalyticsLinkMatchKind, CompiledEntry, NormalizedRule, RedirectsConfig, RouteConfig, RouteType, RouteValue, RouteValueEntry, SlotBranch } from "./types";
-import { coerceRouteValues, isRecord, toRouteArray } from "./utils";
+import { DEFAULT_STATUS } from "../core/constants";
+import type { AnalyticsLinkMatchKind, CompiledEntry, NormalizedRule, RedirectsConfig, RouteConfig, RouteType, RouteValue, RouteValueEntry, SlotBranch } from "../core/types";
+import { coerceRouteValues, isRecord, toRouteArray } from "../core/utils";
 
 interface ResolvedRuleTarget {
   matchKind: AnalyticsLinkMatchKind;

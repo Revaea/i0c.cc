@@ -18,7 +18,7 @@ import {
   finalizeRuntimeAnalytics
 } from "../../src/lib/handlers/analytics";
 import type { AnalyticsRequestContext } from "../../src/lib/handlers/analytics";
-import type { NormalizedRule, ResolvedRuntime } from "../../src/lib/handlers/types";
+import type { NormalizedRule, ResolvedRuntime } from "../../src/lib/handlers/core/types";
 
 const request = new Request("https://i0c.cc/r", {
   headers: { Accept: "text/html" }

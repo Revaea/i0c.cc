@@ -19,21 +19,21 @@ import {
   finalizeRuntimeAnalytics,
   prepareAnalyticsRequest
 } from "@handlers/analytics";
-import { HTTPS_REDIRECT_STATUS } from "@handlers/constants";
-import { dispatchRouteRequest } from "@handlers/dispatcher";
-import { serveFavicon } from "@handlers/favicon-serve";
-import { interLatinVariableFontPath, serveInterFont } from "@handlers/font-serve";
-import { loadConfig, resolveRuntimeOptions } from "@handlers/loader";
+import { HTTPS_REDIRECT_STATUS } from "@handlers/core/constants";
+import { dispatchRouteRequest } from "@handlers/routing/dispatcher";
+import { serveFavicon } from "@handlers/resources/favicon-serve";
+import { interLatinVariableFontPath, serveInterFont } from "@handlers/resources/font-serve";
+import { loadConfig, resolveRuntimeOptions } from "@handlers/configuration/loader";
 import {
   flattenSlots,
   getCompiledList,
   getSlotSource
-} from "@handlers/matcher";
-import { generateRobots, generateSitemapXml, isRobotsAllowed } from "@handlers/seo";
-import { notFoundPageHtml } from "@handlers/templates";
+} from "@handlers/routing/matcher";
+import { generateRobots, generateSitemapXml, isRobotsAllowed } from "@handlers/resources/seo";
+import { notFoundPageHtml } from "@handlers/resources/templates";
 import type { AnalyticsRequestContext } from "@handlers/analytics";
-import type { HandlerOptions, RouteValueEntry } from "@handlers/types";
-import { inferEffectivePath, isLikelyStaticAssetPath, normalisePath, safeDecode } from "@handlers/utils";
+import type { HandlerOptions, RouteValueEntry } from "@handlers/core/types";
+import { inferEffectivePath, isLikelyStaticAssetPath, normalisePath, safeDecode } from "@handlers/core/utils";
 
 export async function handleRedirectRequest(request: Request, options: HandlerOptions = {}): Promise<Response> {
   const runtime = resolveRuntimeOptions(options);
@@ -202,5 +202,5 @@ function createCanonicalRedirect(destination: string, containsAttributionToken: 
   });
 }
 
-export { DEFAULT_CONFIG_URL } from "@handlers/config";
-export type { RedirectsConfig, RouteConfig, HandlerOptions } from "@handlers/types";
+export { DEFAULT_CONFIG_URL } from "@handlers/configuration/config";
+export type { RedirectsConfig, RouteConfig, HandlerOptions } from "@handlers/core/types";

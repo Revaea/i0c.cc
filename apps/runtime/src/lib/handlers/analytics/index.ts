@@ -1,5 +1,5 @@
 /**
- * @file analytics.ts
+ * @file index.ts
  * @description
  * [EN] Orchestrates request attribution, Analytics V2 event finalization, and upstream continuation.
  * Keeps redirect handling resilient while delegating configuration, payload construction, and delivery.
@@ -19,26 +19,26 @@ import {
   readAttributionCookie,
   resolveAnalyticsEntryDomain,
   verifyAttributionToken
-} from "./analytics/attribution";
-import { scheduleAnalyticsEvent } from "./analytics/delivery";
+} from "./attribution";
+import { scheduleAnalyticsEvent } from "./delivery";
 import {
   createMatchedAnalyticsEvent,
   createRuntimeAnalyticsEvent
-} from "./analytics/events";
+} from "./events";
 import {
   createDefaultAnalyticsRuntimeSettings,
   resolveAnalyticsSettings
-} from "./analytics/settings";
-import type { VerifiedAttributionToken } from "./analytics/attribution";
-import type { AnalyticsRuntimeSettings } from "./analytics/settings";
+} from "./settings";
+import type { VerifiedAttributionToken } from "./attribution";
+import type { AnalyticsRuntimeSettings } from "./settings";
 import type {
   AnalyticsLinkMatchKind,
   AnalyticsRuntimeOutcome,
   NormalizedRule,
   ResolvedRuntime
-} from "./types";
+} from "../core/types";
 
-export type { AnalyticsRuntimeSettings } from "./analytics/settings";
+export type { AnalyticsRuntimeSettings } from "./settings";
 export { ANALYTICS_ATTRIBUTION_QUERY_PARAM, clearAttributionCookie };
 
 export interface AnalyticsRequestContext {

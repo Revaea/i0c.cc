@@ -19,7 +19,7 @@ import {
   prepareAnalyticsRequest
 } from "../../src/lib/handlers/analytics";
 import type { AnalyticsRequestContext } from "../../src/lib/handlers/analytics";
-import type { NormalizedRule, ResolvedRuntime } from "../../src/lib/handlers/types";
+import type { NormalizedRule, ResolvedRuntime } from "../../src/lib/handlers/core/types";
 
 const analyticsEndpoint = "https://u.i0c.cc/api/analytics/events";
 const analyticsWriteKey = "0123456789abcdef0123456789abcdef";

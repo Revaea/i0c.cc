@@ -1,7 +1,7 @@
 /**
  * @file config.ts
  * @description
- * [EN] Versioned Redirect Configuration Resolution.
+ * [EN] Versioned redirect configuration resolution.
  * Builds the redirection rules URL from the repository-owned shared configuration.
  *
  * [CN] 版本化重定向配置解析。
