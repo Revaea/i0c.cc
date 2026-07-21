@@ -55,3 +55,23 @@ test("deduplicates concurrent config loads and reuses parsed data", async () => 
   assert.equal(third, first);
   assert.equal(fetchCalls, 1);
 });
+
+test("releases unsuccessful configuration responses", async (context) => {
+  context.mock.method(console, "error", () => undefined);
+  let didCancelResponse = false;
+  const runtime = resolveRuntimeOptions({
+    configUrl: "https://config.example/unavailable.json",
+    cacheTtlSeconds: 60,
+    now: () => 0,
+    fetchImpl: async () => new Response(new ReadableStream({
+      cancel() {
+        didCancelResponse = true;
+      }
+    }), { status: 503 })
+  });
+
+  const config = await loadConfig(runtime);
+
+  assert.equal(config, null);
+  assert.equal(didCancelResponse, true);
+});

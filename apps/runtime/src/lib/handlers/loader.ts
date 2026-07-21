@@ -123,6 +123,10 @@ async function loadConfigFresh(runtime: ResolvedRuntime): Promise<RedirectsConfi
         return parsed;
       }
     } else {
+      try {
+        await response?.body?.cancel();
+      } catch {
+      }
       console.error("failed fetch config", response ? response.status : "no response");
     }
   } catch (error) {
