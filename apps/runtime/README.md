@@ -1,6 +1,6 @@
 # i0c.cc Runtime
 
-Universal redirect runtime for fetch-compatible edge platforms: Cloudflare Workers, Vercel Edge Functions, and Netlify Edge Functions. It enforces HTTPS, serves a favicon, and applies redirect or proxy rules defined in a remote `redirects.json` file.
+Provider-selectable redirect runtime for fetch-compatible edge platforms: Cloudflare Workers, Vercel Edge Functions, and Netlify Edge Functions. It enforces HTTPS, serves a favicon, and applies redirect or proxy rules defined in a remote `redirects.json` file. Choose the adapter that fits the deployment; the three providers do not need to run together.
 
 Live previews:
 

@@ -1,12 +1,20 @@
 # i0c.cc
 
-i0c.cc 的 monorepo，包含边缘重定向运行时和用于编辑重定向规则的 WebUI 管理面板。
+i0c.cc 是一个个人使用、由 Git 驱动的边缘重定向实验项目。重定向规则在 Git 中版本化，同一套核心可以通过不同边缘平台适配器运行，并提供自用的 WebUI 与可选统计功能。
+
+## 项目定位
+
+这个仓库面向个人使用和工程实验，不准备成为托管短链接服务或企业级重定向平台。
+
+- 按部署环境选择所需的 Runtime 适配器；Cloudflare、Vercel 与 Netlify 是可选方案，不要求同时运行。
+- 以 Git 中的 `redirects.json` 作为可审查、可回退的规则来源。
+- WebUI 与统计功能服务于个人工作流；后续路线优先保证清晰和可靠，不追求与商业产品功能对齐。
 
 ## 项目
 
 | 项目 | 路径 | 说明 |
 |------|------|------|
-| Runtime | [apps/runtime](apps/runtime) | 面向 Cloudflare Workers、Vercel Edge Functions、Netlify Edge Functions 的通用重定向运行时。 |
+| Runtime | [apps/runtime](apps/runtime) | 可按平台选择的重定向运行时，支持 Cloudflare Workers、Vercel Edge Functions 与 Netlify Edge Functions。 |
 | WebUI | [apps/webui](apps/webui) | 基于 Next.js 的管理面板，用于编辑 `redirects.json` 并查询短链接统计。 |
 | 配置 | [packages/config](packages/config) | Runtime 与 WebUI 共用的版本化非敏感配置。 |
 

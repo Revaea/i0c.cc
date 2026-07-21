@@ -1,6 +1,6 @@
 # i0c.cc Runtime
 
-面向 Cloudflare Workers、Vercel Edge Functions、Netlify Edge Functions 等 fetch 兼容边缘平台的通用重定向运行时。它会强制 HTTPS、返回 favicon，并根据远程 `redirects.json` 中的规则执行重定向或代理。
+面向 Cloudflare Workers、Vercel Edge Functions、Netlify Edge Functions 等 fetch 兼容边缘平台的可选式重定向运行时。它会强制 HTTPS、返回 favicon，并根据远程 `redirects.json` 中的规则执行重定向或代理。部署时选择适合的平台适配器即可，三个平台不要求同时运行。
 
 在线预览：
 

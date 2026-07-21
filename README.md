@@ -1,12 +1,20 @@
 # <img src="./logo.webp" alt="i0c.cc" width="420">
 
-Monorepo for i0c.cc, containing the edge redirect runtime and the WebUI management panel for editing redirect rules.
+i0c.cc is a personal, Git-driven edge redirect playground. It keeps redirect rules versioned in Git, runs the same core through optional edge-platform adapters, and provides a WebUI with optional analytics for my own use.
+
+## Positioning
+
+This repository is maintained for personal use and engineering experimentation. It is not intended to be a hosted URL-shortening service or an enterprise redirect platform.
+
+- Deploy whichever Runtime adapter fits the environment; Cloudflare, Vercel, and Netlify are supported alternatives rather than required replicas.
+- Keep `redirects.json` in Git as the reviewable and reversible source of truth.
+- Use the WebUI and analytics when they help the personal workflow; the roadmap prioritizes clarity and reliability over feature parity with commercial products.
 
 ## Projects
 
 | Project | Path | Description |
 |---------|------|-------------|
-| Runtime | [apps/runtime](apps/runtime) | Universal redirect runtime for Cloudflare Workers, Vercel Edge Functions, and Netlify Edge Functions. |
+| Runtime | [apps/runtime](apps/runtime) | Provider-selectable redirect runtime for Cloudflare Workers, Vercel Edge Functions, and Netlify Edge Functions. |
 | WebUI | [apps/webui](apps/webui) | Next.js management panel for editing `redirects.json` and querying short-link analytics. |
 | Configuration | [packages/config](packages/config) | Version-controlled, non-sensitive settings shared by the Runtime and WebUI. |
 

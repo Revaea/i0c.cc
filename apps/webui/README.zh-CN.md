@@ -2,7 +2,7 @@
 
 i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OAuth 登录后在线编辑 `redirects.json`。保存修改时会调用 GitHub Contents API，对目标仓库的指定分支创建提交并保留历史记录。
 
-**推荐：配合 [i0c.cc](https://github.com/Revaea/i0c.cc) 本体使用更好。**
+这个 WebUI 服务于个人 [i0c.cc](https://github.com/Revaea/i0c.cc) 工作流，作为可选的管理界面维护，不定位为通用的企业级链接管理产品。
 
 该项目提供两种编辑方式：
 
