@@ -7,6 +7,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  transpilePackages: ["@i0c/config"],
   turbopack: {
     root: path.resolve(process.cwd(), "../.."),
   },

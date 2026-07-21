@@ -26,7 +26,7 @@ export const analyticsCacheSeconds = 15;
 export function resolveSourceId(): string {
   const sourceId = readAnalyticsSourceId();
   if (!sourceId) {
-    throw new Error("Analytics is not configured: ANALYTICS_SOURCE_ID is missing");
+    throw new Error("Analytics source ID in @i0c/config is invalid");
   }
 
   return sourceId;

@@ -1,13 +1,11 @@
 /**
  * @file env.ts
  * @description
- * [EN] Environment Variable Abstraction.
- * Handles reading environment variables safely across different runtimes (Node.js vs Edge Runtime).
- * It abstracts the difference between `process.env` and `globalThis`/bindings.
+ * [EN] Runtime Secret Binding Abstraction.
+ * Reads secret values safely across Node.js and edge platform bindings.
  *
- * [CN] 环境变量抽象层。
- * 处理跨不同运行时（Node.js 与 Edge Runtime）安全读取环境变量的逻辑。
- * 它抽象了 `process.env` 和 `globalThis`/bindings 之间的差异。
+ * [CN] Runtime 密钥绑定抽象层。
+ * 在 Node.js 与边缘平台绑定中安全读取密钥值。
  *
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
@@ -29,16 +27,6 @@ export function readEnvVar(key: string): string | undefined {
     }
   }
 
-  return undefined;
-}
-
-export function readEnvPriority(keys: string[]): string | undefined {
-  for (const key of keys) {
-    const value = readEnvVar(key);
-    if (value) {
-      return value;
-    }
-  }
   return undefined;
 }
 

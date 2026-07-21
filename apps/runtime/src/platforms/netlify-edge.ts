@@ -1,4 +1,4 @@
-import { handleRedirectRequest, resolveConfigUrlFromBindings, type HandlerOptions } from "@/lib/handler";
+import { handleRedirectRequest, type HandlerOptions } from "@/lib/handler";
 
 declare const Netlify: undefined | {
   env?: {
@@ -18,18 +18,7 @@ type NetlifyContext = {
 type NetlifyHandler = (request: Request, context: NetlifyContext) => Promise<Response> | Response;
 
 const NETLIFY_BINDING_KEYS = [
-  "REDIRECTS_CONFIG_URL",
-  "REDIRECTS_CONFIG_REPO",
-  "REDIRECTS_CONFIG_BRANCH",
-  "REDIRECTS_CONFIG_PATH",
-  "CONFIG_URL",
-  "CONFIG_REPO",
-  "CONFIG_BRANCH",
-  "CONFIG_PATH",
-  "ROBOTS_POLICY",
-  "ANALYTICS_ENDPOINT",
-  "ANALYTICS_WRITE_KEY",
-  "ANALYTICS_SOURCE_ID"
+  "ANALYTICS_WRITE_KEY"
 ] as const;
 
 function getNetlifyBindings(): Record<string, unknown> | undefined {
@@ -50,9 +39,7 @@ function getNetlifyBindings(): Record<string, unknown> | undefined {
 export function createNetlifyEdgeHandler(options?: HandlerOptions): NetlifyHandler {
   return async function netlifyEdgeHandler(request: Request, context: NetlifyContext): Promise<Response> {
     const bindings = options?.envBindings ?? getNetlifyBindings();
-    const resolvedUrl = options?.configUrl ?? resolveConfigUrlFromBindings(bindings);
-    const finalOptions = resolvedUrl && resolvedUrl !== options?.configUrl ? { ...options, configUrl: resolvedUrl } : options;
-    const base = finalOptions ?? {};
+    const base = options ?? {};
     const platformWaitUntil = context && typeof context.waitUntil === "function"
       ? (promise: Promise<unknown>) => context.waitUntil?.(promise)
       : undefined;

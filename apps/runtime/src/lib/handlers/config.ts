@@ -1,24 +1,21 @@
 /**
  * @file config.ts
  * @description
- * [EN] Configuration URL Resolution.
- * Determines the source URL for the redirection rules (JSON). It resolves priorities between
- * direct URL bindings and repository-based (GitHub) path construction.
+ * [EN] Versioned Redirect Configuration Resolution.
+ * Builds the redirection rules URL from the repository-owned shared configuration.
  *
- * [CN] 配置 URL 解析。
- * 确定重定向规则（JSON）的源 URL。它负责解析直接 URL 绑定与基于代码仓库（GitHub）路径构建之间的优先级。
+ * [CN] 版本化重定向配置解析。
+ * 根据仓库维护的共享配置构建重定向规则地址。
  *
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
-import { readBindingVar, readEnvPriority } from "./env";
+import { appConfig } from "@i0c/config";
 
-const ENV_CONFIG_REPO = readEnvPriority(["REDIRECTS_CONFIG_REPO", "CONFIG_REPO"]);
-const ENV_CONFIG_BRANCH = readEnvPriority(["REDIRECTS_CONFIG_BRANCH", "CONFIG_BRANCH"]);
-const ENV_CONFIG_PATH = readEnvPriority(["REDIRECTS_CONFIG_PATH", "CONFIG_PATH"]);
-const CONFIG_REPO = ENV_CONFIG_REPO ?? "Revaea/i0c.cc";
-const CONFIG_BRANCH = ENV_CONFIG_BRANCH ?? "data";
-const CONFIG_PATH = ENV_CONFIG_PATH ?? "redirects.json";
+const redirectSource = appConfig.redirects.github;
+const CONFIG_REPO = `${redirectSource.owner}/${redirectSource.repository}`;
+const CONFIG_BRANCH = redirectSource.branch;
+const CONFIG_PATH = redirectSource.path;
 
 export function buildConfigUrl(parts?: { repo?: string; branch?: string; path?: string }): string {
   const repo = parts?.repo ?? CONFIG_REPO;
@@ -27,24 +24,4 @@ export function buildConfigUrl(parts?: { repo?: string; branch?: string; path?: 
   return `https://raw.githubusercontent.com/${repo}/${branch}/${path}`;
 }
 
-const ENV_CONFIG_URL = readEnvPriority(["REDIRECTS_CONFIG_URL", "CONFIG_URL"]);
-export const DEFAULT_CONFIG_URL = ENV_CONFIG_URL ?? buildConfigUrl();
-
-export function resolveConfigUrlFromBindings(bindings?: Record<string, unknown>): string | undefined {
-  if (bindings && typeof bindings === "object") {
-    const direct = readBindingVar(bindings, "REDIRECTS_CONFIG_URL") ?? readBindingVar(bindings, "CONFIG_URL");
-    if (direct) {
-      return direct;
-    }
-
-    const repo = readBindingVar(bindings, "REDIRECTS_CONFIG_REPO") ?? readBindingVar(bindings, "CONFIG_REPO");
-    const branch = readBindingVar(bindings, "REDIRECTS_CONFIG_BRANCH") ?? readBindingVar(bindings, "CONFIG_BRANCH");
-    const path = readBindingVar(bindings, "REDIRECTS_CONFIG_PATH") ?? readBindingVar(bindings, "CONFIG_PATH");
-
-    if (repo || branch || path) {
-      return buildConfigUrl({ repo: repo ?? undefined, branch: branch ?? undefined, path: path ?? undefined });
-    }
-  }
-
-  return ENV_CONFIG_URL ?? undefined;
-}
+export const DEFAULT_CONFIG_URL = buildConfigUrl();

@@ -1,9 +1,13 @@
 import { Buffer } from "node:buffer";
 
-const owner = process.env.GITHUB_REPO_OWNER ?? "";
-const repo = process.env.GITHUB_REPO_NAME ?? "";
-const branch = process.env.GITHUB_TARGET_BRANCH ?? "data";
-const configPath = process.env.GITHUB_CONFIG_PATH ?? "redirects.json";
+import { appConfig } from "@i0c/config";
+
+const {
+  owner,
+  repository: repo,
+  branch,
+  path: configPath,
+} = appConfig.redirects.github;
 
 const apiBase = "https://api.github.com";
 const publicConfigRevalidateSeconds = 60;
@@ -119,11 +123,11 @@ function resolveTarget(sourceUrl?: string | null): RepoTarget {
   }
 
   if (!owner || !repo) {
-    throw new Error("Missing GITHUB_REPO_OWNER or GITHUB_REPO_NAME environment variables.");
+    throw new Error("The configured GitHub redirect repository is missing an owner or name.");
   }
 
   if (!/\.json$/i.test(configPath)) {
-    throw new Error("GITHUB_CONFIG_PATH must point to a .json file.");
+    throw new Error("The configured GitHub redirect path must point to a .json file.");
   }
 
   return {

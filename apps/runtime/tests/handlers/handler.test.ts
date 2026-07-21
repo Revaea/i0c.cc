@@ -64,3 +64,18 @@ test("preserves the branded cacheable response for an unmatched route", async ()
   assert.equal(response.headers.get("cache-control"), "public, max-age=60");
   assert.match(await response.text(), /404/);
 });
+
+test("uses the versioned robots policy instead of a legacy environment binding", async () => {
+  const configUrl = "https://config.example/robots.json";
+  const response = await handleRedirectRequest(
+    new Request("https://i0c.cc/robots.txt"),
+    {
+      configUrl,
+      envBindings: { ROBOTS_POLICY: "disallow" },
+      fetchImpl: createConfigFetch(configUrl, 200)
+    }
+  );
+
+  assert.equal(response.status, 200);
+  assert.match(await response.text(), /^User-agent: \*\nAllow: \/$/m);
+});

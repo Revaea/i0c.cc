@@ -18,6 +18,20 @@ import {
   resolveRuntimeOptions
 } from "../../src/lib/handlers/loader";
 
+test("uses the versioned redirect source instead of legacy environment bindings", () => {
+  const runtime = resolveRuntimeOptions({
+    envBindings: {
+      REDIRECTS_CONFIG_URL: "https://ignored.example/redirects.json",
+      CONFIG_URL: "https://also-ignored.example/redirects.json"
+    }
+  });
+
+  assert.equal(
+    runtime.configUrl,
+    "https://raw.githubusercontent.com/Revaea/i0c.cc/data/redirects.json"
+  );
+});
+
 test("deduplicates concurrent config loads and reuses parsed data", async () => {
   let releaseFetch: (() => void) | undefined;
   const fetchGate = new Promise<void>((resolve) => {

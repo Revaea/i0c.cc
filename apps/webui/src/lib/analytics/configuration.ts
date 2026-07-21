@@ -1,5 +1,7 @@
 import "server-only";
 
+import { appConfig } from "@i0c/config";
+
 const hostnameLabelPattern = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 
 function normalizeAnalyticsSourceId(value: string): string | null {
@@ -15,8 +17,7 @@ function normalizeAnalyticsSourceId(value: string): string | null {
 }
 
 export function readAnalyticsSourceId(): string | null {
-  const sourceId = process.env.ANALYTICS_SOURCE_ID;
-  return sourceId ? normalizeAnalyticsSourceId(sourceId) : null;
+  return normalizeAnalyticsSourceId(appConfig.analytics.sourceId);
 }
 
 export function readAnalyticsIngestSecret(): string | null {
