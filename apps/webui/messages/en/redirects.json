@@ -24,6 +24,7 @@
     "expandAll": "Expand",
     "collapseAll": "Collapse",
     "saveFail": "Save failed",
+    "duplicateKey": "The key {key} appears more than once in {group}.",
     "loadFail": "Failed to load config",
     "previewFailWithMessage": "// Preview generation failed: {message}",
     "previewFailUnknown": "// Preview generation failed",

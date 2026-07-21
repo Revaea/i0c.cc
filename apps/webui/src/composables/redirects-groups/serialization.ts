@@ -16,6 +16,16 @@ export type ParsedRedirectConfig = {
   rootGroup: RedirectGroup;
 };
 
+export class DuplicateRedirectKeyError extends Error {
+  constructor(
+    readonly key: string,
+    readonly groupName: string,
+  ) {
+    super(`Duplicate key "${key}" in group "${groupName}".`);
+    this.name = "DuplicateRedirectKeyError";
+  }
+}
+
 function createAnalyticsIdentitySeed(
   groupPath: readonly string[],
   key: string,
@@ -116,13 +126,22 @@ export async function parseInitialContent(source: string): Promise<ParsedRedirec
 
 function buildGroupObject(group: RedirectGroup): Record<string, unknown> {
   const result: Record<string, unknown> = {};
+  const usedKeys = new Set<string>();
+
+  function assign(key: string, value: unknown) {
+    if (usedKeys.has(key)) {
+      throw new DuplicateRedirectKeyError(key, group.name);
+    }
+    usedKeys.add(key);
+    result[key] = value;
+  }
 
   group.entries.forEach((entry) => {
     const key = entry.key.trim();
     if (!key) {
       return;
     }
-    result[key] = entry.value;
+    assign(key, entry.value);
   });
 
   group.children.forEach((child) => {
@@ -130,7 +149,7 @@ function buildGroupObject(group: RedirectGroup): Record<string, unknown> {
     if (!name) {
       return;
     }
-    result[name] = buildGroupObject(child);
+    assign(name, buildGroupObject(child));
   });
 
   return result;

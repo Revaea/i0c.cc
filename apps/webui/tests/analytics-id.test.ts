@@ -7,6 +7,7 @@ import {
 } from "../src/composables/editor/route-utils";
 import {
   buildConfig,
+  DuplicateRedirectKeyError,
   parseInitialContent,
 } from "../src/composables/redirects-groups/serialization";
 
@@ -82,5 +83,24 @@ test("preserves intermediate groups without direct routes", async () => {
   assert.deepEqual(
     buildConfig(parsed.rootGroup, parsed.baseConfig, parsed.slotsKey),
     JSON.parse(source),
+  );
+});
+
+test("rejects duplicate keys before config serialization can overwrite them", () => {
+  assert.throws(
+    () => buildConfig({
+      id: "root",
+      name: "Slots",
+      entries: [
+        { id: "first", key: "/docs", value: "https://example.com/docs" },
+        { id: "second", key: "/docs", value: "https://example.com/guide" },
+      ],
+      children: [],
+    }, {}, "Slots"),
+    (error) => (
+      error instanceof DuplicateRedirectKeyError
+      && error.key === "/docs"
+      && error.groupName === "Slots"
+    ),
   );
 });

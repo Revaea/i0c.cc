@@ -24,6 +24,7 @@
     "collapseAll": "收起",
     "saveOk": "保存成功",
     "saveFail": "保存失败",
+    "duplicateKey": "分组“{group}”中存在重复键“{key}”。",
     "loadFail": "加载配置失败",
     "previewFailWithMessage": "// 预览生成失败：{message}",
     "previewFailUnknown": "// 预览生成失败",
