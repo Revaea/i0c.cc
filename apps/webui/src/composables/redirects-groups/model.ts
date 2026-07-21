@@ -24,8 +24,11 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-export function groupLooksLikeSlots(value: Record<string, unknown>): boolean {
-  return Object.keys(value).some((key) => key.startsWith('/'));
+export function isRedirectGroupEntry(
+  key: string,
+  value: unknown,
+): value is Record<string, unknown> {
+  return !key.startsWith('/') && isRecord(value);
 }
 
 export function createEmptyEntry(): RedirectEntry {

@@ -22,12 +22,7 @@
       "patternProperties": {
         "^/.*$": { "$ref": "#/definitions/routeEntry" }
       },
-      "additionalProperties": {
-        "anyOf": [
-          { "$ref": "#/definitions/routeEntry" },
-          { "$ref": "#/definitions/slots" }
-        ]
-      }
+      "additionalProperties": { "$ref": "#/definitions/slots" }
     },
     "routeEntry": {
       "description": "A route definition expressed as a string shortcut, object, or array of rules.",

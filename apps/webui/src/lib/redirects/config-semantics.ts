@@ -25,7 +25,7 @@ function escapeJsonPointerSegment(value: string): string {
 }
 
 function isRouteConfig(value: Record<string, unknown>): boolean {
-  return destinationKeys.some((key) => key in value)
+  return destinationKeys.some((key) => typeof value[key] === "string")
     && Object.keys(value).every((key) => routeConfigKeys.has(key));
 }
 

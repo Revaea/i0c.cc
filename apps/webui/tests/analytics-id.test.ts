@@ -63,3 +63,24 @@ test("persists hydrated analytics IDs through config serialization", async () =>
     saved,
   );
 });
+
+test("preserves intermediate groups without direct routes", async () => {
+  const source = JSON.stringify({
+    Slots: {
+      Main: {
+        Nested: {
+          "/docs": {
+            analyticsId: "eb5deba4-32b7-476f-b7f3-4b5c598a397c",
+            target: "https://example.com/docs",
+          },
+        },
+      },
+    },
+  });
+  const parsed = await parseInitialContent(source);
+
+  assert.deepEqual(
+    buildConfig(parsed.rootGroup, parsed.baseConfig, parsed.slotsKey),
+    JSON.parse(source),
+  );
+});

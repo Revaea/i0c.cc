@@ -4,7 +4,7 @@ import {
   type RedirectEntry,
   type RedirectGroup,
   createEmptyEntry,
-  groupLooksLikeSlots,
+  isRedirectGroupEntry,
   isRecord,
   uniqueId
 } from "./model";
@@ -38,7 +38,7 @@ async function parseEntries(
   const entries: RedirectEntry[] = [];
 
   for (const [key, value] of Object.entries(source)) {
-    if (isRecord(value) && groupLooksLikeSlots(value)) {
+    if (isRedirectGroupEntry(key, value)) {
       continue;
     }
 
@@ -79,7 +79,7 @@ async function parseGroup(
   const children: RedirectGroup[] = [];
 
   for (const [key, value] of Object.entries(source)) {
-    if (isRecord(value) && groupLooksLikeSlots(value)) {
+    if (isRedirectGroupEntry(key, value)) {
       children.push(await parseGroup(key, value, groupPath));
     }
   }
