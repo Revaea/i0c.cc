@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 
 import { getWebUiManagementSessionAuthorization } from "@/auth/authorization";
-import { AccessDeniedPanel } from "@/components/ui/access-denied-panel";
+import { AccessDeniedPanel } from "@/components/ui/feedback/access-denied-panel";
 
 interface AccessDeniedPageProps {
   params: Promise<{ locale: string }>;

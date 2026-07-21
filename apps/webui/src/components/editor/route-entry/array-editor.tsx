@@ -3,9 +3,9 @@
 import type { ComponentType } from "react";
 import { useTranslations } from "next-intl";
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { fieldLabelClassName } from "@/components/ui/form-control";
+import { Button } from "@/components/ui/controls/button";
+import { Card } from "@/components/ui/surfaces/card";
+import { fieldLabelClassName } from "@/components/ui/controls/form-control";
 
 interface NestedRouteEntryEditorProps {
   value: unknown;

@@ -2,14 +2,14 @@
 
 import { useTranslations } from "next-intl";
 
-import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { DropdownSelect } from "@/components/ui/controls/dropdown-select";
 import {
   fieldLabelClassName,
   fieldLabelRowClassName,
   formControlClassName,
-} from "@/components/ui/form-control";
-import { LabelWithTooltip } from "@/components/ui/label-with-tooltip";
-import { QRCodeButton } from "@/components/ui/qr-code";
+} from "@/components/ui/controls/form-control";
+import { LabelWithTooltip } from "@/components/ui/controls/label-with-tooltip";
+import { QRCodeButton } from "@/components/ui/controls/qr-code";
 import {
   asString,
   getDestinationKey,

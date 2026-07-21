@@ -1,7 +1,7 @@
 import { NextIntlClientProvider } from "next-intl"
 import { getLocale, getMessages, getTranslations } from "next-intl/server"
 
-import { NotFoundPanel } from "@/components/ui/not-found-panel"
+import { NotFoundPanel } from "@/components/ui/feedback/not-found-panel"
 import { resolveAppLocale } from "@/i18n/routing"
 
 export default async function NotFoundPage() {

@@ -2,8 +2,8 @@
 
 import { useTranslations } from "next-intl"
 
-import { AnalyticsShell } from "@/components/analytics/analytics-shell"
-import { Button } from "@/components/ui/button"
+import { AnalyticsShell } from "@/components/analytics/shell/analytics-shell"
+import { Button } from "@/components/ui/controls/button"
 
 interface AnalyticsErrorProps {
   error: Error & { digest?: string }
