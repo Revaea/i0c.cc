@@ -173,7 +173,11 @@ export async function getRedirectConfig(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to load config from GitHub: ${response.status} ${response.statusText}`);
+    const errorBody = await response.text();
+    const normalized = normalizeGitHubErrorBody(response.status, errorBody);
+    throw new Error(
+      `Failed to load config from GitHub: ${response.status} ${response.statusText}${normalized ? ` - ${normalized}` : ""}`
+    );
   }
 
   const json = (await response.json()) as {
