@@ -66,6 +66,28 @@ test("persists hydrated analytics IDs through config serialization", async () =>
   );
 });
 
+test("keeps a missing analytics ID stable across destination edits", async () => {
+  async function readGeneratedId(target: string) {
+    const parsed = await parseInitialContent(JSON.stringify({
+      Slots: {
+        Main: {
+          "/docs": { type: "prefix", target },
+        },
+      },
+    }));
+    const saved = buildConfig(parsed.rootGroup, parsed.baseConfig, parsed.slotsKey);
+    const slots = saved.Slots as Record<string, unknown>;
+    const main = slots.Main as Record<string, unknown>;
+    const route = main["/docs"] as Record<string, unknown>;
+    return route.analyticsId;
+  }
+
+  assert.equal(
+    await readGeneratedId("https://example.com/docs"),
+    await readGeneratedId("https://example.net/guide"),
+  );
+});
+
 test("preserves intermediate groups without direct routes", async () => {
   const source = JSON.stringify({
     Slots: {

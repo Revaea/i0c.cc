@@ -40,15 +40,13 @@ export class InvalidRedirectConfigError extends Error {
 function createAnalyticsIdentitySeed(
   groupPath: readonly string[],
   key: string,
-  value: Record<string, unknown>,
   arrayIndex?: number,
 ): string {
   return JSON.stringify([
-    "i0c-analytics-id-v1",
+    "i0c-analytics-id-v2",
     groupPath,
     key,
     arrayIndex ?? null,
-    value,
   ]);
 }
 
@@ -71,7 +69,7 @@ async function parseEntries(
           isRecord(item)
             ? await ensureAnalyticsId(
                 item,
-                createAnalyticsIdentitySeed(groupPath, key, item, index),
+                createAnalyticsIdentitySeed(groupPath, key, index),
               )
             : item,
         );
@@ -80,7 +78,7 @@ async function parseEntries(
     } else if (isRecord(value)) {
       hydratedValue = await ensureAnalyticsId(
         value,
-        createAnalyticsIdentitySeed(groupPath, key, value),
+        createAnalyticsIdentitySeed(groupPath, key),
       );
     }
 
