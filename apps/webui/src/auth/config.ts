@@ -1,3 +1,4 @@
+import { appConfig } from "@i0c/config";
 import GitHubProvider from "next-auth/providers/github";
 
 import { canGitHubUserSignIn, isWebUiTokenAuthorized } from "./access-policy";
@@ -8,15 +9,6 @@ function requireEnv(key: string): string {
     throw new Error(`Missing required environment variable: ${key}`);
   }
   return value;
-}
-
-function readOptionalEnv(key: string): string | undefined {
-  const value = process.env[key];
-  if (!value) {
-    return undefined;
-  }
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
 }
 
 type NextAuthHandler = typeof import("next-auth/next")["default"];
@@ -33,7 +25,7 @@ export const authOptions = {
           // Default GitHub OAuth scopes are usually "read:user user:email".
           // We additionally need repo contents access for reading/writing redirects config.
           // Use the narrowest scope possible for your use case.
-          scope: readOptionalEnv("GITHUB_OAUTH_SCOPE") ?? "read:user user:email public_repo"
+          scope: appConfig.webui.githubOAuthScope
         }
       }
     })

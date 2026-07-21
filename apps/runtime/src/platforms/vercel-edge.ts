@@ -1,12 +1,15 @@
 import { waitUntil as vercelWaitUntil } from "@vercel/functions";
 
-import { handleRedirectRequest, resolveConfigUrlFromBindings, type HandlerOptions } from "@/lib/handler";
+import { handleRedirectRequest, type HandlerOptions } from "@/lib/handler";
 
 declare const process: undefined | { env?: Record<string, string | undefined> };
 
-function getProcessEnv(): Record<string, unknown> | undefined {
-  if (typeof process !== "undefined" && process?.env) {
-    return process.env as Record<string, unknown>;
+function getSecretBindings(): Record<string, unknown> | undefined {
+  const writeKey = typeof process !== "undefined"
+    ? process?.env?.ANALYTICS_WRITE_KEY
+    : undefined;
+  if (writeKey) {
+    return { ANALYTICS_WRITE_KEY: writeKey };
   }
   return undefined;
 }
@@ -15,10 +18,8 @@ export const runtime = "edge";
 
 export function createVercelRouteHandler(options?: HandlerOptions) {
   return async function vercelRoute(request: Request): Promise<Response> {
-    const bindings = options?.envBindings ?? getProcessEnv();
-    const resolvedUrl = options?.configUrl ?? resolveConfigUrlFromBindings(bindings);
-    const finalOptions = resolvedUrl && resolvedUrl !== options?.configUrl ? { ...options, configUrl: resolvedUrl } : options;
-    const base = finalOptions ?? {};
+    const bindings = options?.envBindings ?? getSecretBindings();
+    const base = options ?? {};
     const merged: HandlerOptions = {
       ...base,
       envBindings: base.envBindings ?? bindings,

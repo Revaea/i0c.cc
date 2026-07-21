@@ -19,6 +19,7 @@
     "validate:messages": "node scripts/validate-messages.mjs"
   },
   "dependencies": {
+    "@i0c/config": "workspace:*",
     "@visx/axis": "^4.0.0",
     "@visx/event": "^4.0.0",
     "@visx/grid": "^4.0.0",

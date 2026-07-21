@@ -111,12 +111,12 @@ function createDeliveryRuntime(): {
   };
 }
 
-test("resolves analytics settings from Runtime bindings", async () => {
+test("uses versioned analytics settings and reads only the Runtime write key binding", async () => {
   const request = createRequest();
   const runtime = createRuntime({
     envBindings: {
-      ANALYTICS_ENDPOINT: analyticsEndpoint,
-      ANALYTICS_SOURCE_ID: "i0c.cc",
+      ANALYTICS_ENDPOINT: "https://ignored.example/events",
+      ANALYTICS_SOURCE_ID: "ignored.example",
       ANALYTICS_WRITE_KEY: analyticsWriteKey
     }
   });

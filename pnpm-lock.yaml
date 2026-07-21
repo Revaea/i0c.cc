@@ -36,6 +36,9 @@ importers:
 
   apps/runtime:
     dependencies:
+      '@i0c/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@vercel/functions':
         specifier: ^3.7.5
         version: 3.7.5(ws@8.21.0)
@@ -67,6 +70,9 @@ importers:
 
   apps/webui:
     dependencies:
+      '@i0c/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@visx/axis':
         specifier: ^4.0.0
         version: 4.0.0(@types/react@19.2.17)(react@19.2.7)
@@ -155,6 +161,12 @@ importers:
       typescript:
         specifier: ^5
         version: 5.9.3
+
+  packages/config:
+    devDependencies:
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
 
 packages:
 

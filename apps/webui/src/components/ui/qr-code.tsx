@@ -1,5 +1,6 @@
 'use client';
 
+import { appConfig } from "@i0c/config";
 import { useEffect, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { useTranslations } from 'next-intl';
@@ -15,7 +16,7 @@ export function QRCodeButton({ pathKey, domain }: { pathKey: string; domain?: st
   const rootRef = useRef<HTMLDivElement | null>(null);
   const qrWrapperRef = useRef<HTMLDivElement | null>(null);
 
-  const baseUrl = domain || process.env.NEXT_PUBLIC_DOMAIN || "https://i0c.cc";
+  const baseUrl = domain || appConfig.runtime.canonicalOrigin;
   const cleanPath = pathKey.startsWith('/') ? pathKey : `/${pathKey}`;
   const finalUrl = `${baseUrl}${cleanPath}`;
 

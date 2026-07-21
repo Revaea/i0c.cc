@@ -2,13 +2,15 @@
  * @file settings.ts
  * @description
  * [EN] Resolves and validates Runtime analytics configuration and attribution signing keys.
- * Keeps provider bindings, environment fallbacks, and delivery eligibility in one boundary.
+ * Combines versioned public settings, secret provider bindings, and delivery eligibility.
  *
  * [CN] 解析并校验 Runtime 统计配置与归因签名密钥。
- * 集中管理平台绑定、环境变量兜底以及投递资格判断。
+ * 集中组合版本化公开配置、平台密钥绑定以及投递资格判断。
  *
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
+
+import { appConfig } from "@i0c/config";
 
 import {
   deriveAttributionHmacKey,
@@ -17,9 +19,7 @@ import {
 import { readBindingVar, readEnvVar } from "../env";
 import type { ResolvedRuntime } from "../types";
 
-const ANALYTICS_ENDPOINT_KEY = "ANALYTICS_ENDPOINT";
 const ANALYTICS_WRITE_KEY = "ANALYTICS_WRITE_KEY";
-const ANALYTICS_SOURCE_ID_KEY = "ANALYTICS_SOURCE_ID";
 const ANALYTICS_RUNTIME_SAMPLE_RATE = 0.1;
 
 let attributionKeyCache: {
@@ -51,10 +51,9 @@ export function createDefaultAnalyticsRuntimeSettings(): AnalyticsRuntimeSetting
 export async function resolveAnalyticsSettings(
   runtime: ResolvedRuntime
 ): Promise<AnalyticsRuntimeSettings> {
-  const sourceIdValue = readRuntimeEnv(runtime, ANALYTICS_SOURCE_ID_KEY)?.trim();
-  const sourceId = sourceIdValue ? normalizeAnalyticsHostname(sourceIdValue) ?? undefined : undefined;
-  const endpointValue = readRuntimeEnv(runtime, ANALYTICS_ENDPOINT_KEY);
-  const writeKey = readRuntimeEnv(runtime, ANALYTICS_WRITE_KEY)?.trim();
+  const sourceId = normalizeAnalyticsHostname(appConfig.analytics.sourceId) ?? undefined;
+  const endpointValue = appConfig.analytics.ingestEndpoint;
+  const writeKey = readRuntimeSecret(runtime, ANALYTICS_WRITE_KEY)?.trim();
   const sourceHostname = sourceId;
   let attributionKey: ArrayBuffer | undefined;
   if (writeKey && writeKey.length >= 32) {
@@ -102,7 +101,7 @@ function getAttributionHmacKey(writeKey: string): Promise<ArrayBuffer> {
   return key;
 }
 
-function readRuntimeEnv(runtime: ResolvedRuntime, key: string): string | undefined {
+function readRuntimeSecret(runtime: ResolvedRuntime, key: string): string | undefined {
   return readBindingVar(runtime.envBindings, key) ?? readEnvVar(key);
 }
 

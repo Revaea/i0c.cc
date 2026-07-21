@@ -88,7 +88,7 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
       const origin = url.origin;
 
       if (path === "/robots.txt") {
-        const robots = generateRobots(origin, runtime.envBindings);
+        const robots = generateRobots(origin);
         const response = new Response(robots, {
           status: 200,
           headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" }
@@ -96,7 +96,7 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
         return clearAttributionCookie(response, analytics.hasAttributionCookie);
       }
 
-      if (!isRobotsAllowed(runtime.envBindings)) {
+      if (!isRobotsAllowed()) {
         const response = new Response("Sitemap disabled", {
           status: 404,
           headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=300" }
@@ -196,5 +196,5 @@ function createCanonicalRedirect(destination: string, containsAttributionToken: 
   });
 }
 
-export { resolveConfigUrlFromBindings, DEFAULT_CONFIG_URL } from "@handlers/config";
+export { DEFAULT_CONFIG_URL } from "@handlers/config";
 export type { RedirectsConfig, RouteConfig, HandlerOptions } from "@handlers/types";

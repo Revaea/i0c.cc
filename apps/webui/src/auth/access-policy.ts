@@ -1,5 +1,6 @@
 import "server-only";
 
+import { appConfig, type WebUiAccessMode } from "@i0c/config";
 import type { JWT } from "next-auth/jwt";
 
 const githubUserIdPattern = /^[1-9]\d*$/;
@@ -23,54 +24,45 @@ type WebUiAccessPolicy =
   | PublicReadOnlyAccessPolicy
   | AllowlistAccessPolicy;
 
-function requireEnv(key: string): string {
-  const value = process.env[key]?.trim();
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${key}`);
-  }
-  return value;
-}
-
-function parseAllowedGitHubUserIds(value: string): ReadonlySet<string> {
-  const values = value
-    .split(",")
-    .map((value) => value.trim());
-
+function parseAllowedGitHubUserIds(values: readonly string[]): ReadonlySet<string> {
   if (values.some((value) => !githubUserIdPattern.test(value))) {
-    throw new Error("GITHUB_ALLOWED_USER_IDS must contain comma-separated GitHub numeric user IDs");
+    throw new Error(
+      "appConfig.webui.access.managerGitHubUserIds must contain GitHub numeric user IDs",
+    );
   }
 
   return new Set(values);
 }
 
-function readAllowedGitHubUserIds(): ReadonlySet<string> {
-  return parseAllowedGitHubUserIds(requireEnv("GITHUB_ALLOWED_USER_IDS"));
-}
-
-function readOptionalAllowedGitHubUserIds(): ReadonlySet<string> {
-  const value = process.env.GITHUB_ALLOWED_USER_IDS?.trim();
-  return value ? parseAllowedGitHubUserIds(value) : new Set();
+function readConfiguredAccessMode(): WebUiAccessMode {
+  return appConfig.webui.access.mode;
 }
 
 function readWebUiAccessPolicy(): WebUiAccessPolicy {
-  const mode = requireEnv("WEBUI_ACCESS_MODE");
+  const mode = readConfiguredAccessMode();
+  const allowedGitHubUserIds = parseAllowedGitHubUserIds(
+    appConfig.webui.access.managerGitHubUserIds,
+  );
 
   if (mode === "authenticated") {
     return { mode };
   }
 
   if (mode === "allowlist" || mode === "public-readonly") {
+    if (mode === "allowlist" && allowedGitHubUserIds.size === 0) {
+      throw new Error(
+        "appConfig.webui.access.managerGitHubUserIds is required in allowlist mode",
+      );
+    }
+
     return {
       mode,
-      allowedGitHubUserIds:
-        mode === "allowlist"
-          ? readAllowedGitHubUserIds()
-          : readOptionalAllowedGitHubUserIds(),
+      allowedGitHubUserIds,
     };
   }
 
   throw new Error(
-    "WEBUI_ACCESS_MODE must be authenticated, allowlist, or public-readonly",
+    "appConfig.webui.access.mode must be authenticated, allowlist, or public-readonly",
   );
 }
 
