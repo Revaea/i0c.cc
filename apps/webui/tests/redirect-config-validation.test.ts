@@ -57,6 +57,15 @@ test("rejects route entries whose keys do not start with a slash", () => {
   assert.equal(result.status, "invalid");
 });
 
+test("rejects multiple slot root aliases", () => {
+  const result = validateRedirectConfig({
+    Slots: { "/docs": "https://example.com/docs" },
+    slots: { "/guide": "https://example.com/guide" },
+  });
+
+  assert.equal(result.status, "invalid");
+});
+
 test("rejects duplicate analytics IDs across routes", () => {
   const analyticsId = "eb5deba4-32b7-476f-b7f3-4b5c598a397c";
   const result = validateRedirectConfig({

@@ -10,7 +10,7 @@
     "SLOT": { "$ref": "#/definitions/slots" }
   },
   "additionalProperties": true,
-  "anyOf": [
+  "oneOf": [
     { "required": ["Slots"] },
     { "required": ["slots"] },
     { "required": ["SLOT"] }
