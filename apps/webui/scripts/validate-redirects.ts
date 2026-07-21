@@ -3,8 +3,15 @@ import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
-import Ajv from "ajv"
+import Ajv, { type AnySchema, type ErrorObject } from "ajv"
 import addFormats from "ajv-formats"
+
+import { findRedirectConfigSemanticIssues } from "../src/lib/redirects/config-semantics"
+
+interface RedirectSource {
+  label: string
+  content: string
+}
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(scriptDir, "../../..")
@@ -24,7 +31,11 @@ Examples:
 `)
 }
 
-function readArg(name) {
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+function readArg(name: string): string | undefined {
   const prefix = `--${name}=`
   const inlineArg = userArgs.find((item) => item.startsWith(prefix))
 
@@ -40,7 +51,7 @@ function readArg(name) {
   return undefined
 }
 
-function readSource(source) {
+function readSource(source: string): RedirectSource {
   const resolved = path.resolve(process.cwd(), source)
 
   if (fs.existsSync(resolved)) {
@@ -60,32 +71,33 @@ function readSource(source) {
         }),
       }
     } catch (error) {
-      throw new Error(`Failed to read redirect config from git ref ${source}: ${error.message}`, {
-        cause: error,
-      })
+      throw new Error(
+        `Failed to read redirect config from git ref ${source}: ${getErrorMessage(error)}`,
+        { cause: error },
+      )
     }
   }
 
   throw new Error(`Redirect config source not found: ${source}`)
 }
 
-function readJsonFile(filePath, label) {
+function readJsonFile(filePath: string, label: string): string {
   try {
     return fs.readFileSync(filePath, "utf8")
   } catch (error) {
-    throw new Error(`Failed to read ${label}: ${error.message}`, { cause: error })
+    throw new Error(`Failed to read ${label}: ${getErrorMessage(error)}`, { cause: error })
   }
 }
 
-function parseJson(content, label) {
+function parseJson(content: string, label: string): unknown {
   try {
-    return JSON.parse(content)
+    return JSON.parse(content) as unknown
   } catch (error) {
-    throw new Error(`Failed to parse ${label} as JSON: ${error.message}`, { cause: error })
+    throw new Error(`Failed to parse ${label} as JSON: ${getErrorMessage(error)}`, { cause: error })
   }
 }
 
-function formatErrors(errors) {
+function formatErrors(errors: readonly ErrorObject[]): string {
   return errors
     .slice(0, 8)
     .map((error) => {
@@ -96,14 +108,14 @@ function formatErrors(errors) {
     .join("\n")
 }
 
-function isPositionalSourceArg(arg, index) {
+function isPositionalSourceArg(arg: string, index: number): boolean {
   return !arg.startsWith("--") && userArgs[index - 1] !== "--source" && userArgs[index - 1] !== "--schema"
 }
 
 const source =
-  readArg("source") ??
-  userArgs.find((arg, index) => isPositionalSourceArg(arg, index)) ??
-  defaultSource
+  readArg("source")
+  ?? userArgs.find((arg, index) => isPositionalSourceArg(arg, index))
+  ?? defaultSource
 
 function main() {
   if (userArgs.includes("--help") || userArgs.includes("-h")) {
@@ -119,10 +131,10 @@ function main() {
 
   addFormats(ajv)
 
-  const validate = ajv.compile(schema)
-  const ok = validate(data)
+  const validate = ajv.compile(schema as AnySchema)
+  const isSchemaValid = validate(data)
 
-  if (!ok) {
+  if (!isSchemaValid) {
     const errors = validate.errors ?? []
     console.error(`Redirect config failed schema validation: ${input.label}`)
     console.error(formatErrors(errors))
@@ -132,14 +144,30 @@ function main() {
     }
 
     process.exitCode = 1
-  } else {
-    console.log(`Redirect config schema validation passed: ${input.label}`)
+    return
   }
+
+  const semanticIssues = findRedirectConfigSemanticIssues(data)
+  if (semanticIssues.length > 0) {
+    console.error(`Redirect config failed semantic validation: ${input.label}`)
+    for (const issue of semanticIssues.slice(0, 8)) {
+      console.error(`- ${issue.path} ${issue.message}`)
+    }
+
+    if (semanticIssues.length > 8) {
+      console.error(`... and ${semanticIssues.length - 8} more`)
+    }
+
+    process.exitCode = 1
+    return
+  }
+
+  console.log(`Redirect config validation passed: ${input.label}`)
 }
 
 try {
   main()
 } catch (error) {
-  console.error(error.message)
+  console.error(getErrorMessage(error))
   process.exitCode = 1
 }

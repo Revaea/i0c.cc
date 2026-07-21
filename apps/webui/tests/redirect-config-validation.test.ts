@@ -46,3 +46,30 @@ test("rejects route objects without a destination", () => {
 
   assert.equal(result.status, "invalid");
 });
+
+test("rejects duplicate analytics IDs across routes", () => {
+  const analyticsId = "eb5deba4-32b7-476f-b7f3-4b5c598a397c";
+  const result = validateRedirectConfig({
+    Slots: {
+      Main: {
+        "/docs": {
+          analyticsId,
+          target: "https://example.com/docs",
+        },
+        "/guide": {
+          analyticsId: analyticsId.toUpperCase(),
+          target: "https://example.com/guide",
+        },
+      },
+    },
+  });
+
+  assert.equal(result.status, "invalid");
+  assert.ok(
+    result.status === "invalid"
+    && result.issues.some((issue) => (
+      issue.path === "/Slots/Main/~1guide/analyticsId"
+      && issue.message.includes("/Slots/Main/~1docs/analyticsId")
+    )),
+  );
+});
