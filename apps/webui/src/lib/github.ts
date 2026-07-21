@@ -6,6 +6,7 @@ const branch = process.env.GITHUB_TARGET_BRANCH ?? "data";
 const configPath = process.env.GITHUB_CONFIG_PATH ?? "redirects.json";
 
 const apiBase = "https://api.github.com";
+const publicConfigRevalidateSeconds = 60;
 
 type RepoTarget = {
   owner: string;
@@ -20,17 +21,6 @@ export interface RedirectConfigPayload {
   path: string;
   htmlUrl?: string;
   lastModified?: string;
-}
-
-export interface CommitEntry {
-  sha: string;
-  message: string;
-  author?: {
-    name?: string;
-    avatarUrl?: string;
-    date?: string;
-  };
-  url: string;
 }
 
 function requireAccessToken(token: string | undefined): string {
@@ -177,11 +167,17 @@ export async function getRedirectConfig(
   const url = buildContentsUrl(target);
   const response = await fetch(`${url}?ref=${encodeURIComponent(target.branch)}`, {
     headers: buildHeaders(accessToken),
-    cache: "no-store"
+    ...(accessToken
+      ? { cache: "no-store" as const }
+      : { next: { revalidate: publicConfigRevalidateSeconds } })
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to load config from GitHub: ${response.status} ${response.statusText}`);
+    const errorBody = await response.text();
+    const normalized = normalizeGitHubErrorBody(response.status, errorBody);
+    throw new Error(
+      `Failed to load config from GitHub: ${response.status} ${response.statusText}${normalized ? ` - ${normalized}` : ""}`
+    );
   }
 
   const json = (await response.json()) as {
@@ -223,7 +219,7 @@ export async function updateRedirectConfig(accessToken: string, input: UpdateRed
     method: "PUT",
     headers: buildHeaders(token),
     body: JSON.stringify({
-      message: message ?? "Update redirects via WebUI",
+      message: message ?? "chore(redirects): update config",
       content: Buffer.from(content, "utf-8").toString("base64"),
       sha,
       branch: target.branch
@@ -247,43 +243,4 @@ export async function updateRedirectConfig(accessToken: string, input: UpdateRed
     sha: json.content.sha,
     commitUrl: json.commit.html_url
   };
-}
-
-export async function listRedirectHistory(
-  accessToken: string | undefined,
-  perPage = 10,
-  options?: { sourceUrl?: string | null }
-): Promise<CommitEntry[]> {
-  const target = resolveTarget(options?.sourceUrl);
-  const url = new URL(`${apiBase}/repos/${target.owner}/${target.repo}/commits`);
-  url.searchParams.set("path", target.path);
-  url.searchParams.set("sha", target.branch);
-  url.searchParams.set("per_page", String(perPage));
-
-  const response = await fetch(url, {
-    headers: buildHeaders(accessToken),
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to load commit history: ${response.status} ${response.statusText}`);
-  }
-
-  const json = (await response.json()) as Array<{
-    sha: string;
-    html_url: string;
-    commit: { message: string; author?: { name?: string; date?: string } };
-    author?: { avatar_url?: string; login?: string };
-  }>;
-
-  return json.map((item) => ({
-    sha: item.sha,
-    url: item.html_url,
-    message: item.commit.message,
-    author: {
-      name: item.author?.login ?? item.commit.author?.name,
-      avatarUrl: item.author?.avatar_url,
-      date: item.commit.author?.date
-    }
-  }));
 }

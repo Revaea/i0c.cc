@@ -132,7 +132,7 @@ export function LinkRanking({
                   <th scope="col" className="px-6 py-3 text-right">{t("ranking.change")}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-line">
                 {links.map((link, index) => (
                   <tr key={link.analyticsId} className="transition hover:bg-panel-muted/70">
                     <td className="px-6 py-4 text-sm font-medium text-muted">{index + 1}</td>

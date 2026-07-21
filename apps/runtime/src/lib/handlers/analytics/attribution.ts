@@ -27,6 +27,8 @@ const MAX_CAMPAIGN_LIFETIME_SECONDS = 365 * 24 * 60 * 60;
 const MAX_UPSTREAM_LIFETIME_SECONDS = 5 * 60;
 const ATTRIBUTION_KEY_CONTEXT = "i0c.cc/analytics-attribution/v1";
 
+const importedAttributionKeys = new WeakMap<ArrayBuffer, Promise<CryptoKey>>();
+
 interface AttributionTokenBase {
   v: 1;
   iat: number;
@@ -128,8 +130,24 @@ async function importHmacKey(key: BufferSource): Promise<CryptoKey> {
   );
 }
 
+function importAttributionKey(key: ArrayBuffer): Promise<CryptoKey> {
+  const cachedKey = importedAttributionKeys.get(key);
+  if (cachedKey) {
+    return cachedKey;
+  }
+
+  const importedKey = importHmacKey(key);
+  importedAttributionKeys.set(key, importedKey);
+  void importedKey.catch(() => {
+    if (importedAttributionKeys.get(key) === importedKey) {
+      importedAttributionKeys.delete(key);
+    }
+  });
+  return importedKey;
+}
+
 async function signPayloadSegment(key: ArrayBuffer, payloadSegment: string): Promise<string> {
-  const cryptoKey = await importHmacKey(key);
+  const cryptoKey = await importAttributionKey(key);
   const signature = await globalThis.crypto.subtle.sign(
     "HMAC",
     cryptoKey,
@@ -148,7 +166,7 @@ async function hasValidTokenSignature(
     return false;
   }
 
-  const cryptoKey = await importHmacKey(key);
+  const cryptoKey = await importAttributionKey(key);
   return globalThis.crypto.subtle.verify(
     "HMAC",
     cryptoKey,

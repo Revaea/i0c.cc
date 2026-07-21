@@ -1,6 +1,6 @@
 import type { ComponentPropsWithRef } from "react";
 
-type ButtonVariant = "primary" | "secondary" | "selected" | "ghost" | "danger";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 type ButtonSize = "sm" | "md" | "icon-xs" | "icon-sm" | "icon" | "icon-lg";
 
 interface ButtonClassNameOptions {
@@ -22,9 +22,8 @@ const baseClassName =
 const variantClassNames: Record<ButtonVariant, string> = {
   primary: "border border-accent bg-accent text-white hover:border-accent-strong hover:bg-accent-strong",
   secondary: "border border-line bg-panel text-ink hover:border-line-strong hover:bg-panel-muted",
-  selected: "border border-blue-200 bg-accent-soft text-accent-strong hover:border-blue-300 hover:bg-blue-100",
   ghost: "border border-transparent bg-transparent text-muted hover:bg-panel-muted hover:text-ink",
-  danger: "border border-rose-200 bg-panel text-danger hover:bg-rose-50",
+  danger: "border border-danger/25 bg-panel text-danger hover:bg-danger/5",
 };
 
 const sizeClassNames: Record<ButtonSize, string> = {

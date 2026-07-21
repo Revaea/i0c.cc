@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import {
@@ -6,9 +6,10 @@ import {
   getWebUiManagementRequestAuthorization,
   getWebUiReadRequestAuthorization,
 } from "@/auth/authorization";
-import { getRedirectConfig, listRedirectHistory, updateRedirectConfig } from "@/lib/github";
+import { getRedirectConfig, updateRedirectConfig } from "@/lib/github";
+import { validateRedirectConfig } from "@/lib/redirects/config-validation";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const authorization = await getWebUiReadRequestAuthorization(request);
   if (authorization.status !== "authorized") {
     return createWebUiAuthorizationErrorResponse(authorization.status);
@@ -27,14 +28,8 @@ export async function GET(request: Request) {
     : authorization.accessToken;
 
   try {
-    const [config, history] = await Promise.all([
-      getRedirectConfig(accessToken, { sourceUrl }),
-      authorization.isReadOnly
-        ? Promise.resolve([])
-        : listRedirectHistory(accessToken, 10, { sourceUrl }),
-    ]);
-
-    return NextResponse.json({ config, history });
+    const config = await getRedirectConfig(accessToken, { sourceUrl });
+    return NextResponse.json({ config });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -48,7 +43,7 @@ const updateSchema = z.object({
   sourceUrl: z.string().min(8).max(2048).optional()
 });
 
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   const authorization = await getWebUiManagementRequestAuthorization(request);
   if (authorization.status !== "authorized") {
     return createWebUiAuthorizationErrorResponse(authorization.status);
@@ -58,6 +53,36 @@ export async function PUT(request: Request) {
   const parsed = updateSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
+  }
+
+  let config: unknown;
+  try {
+    config = JSON.parse(parsed.data.content);
+  } catch {
+    return NextResponse.json({ error: "Config content must be valid JSON" }, { status: 400 });
+  }
+
+  const validation = validateRedirectConfig(config);
+  if (validation.status === "unavailable") {
+    console.error("Redirect config schema could not be loaded", validation.error);
+    return NextResponse.json(
+      { error: "Redirect config validation is unavailable" },
+      { status: 500 },
+    );
+  }
+  if (validation.status === "invalid") {
+    const shownIssues = validation.issues
+      .slice(0, 5)
+      .map((issue) => `${issue.path}: ${issue.message}`);
+    const remainingCount = validation.issues.length - shownIssues.length;
+    const details = [
+      ...shownIssues,
+      ...(remainingCount > 0 ? [`and ${remainingCount} more`] : []),
+    ].join("; ");
+    return NextResponse.json(
+      { error: `Redirect config schema validation failed: ${details}` },
+      { status: 400 },
+    );
   }
 
   try {

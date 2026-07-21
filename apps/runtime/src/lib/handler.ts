@@ -20,16 +20,14 @@ import {
   prepareAnalyticsRequest
 } from "@handlers/analytics";
 import { HTTPS_REDIRECT_STATUS } from "@handlers/constants";
+import { dispatchRouteRequest } from "@handlers/dispatcher";
 import { serveFavicon } from "@handlers/favicon-serve";
 import { loadConfig, resolveRuntimeOptions } from "@handlers/loader";
 import {
-  buildCompiledList,
-  collectProxyRaceCandidates,
   flattenSlots,
-  getSlotSource,
-  resolveCompiledTarget
+  getCompiledList,
+  getSlotSource
 } from "@handlers/matcher";
-import { respondUsingRule, shouldFallbackProxy } from "@handlers/response";
 import { generateRobots, generateSitemapXml, isRobotsAllowed } from "@handlers/seo";
 import { notFoundPageHtml } from "@handlers/templates";
 import type { AnalyticsRequestContext } from "@handlers/analytics";
@@ -114,88 +112,27 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
       return clearAttributionCookie(response, analytics.hasAttributionCookie);
     }
 
-    const rawRules: Record<string, RouteValueEntry> = {};
-    flattenSlots(slotSource, rawRules);
-    
-    const compiledList = buildCompiledList(rawRules);
+    const compiledList = getCompiledList(slotSource);
     const decodedPath = safeDecode(path);
 
-    effectivePath = inferEffectivePath(decodedPath, request.headers, compiledList);
+    effectivePath = inferEffectivePath(decodedPath, request.headers, url.origin, compiledList);
     const isStaticAssetPath = isLikelyStaticAssetPath(effectivePath);
-    let hasProxyExhaustion = false;
+    const dispatch = await dispatchRouteRequest({
+      request,
+      runtime,
+      compiledList,
+      effectivePath,
+      search: url.search,
+      isStaticAssetPath
+    });
 
-    for (let index = 0; index < compiledList.length; index += 1) {
-      const item = compiledList[index];
-      const { rule, base } = item;
-      if (!rule.target) {
-        continue;
-      }
-
-      const resolved = resolveCompiledTarget(item, effectivePath, url.search);
-      if (!resolved) {
-        continue;
-      }
-      const { targetUrl, matchKind } = resolved;
-
-      if (isStaticAssetPath && rule.type === "proxy") {
-        const collected = collectProxyRaceCandidates(compiledList, index, effectivePath, url.search);
-        if (!collected) {
-          continue;
-        }
-
-        const { candidates, scanEnd } = collected;
-
-        if (candidates.length > 1) {
-          const tasks = candidates.map(({ rule, targetUrl, base, matchKind }) => {
-            const reqClone = request.clone() as Request;
-            return (async () => {
-              const response = await respondUsingRule(reqClone, rule, targetUrl, runtime, base);
-              if (shouldFallbackProxy(response)) {
-                throw new Error(`proxy ${response.status}`);
-              }
-              return { response, rule, base, matchKind };
-            })();
-          });
-
-          try {
-            const winner = await Promise.any(tasks);
-            return await finalizeMatchedAnalytics({
-              request,
-              response: winner.response,
-              rule: winner.rule,
-              routePath: winner.base,
-              matchKind: winner.matchKind,
-              effectivePath,
-              startedAt,
-              runtime,
-              analytics
-            });
-          } catch {
-            hasProxyExhaustion = true;
-            index = scanEnd - 1;
-            continue;
-          }
-        }
-
-        index = scanEnd - 1;
-      }
-
-      const reqClone = request.clone() as Request;
-      const response = await respondUsingRule(reqClone, rule, targetUrl, runtime, base);
-
-      if (rule.type === "proxy") {
-        if (shouldFallbackProxy(response)) {
-          hasProxyExhaustion = true;
-          continue;
-        }
-      }
-
+    if (dispatch.match) {
       return await finalizeMatchedAnalytics({
         request,
-        response,
-        rule,
-        routePath: base,
-        matchKind,
+        response: dispatch.match.response,
+        rule: dispatch.match.rule,
+        routePath: dispatch.match.routePath,
+        matchKind: dispatch.match.matchKind,
         effectivePath,
         startedAt,
         runtime,
@@ -203,17 +140,25 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
       });
     }
 
-    const response = new Response(notFoundPageHtml, {
-      status: 404,
-      headers: {
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "public, max-age=60"
-      }
-    });
+    const response = dispatch.hasProxyExhaustion
+      ? new Response("Bad Gateway: All upstream proxies failed.", {
+        status: 502,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-store"
+        }
+      })
+      : new Response(notFoundPageHtml, {
+        status: 404,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "public, max-age=60"
+        }
+      });
     return finalizeRuntimeAnalytics({
       request,
       response,
-      outcome: hasProxyExhaustion ? "proxy_exhausted" : "not_found",
+      outcome: dispatch.hasProxyExhaustion ? "proxy_exhausted" : "not_found",
       effectivePath,
       startedAt,
       runtime,

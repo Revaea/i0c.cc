@@ -49,8 +49,8 @@ export interface RouteConfig {
   to?: string;
   url?: string;
   appendPath?: boolean;
-  status?: number;
-  priority?: number;
+  status?: number | string;
+  priority?: number | string;
 }
 
 export interface NormalizedRule {
@@ -81,7 +81,7 @@ export interface RedirectsConfig {
 }
 
 export interface MemoryCacheEntry {
-  text: string;
+  config: RedirectsConfig;
   expiresAt: number;
 }
 

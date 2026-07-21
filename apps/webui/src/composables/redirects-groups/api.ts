@@ -4,7 +4,6 @@ import type { RedirectConfigPayload } from "@/lib/github";
 
 export type ApiConfigResponse = {
   config: RedirectConfigPayload;
-  history: unknown;
 };
 
 export async function fetchRedirectsConfig(options?: {

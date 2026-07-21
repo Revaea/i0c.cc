@@ -18,53 +18,131 @@ import { NormalizedRule, ResolvedRuntime } from "./types";
 const SENSITIVE_FORWARD_HEADERS = [
   "cookie",
   "authorization",
+  "client-ip",
+  "fastly-client-ip",
+  "fly-client-ip",
+  "forwarded",
+  "forwarded-for",
   "proxy-authorization",
-  "x-forwarded-for",
+  "true-client-ip",
+  "x-client-ip",
+  "x-cluster-client-ip",
+  "x-envoy-external-address",
   "x-real-ip"
 ] as const;
+const SENSITIVE_FORWARD_HEADER_PREFIXES = [
+  "cf-",
+  "x-forwarded-",
+  "x-nf-",
+  "x-vercel-"
+] as const;
+const HOP_BY_HOP_HEADERS = [
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade"
+] as const;
+const REQUEST_BODY_HEADERS = [
+  "content-encoding",
+  "content-language",
+  "content-length",
+  "content-location",
+  "content-type"
+] as const;
+const HEADER_NAME_PATTERN = /^[!#$%&'*+.^_`|~0-9a-z-]+$/i;
+const MAX_PROXY_REDIRECTS = 5;
+
+async function discardResponseBody(response: Response): Promise<void> {
+  try {
+    await response.body?.cancel();
+  } catch {
+  }
+}
 
 function isIPv4(hostname: string): boolean {
   return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname);
 }
 
-function isPrivateIPv4(hostname: string): boolean {
+function isNonPublicIPv4(hostname: string): boolean {
   if (!isIPv4(hostname)) return false;
   const parts = hostname.split(".").map((p) => Number(p));
   if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n) || n < 0 || n > 255)) return false;
-  const [a, b] = parts;
+  const [a, b, c] = parts;
 
-  // 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8
   if (a === 0 || a === 10 || a === 127) return true;
-  // 169.254.0.0/16 (link-local)
+  if (a === 100 && b >= 64 && b <= 127) return true;
   if (a === 169 && b === 254) return true;
-  // 172.16.0.0/12
   if (a === 172 && b >= 16 && b <= 31) return true;
-  // 192.168.0.0/16
+  if (a === 192 && b === 0 && (c === 0 || c === 2)) return true;
+  if (a === 192 && b === 88 && c === 99) return true;
   if (a === 192 && b === 168) return true;
-  return false;
+  if (a === 198 && (b === 18 || b === 19)) return true;
+  if (a === 198 && b === 51 && c === 100) return true;
+  if (a === 203 && b === 0 && c === 113) return true;
+  return a >= 224;
 }
 
-function isLikelyLocalhost(hostname: string): boolean {
+function normalizeHostname(hostname: string): string {
   const host = hostname.toLowerCase();
-  if (host === "localhost" || host === "127.0.0.1" || host === "::1") return true;
-  // block common internal hostnames
+  return host.startsWith("[") && host.endsWith("]")
+    ? host.slice(1, -1)
+    : host;
+}
+
+function isNonPublicIPv6(hostname: string): boolean {
+  const host = normalizeHostname(hostname);
+  if (!host.includes(":")) return false;
+  if (
+    host.startsWith("::")
+    || host.startsWith("64:ff9b:")
+    || host.startsWith("100:")
+    || host.startsWith("2001:db8:")
+    || host.startsWith("2002:")
+  ) {
+    return true;
+  }
+
+  const firstHextet = Number.parseInt(host.split(":", 1)[0], 16);
+  return (
+    (firstHextet >= 0xfc00 && firstHextet <= 0xfdff) ||
+    (firstHextet >= 0xfe80 && firstHextet <= 0xfeff) ||
+    (firstHextet >= 0xff00 && firstHextet <= 0xffff)
+  );
+}
+
+function isNonPublicProxyHost(hostname: string): boolean {
+  const host = normalizeHostname(hostname);
+  if (host === "localhost" || host === "127.0.0.1") return true;
   if (host.endsWith(".localhost")) return true;
-  // IPv6 unique local / link-local (best-effort)
-  if (host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80:")) return true;
-  return false;
+  return isNonPublicIPv4(host) || isNonPublicIPv6(host);
 }
 
 function assertSafeProxyUrl(url: URL): void {
   if (url.protocol !== "https:" && url.protocol !== "http:") {
     throw new Error(`Unsupported proxy protocol: ${url.protocol}`);
   }
-  if (isLikelyLocalhost(url.hostname) || isPrivateIPv4(url.hostname)) {
+  if (isNonPublicProxyHost(url.hostname)) {
     throw new Error(`Blocked proxy target host: ${url.hostname}`);
   }
 }
 
-export function needsHttpsRedirect(url: URL): boolean {
-  return url.protocol !== "https:" || url.hostname.startsWith("www.");
+function shouldSwitchRedirectToGet(status: number, method: string): boolean {
+  return (
+    ((status === 301 || status === 302) && method === "POST")
+    || (status === 303 && method !== "GET" && method !== "HEAD")
+  );
+}
+
+function prependProxyBasePath(pathname: string, basePath: string): string {
+  if (!basePath || basePath === "/") {
+    return pathname;
+  }
+
+  const prefix = basePath.endsWith("/") ? basePath.slice(0, -1) : basePath;
+  return pathname === "/" ? `${prefix}/` : `${prefix}${pathname}`;
 }
 
 export function shouldFallbackProxy(response: Response): boolean {
@@ -85,14 +163,14 @@ export async function respondUsingRule(
   return redirectResponse(targetUrl, rule.status);
 }
 
-export async function proxyRequest(
+async function proxyRequest(
   request: Request,
   targetUrl: string,
   runtime: ResolvedRuntime,
   basePath: string = ""
 ): Promise<Response> {
-  const originalHost = request.headers.get("host") ?? "";
   const originalUrl = new URL(request.url);
+  const originalHost = originalUrl.host;
   const targetUrlObj = new URL(targetUrl);
   try {
     assertSafeProxyUrl(targetUrlObj);
@@ -101,7 +179,6 @@ export async function proxyRequest(
     return new Response("Bad Request: Unsafe proxy target.", { status: 400 });
   }
 
-  const MAX_REDIRECTS = 5;
   let currentTarget = targetUrl;
   let redirectCount = 0;
   let lastResponse: Response | null = null;
@@ -113,8 +190,9 @@ export async function proxyRequest(
   }
 
   let effectiveMethod = originalMethod;
+  let shouldDropBodyHeaders = false;
 
-  while (redirectCount <= MAX_REDIRECTS) {
+  while (true) {
     const headers = new Headers(request.headers);
     const currentUrlObj = new URL(currentTarget);
 
@@ -125,19 +203,35 @@ export async function proxyRequest(
       return new Response("Bad Gateway: Upstream redirect blocked.", { status: 502 });
     }
 
-    headers.delete("host");
-    headers.delete("cf-connecting-ip");
-    headers.delete("cf-ipcountry");
-    headers.delete("cf-ray");
-    headers.delete("cf-visitor");
+    const connectionHeaders = headers.get("connection")
+      ?.split(",")
+      .map((name) => name.trim().toLowerCase())
+      .filter((name) => HEADER_NAME_PATTERN.test(name)) ?? [];
 
+    headers.delete("host");
     for (const name of SENSITIVE_FORWARD_HEADERS) {
       headers.delete(name);
     }
+    for (const name of HOP_BY_HOP_HEADERS) {
+      headers.delete(name);
+    }
+    for (const name of connectionHeaders) {
+      headers.delete(name);
+    }
+    for (const name of [...headers.keys()]) {
+      if (SENSITIVE_FORWARD_HEADER_PREFIXES.some((prefix) => name.startsWith(prefix))) {
+        headers.delete(name);
+      }
+    }
+    if (shouldDropBodyHeaders) {
+      for (const name of REQUEST_BODY_HEADERS) {
+        headers.delete(name);
+      }
+    }
 
     // Re-assert forwarding headers after stripping user-controlled versions.
-    headers.set("x-forwarded-host", request.headers.get("host") ?? "");
-    headers.set("x-forwarded-proto", "https");
+    headers.set("x-forwarded-host", originalHost);
+    headers.set("x-forwarded-proto", originalUrl.protocol.slice(0, -1));
 
     headers.set("origin", currentUrlObj.origin);
     headers.set("referer", currentTarget);
@@ -151,13 +245,16 @@ export async function proxyRequest(
       method: effectiveMethod,
       headers,
       body: forwardBody,
-      redirect: "manual"
+      redirect: "manual",
+      signal: request.signal
     });
 
     try {
       lastResponse = await runtime.fetchImpl(forwarded);
     } catch (e) {
-      console.error(`Proxy fetch failed for ${currentTarget}:`, e);
+      if (!request.signal.aborted) {
+        console.error(`Proxy fetch failed for ${currentTarget}:`, e);
+      }
       return new Response("Bad Gateway: Upstream fetch failed.", { status: 502 });
     }
 
@@ -166,20 +263,28 @@ export async function proxyRequest(
       const location = lastResponse.headers.get("Location");
       if (!location) break;
 
-      const nextUrlObj = new URL(location, currentUrlObj);
+      let nextUrlObj: URL;
       try {
+        nextUrlObj = new URL(location, currentUrlObj);
         assertSafeProxyUrl(nextUrlObj);
       } catch (e) {
         console.error("Blocked unsafe upstream redirect:", e);
+        await discardResponseBody(lastResponse);
         return new Response("Bad Gateway: Unsafe upstream redirect.", { status: 502 });
+      }
+
+      if (redirectCount >= MAX_PROXY_REDIRECTS) {
+        break;
       }
 
       const nextUrl = nextUrlObj.toString();
 
-      if (status === 301 || status === 302 || status === 303) {
+      if (shouldSwitchRedirectToGet(status, effectiveMethod)) {
         effectiveMethod = "GET";
+        shouldDropBodyHeaders = true;
       }
 
+      await discardResponseBody(lastResponse);
       currentTarget = nextUrl;
       redirectCount += 1;
       continue;
@@ -216,16 +321,16 @@ export async function proxyRequest(
     try {
       const locUrl = new URL(location, currentTarget);
       if (locUrl.origin === targetUrlObj.origin && originalHost) {
-        const rewritten = `https://${originalHost}${locUrl.pathname}${locUrl.search}`;
+        const rewrittenUrl = new URL(originalUrl.origin);
+        rewrittenUrl.pathname = prependProxyBasePath(locUrl.pathname, basePath);
+        rewrittenUrl.search = locUrl.search;
+        rewrittenUrl.hash = locUrl.hash;
+        const rewritten = rewrittenUrl.toString();
         finalLocation = rewritten !== originalUrl.href ? rewritten : locUrl.toString();
       } else {
         finalLocation = locUrl.toString();
       }
     } catch {
-    }
-
-    if (basePath && basePath !== "/" && finalLocation.startsWith("/") && !finalLocation.startsWith("//")) {
-      finalLocation = `${basePath}${finalLocation}`;
     }
 
     responseHeaders.set("Location", finalLocation);
@@ -255,7 +360,7 @@ export async function proxyRequest(
   });
 }
 
-export function redirectResponse(location: string, status: number): Response {
+function redirectResponse(location: string, status: number): Response {
   return new Response(null, {
     status: status || DEFAULT_STATUS,
     headers: {

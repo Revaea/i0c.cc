@@ -16,9 +16,37 @@ import { DEFAULT_STATUS } from "./constants";
 import type { AnalyticsLinkMatchKind, CompiledEntry, NormalizedRule, RedirectsConfig, RouteConfig, RouteType, RouteValue, RouteValueEntry, SlotBranch } from "./types";
 import { coerceRouteValues, isRecord, toRouteArray } from "./utils";
 
-export interface ResolvedRuleTarget {
+interface ResolvedRuleTarget {
   matchKind: AnalyticsLinkMatchKind;
   targetUrl: string;
+}
+
+const compiledListCache = new WeakMap<SlotBranch, CompiledEntry[]>();
+
+function getRouteSegmentRank(segment: string): number {
+  if (segment === "*") {
+    return 0;
+  }
+  if (segment.startsWith(":")) {
+    return 1;
+  }
+  return 2;
+}
+
+function compareRouteSpecificity(left: string, right: string): number {
+  const leftSegments = left.split("/").filter(Boolean);
+  const rightSegments = right.split("/").filter(Boolean);
+  const sharedLength = Math.min(leftSegments.length, rightSegments.length);
+
+  for (let index = 0; index < sharedLength; index += 1) {
+    const leftRank = getRouteSegmentRank(leftSegments[index]);
+    const rightRank = getRouteSegmentRank(rightSegments[index]);
+    if (leftRank !== rightRank) {
+      return rightRank - leftRank;
+    }
+  }
+
+  return rightSegments.length - leftSegments.length;
 }
 
 export function getSlotSource(config: RedirectsConfig | null): SlotBranch | null {
@@ -78,8 +106,9 @@ export function buildCompiledList(rulesIn: Record<string, RouteValueEntry>): Com
   }
 
   list.sort((a, b) => {
-    if (b.base.length !== a.base.length) {
-      return b.base.length - a.base.length;
+    const specificity = compareRouteSpecificity(a.base, b.base);
+    if (specificity !== 0) {
+      return specificity;
     }
     if (a.rule.priority !== b.rule.priority) {
       return a.rule.priority - b.rule.priority;
@@ -89,24 +118,45 @@ export function buildCompiledList(rulesIn: Record<string, RouteValueEntry>): Com
   return list;
 }
 
+export function getCompiledList(source: SlotBranch): CompiledEntry[] {
+  const cached = compiledListCache.get(source);
+  if (cached) {
+    return cached;
+  }
+
+  const rules: Record<string, RouteValueEntry> = {};
+  flattenSlots(source, rules);
+  const compiled = buildCompiledList(rules);
+  compiledListCache.set(source, compiled);
+  return compiled;
+}
+
 function normaliseRule(value: RouteValue, fallbackPriority: number): NormalizedRule | null {
   if (typeof value === "string") {
-    return { type: "prefix", target: value, appendPath: true, status: DEFAULT_STATUS, priority: fallbackPriority };
+    return value
+      ? { type: "prefix", target: value, appendPath: true, status: DEFAULT_STATUS, priority: fallbackPriority }
+      : null;
   }
 
   if (value && typeof value === "object") {
     const type: RouteType = value.type === "exact" ? "exact" : value.type === "proxy" ? "proxy" : "prefix";
-    const target = value.target ?? value.to ?? value.url ?? "";
-    const appendPath = value.appendPath !== undefined ? Boolean(value.appendPath) : true;
+    const targetValue = value.target ?? value.to ?? value.url;
+    if (typeof targetValue !== "string" || !targetValue) {
+      return null;
+    }
+
+    const appendPath = typeof value.appendPath === "boolean" ? value.appendPath : true;
     const parsedStatus = Number(value.status);
-    const status = Number.isFinite(parsedStatus) ? parsedStatus : DEFAULT_STATUS;
+    const status = Number.isInteger(parsedStatus) && parsedStatus >= 200 && parsedStatus <= 599
+      ? parsedStatus
+      : DEFAULT_STATUS;
     const parsedPriority = Number((value as RouteConfig).priority);
-    const priority = Number.isFinite(parsedPriority) ? parsedPriority : fallbackPriority;
+    const priority = Number.isSafeInteger(parsedPriority) ? parsedPriority : fallbackPriority;
     const analyticsId = typeof value.analyticsId === "string" && value.analyticsId.trim()
       ? value.analyticsId.trim()
       : undefined;
 
-    return { analyticsId, type, target, appendPath, status, priority };
+    return { analyticsId, type, target: targetValue, appendPath, status, priority };
   }
 
   return null;
@@ -133,7 +183,7 @@ export function compilePattern(pattern: string): Pick<CompiledEntry, "regex" | "
       regexStr += "([^/]+)";
       isParam = true;
     } else {
-      regexStr += part.replace(/([.+?^=!:${}()|[\]\\])/g, "\\$1");
+      regexStr += part.replace(/([.*+?^=!:${}()|[\]\\])/g, "\\$1");
     }
   }
 
@@ -159,20 +209,19 @@ export function applyTemplate(target: string, match: RegExpMatchArray, names: st
 }
 
 export function resolvePrefixTarget(pathname: string, search: string, rule: NormalizedRule, base: string): string | null {
-  const targetBase = String(rule.target).replace(/\/$/, "");
-  const query = search || "";
+  const targetBase = String(rule.target);
 
   if (base === "/") {
     const rest = pathname === "/" ? "" : pathname;
-    const resolved = rule.appendPath ? `${targetBase}${rest}` : targetBase;
-    return `${resolved}${query}`;
+    const resolved = rule.appendPath ? appendTargetPath(targetBase, rest) : targetBase;
+    return appendOriginalQuery(resolved, search);
   }
 
   if (pathname === base || pathname.startsWith(`${base}/`)) {
     let rest = pathname.slice(base.length);
     rest = rest.startsWith("/") ? rest : rest ? `/${rest}` : "";
-    const resolved = rule.appendPath ? `${targetBase}${rest}` : targetBase;
-    return `${resolved}${query}`;
+    const resolved = rule.appendPath ? appendTargetPath(targetBase, rest) : targetBase;
+    return appendOriginalQuery(resolved, search);
   }
 
   return null;
@@ -182,7 +231,29 @@ export function appendOriginalQuery(target: string, search: string): string {
   if (!search) {
     return target;
   }
-  return target.includes("?") ? target : `${target}${search}`;
+
+  const fragmentIndex = target.indexOf("#");
+  const targetWithoutFragment = fragmentIndex >= 0 ? target.slice(0, fragmentIndex) : target;
+  if (targetWithoutFragment.includes("?")) {
+    return target;
+  }
+
+  const fragment = fragmentIndex >= 0 ? target.slice(fragmentIndex) : "";
+  return `${targetWithoutFragment}${search}${fragment}`;
+}
+
+function appendTargetPath(target: string, path: string): string {
+  if (!path) {
+    return target;
+  }
+
+  const queryIndex = target.indexOf("?");
+  const fragmentIndex = target.indexOf("#");
+  const suffixIndex = [queryIndex, fragmentIndex]
+    .filter((index) => index >= 0)
+    .reduce((first, index) => Math.min(first, index), target.length);
+  const targetPath = target.slice(0, suffixIndex).replace(/\/$/, "");
+  return `${targetPath}${path}${target.slice(suffixIndex)}`;
 }
 
 export function resolveCompiledTarget(

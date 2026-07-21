@@ -99,10 +99,11 @@ pnpm runtime:build
 | `target` | string | `""` | 目标地址，`target`、`to`、`url` 三选一。 |
 | `to` / `url` | string | `""` | `target` 的别名字段，`target`、`to`、`url` 三选一。 |
 | `appendPath` | boolean | `true` | `prefix` 或 `proxy` 模式下是否拼接剩余路径，`exact` 不适用。 |
-| `status` | number | `302` | 非 `proxy` 响应的状态码，`proxy` 不要设置。 |
+| `status` | number | `302` | 非 `proxy` 响应使用 200 到 599 的状态码，`proxy` 不要设置。 |
 | `priority` | number | 按顺序 | 同一路径存在多条规则时用于排序，数字越小越先匹配。 |
 
 - 键名需要以 `/` 开头，可以使用冒号参数，例如 `:id`，也可以使用 `*` 通配符。匹配结果可以在目标地址中用 `$1`、`:id` 等占位符引用。
+- 多个路径模式同时匹配时，字面量片段优先于冒号参数，参数优先于 `*`；共享片段特异性相同时，层级更深的模式优先。
 - `proxy` 类型会把请求转发到目标地址并返回上游响应，其他类型返回 `Location` 重定向。
 - 如果需要为同一路径配置多条规则，可以把值写成数组。数组顺序决定默认优先级，也可以通过 `priority` 显式指定。
 

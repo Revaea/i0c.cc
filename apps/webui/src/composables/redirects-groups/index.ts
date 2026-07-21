@@ -24,23 +24,40 @@ import {
 } from "./editor-state";
 import { useRedirectsConfigFile } from "./config-file";
 import { useUndoRedo } from "./history";
-import { buildConfig, parseInitialContent } from "./serialization";
+import {
+  buildConfig,
+  DuplicateRedirectKeyError,
+  InvalidRedirectConfigError,
+  parseInitialContent,
+} from "./serialization";
 
 export function useRedirectsGroups() {
   const tGroups = useTranslations("groups");
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveValidationError, setSaveValidationError] = useState<string | null>(null);
   const [editorState, setEditorState] = useState(createInitialGroupsEditorState);
   const configFile = useRedirectsConfigFile({
     fallbackLoadErrorText: tGroups("loadFail"),
     fallbackSaveErrorText: tGroups("saveFail"),
     saveOkText: tGroups("saveOk"),
-    commitMessage: "Update groups via WebUI",
+    commitMessage: "chore(redirects): update config",
   });
 
   const loadConfig = configFile.load;
   const saveConfig = configFile.save;
   const configSourceUrl = configFile.sourceUrl;
+
+  const formatSerializationError = useCallback(
+    (error: unknown) => error instanceof DuplicateRedirectKeyError
+      ? tGroups("duplicateKey", { key: error.key, group: error.groupName })
+      : error instanceof InvalidRedirectConfigError
+        ? tGroups(error.reason === "json" ? "invalidJson" : "invalidRoot")
+      : error instanceof Error
+        ? error.message
+        : tGroups("saveFail"),
+    [tGroups],
+  );
 
   const { canUndo, canRedo, pushCurrentSnapshot, undo, redo, resetHistory } = useUndoRedo<GroupsSnapshot>({
     maxHistory: 50,
@@ -54,10 +71,11 @@ export function useRedirectsGroups() {
     async function run() {
       setIsLoading(true);
       setLoadError(null);
+      setSaveValidationError(null);
 
       try {
         const content = await loadConfig();
-        const parsed = parseInitialContent(content);
+        const parsed = await parseInitialContent(content);
 
         if (cancelled) {
           return;
@@ -68,7 +86,7 @@ export function useRedirectsGroups() {
         resetHistory();
       } catch (error) {
         if (!cancelled) {
-          setLoadError(error instanceof Error ? error.message : tGroups("loadFail"));
+          setLoadError(formatSerializationError(error));
         }
       } finally {
         if (!cancelled) {
@@ -81,27 +99,28 @@ export function useRedirectsGroups() {
     return () => {
       cancelled = true;
     };
-  }, [loadConfig, resetHistory, tGroups]);
+  }, [formatSerializationError, loadConfig, resetHistory]);
 
   const loadFromUrl = useCallback(
     async (sourceUrl: string) => {
       setIsLoading(true);
       setLoadError(null);
+      setSaveValidationError(null);
 
       try {
         const content = await loadConfig(sourceUrl);
-        const parsed = parseInitialContent(content);
+        const parsed = await parseInitialContent(content);
         setEditorState((prev) => applyParsedConfig(prev, parsed));
         resetHistory();
       } catch (error) {
-        const message = error instanceof Error ? error.message : tGroups("loadFail");
+        const message = formatSerializationError(error);
         setLoadError(message);
         throw error;
       } finally {
         setIsLoading(false);
       }
     },
-    [loadConfig, resetHistory, tGroups]
+    [formatSerializationError, loadConfig, resetHistory]
   );
 
   const selectedGroup = useMemo(() => {
@@ -181,32 +200,45 @@ export function useRedirectsGroups() {
   );
 
   const applyJson = useCallback(
-    (content: string) => {
-      const parsed = parseInitialContent(content);
+    async (content: string) => {
+      const parsed = await parseInitialContent(content).catch((error: unknown) => {
+        throw new Error(formatSerializationError(error));
+      });
 
       pushCurrentSnapshot();
 
       setEditorState((prev) => applyParsedConfig(prev, parsed));
+
+      return JSON.stringify(
+        buildConfig(parsed.rootGroup, parsed.baseConfig, parsed.slotsKey),
+        null,
+        2,
+      );
     },
-    [pushCurrentSnapshot]
+    [formatSerializationError, pushCurrentSnapshot]
   );
 
   const save = useCallback((overrideContent?: string) => {
-    const config = buildConfig(rootGroup, baseConfig, slotsKey);
-    const content = overrideContent ?? JSON.stringify(config, null, 2);
-    saveConfig(content);
-  }, [baseConfig, rootGroup, saveConfig, slotsKey]);
+    try {
+      const content = overrideContent
+        ?? JSON.stringify(buildConfig(rootGroup, baseConfig, slotsKey), null, 2);
+      setSaveValidationError(null);
+      saveConfig(content);
+    } catch (error) {
+      setSaveValidationError(formatSerializationError(error));
+    }
+  }, [baseConfig, formatSerializationError, rootGroup, saveConfig, slotsKey]);
 
   const previewJson = useMemo(() => {
     try {
       const config = buildConfig(rootGroup, baseConfig, slotsKey);
       return JSON.stringify(config, null, 2);
     } catch (error) {
-      return error instanceof Error
-        ? tGroups("previewFailWithMessage", { message: error.message })
-        : tGroups("previewFailUnknown");
+      return tGroups("previewFailWithMessage", {
+        message: formatSerializationError(error),
+      });
     }
-  }, [baseConfig, rootGroup, slotsKey, tGroups]);
+  }, [baseConfig, formatSerializationError, rootGroup, slotsKey, tGroups]);
 
   return {
     isLoading,
@@ -238,7 +270,7 @@ export function useRedirectsGroups() {
     save,
     applyJson,
     previewJson,
-    resultMessage: configFile.resultMessage,
+    resultMessage: saveValidationError ?? configFile.resultMessage,
     lastCommitUrl: configFile.lastCommitUrl
   };
 }

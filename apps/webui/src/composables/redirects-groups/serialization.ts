@@ -4,7 +4,7 @@ import {
   type RedirectEntry,
   type RedirectGroup,
   createEmptyEntry,
-  groupLooksLikeSlots,
+  isRedirectGroupEntry,
   isRecord,
   uniqueId
 } from "./model";
@@ -16,35 +16,92 @@ export type ParsedRedirectConfig = {
   rootGroup: RedirectGroup;
 };
 
-function parseEntries(source: Record<string, unknown>): RedirectEntry[] {
+export class DuplicateRedirectKeyError extends Error {
+  constructor(
+    readonly key: string,
+    readonly groupName: string,
+  ) {
+    super(`Duplicate key "${key}" in group "${groupName}".`);
+    this.name = "DuplicateRedirectKeyError";
+  }
+}
+
+export class InvalidRedirectConfigError extends Error {
+  constructor(readonly reason: "json" | "root") {
+    super(
+      reason === "json"
+        ? "Redirect config must contain valid JSON."
+        : "Redirect config root must be a JSON object.",
+    );
+    this.name = "InvalidRedirectConfigError";
+  }
+}
+
+function createAnalyticsIdentitySeed(
+  groupPath: readonly string[],
+  key: string,
+  arrayIndex?: number,
+): string {
+  return JSON.stringify([
+    "i0c-analytics-id-v2",
+    groupPath,
+    key,
+    arrayIndex ?? null,
+  ]);
+}
+
+async function parseEntries(
+  source: Record<string, unknown>,
+  groupPath: readonly string[],
+): Promise<RedirectEntry[]> {
   const entries: RedirectEntry[] = [];
 
-  Object.entries(source).forEach(([key, value]) => {
-    if (isRecord(value) && groupLooksLikeSlots(value)) {
-      return;
+  for (const [key, value] of Object.entries(source)) {
+    if (isRedirectGroupEntry(key, value)) {
+      continue;
     }
 
-    const hydratedValue = Array.isArray(value)
-      ? value.map((item) => (isRecord(item) ? ensureAnalyticsId(item) : item))
-      : isRecord(value)
-        ? ensureAnalyticsId(value)
-        : value;
+    let hydratedValue: unknown = value;
+    if (Array.isArray(value)) {
+      const hydratedItems: unknown[] = [];
+      for (const [index, item] of value.entries()) {
+        hydratedItems.push(
+          isRecord(item)
+            ? await ensureAnalyticsId(
+                item,
+                createAnalyticsIdentitySeed(groupPath, key, index),
+              )
+            : item,
+        );
+      }
+      hydratedValue = hydratedItems;
+    } else if (isRecord(value)) {
+      hydratedValue = await ensureAnalyticsId(
+        value,
+        createAnalyticsIdentitySeed(groupPath, key),
+      );
+    }
 
     entries.push({ id: uniqueId(), key, value: hydratedValue });
-  });
+  }
 
   return entries;
 }
 
-function parseGroup(name: string, source: Record<string, unknown>): RedirectGroup {
-  const entries = parseEntries(source);
+async function parseGroup(
+  name: string,
+  source: Record<string, unknown>,
+  parentPath: readonly string[],
+): Promise<RedirectGroup> {
+  const groupPath = [...parentPath, name];
+  const entries = await parseEntries(source, groupPath);
   const children: RedirectGroup[] = [];
 
-  Object.entries(source).forEach(([key, value]) => {
-    if (isRecord(value) && groupLooksLikeSlots(value)) {
-      children.push(parseGroup(key, value));
+  for (const [key, value] of Object.entries(source)) {
+    if (isRedirectGroupEntry(key, value)) {
+      children.push(await parseGroup(key, value, groupPath));
     }
-  });
+  }
 
   if (entries.length === 0 && children.length === 0) {
     entries.push(createEmptyEntry());
@@ -53,15 +110,19 @@ function parseGroup(name: string, source: Record<string, unknown>): RedirectGrou
   return { id: uniqueId(), name, entries, children };
 }
 
-export function parseInitialContent(source: string): ParsedRedirectConfig {
+export async function parseInitialContent(source: string): Promise<ParsedRedirectConfig> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(source);
   } catch {
-    parsed = {};
+    throw new InvalidRedirectConfigError("json");
   }
 
-  const config = isRecord(parsed) ? parsed : {};
+  if (!isRecord(parsed)) {
+    throw new InvalidRedirectConfigError("root");
+  }
+
+  const config = parsed;
   const slotKeys = ["Slots", "slots", "SLOT"] as const;
   const detectedKey = slotKeys.find((key) => key in config && isRecord(config[key]));
   const slotsKey = detectedKey ?? "slots";
@@ -72,19 +133,28 @@ export function parseInitialContent(source: string): ParsedRedirectConfig {
   return {
     slotsKey,
     baseConfig,
-    rootGroup: parseGroup(slotsKey, rawSlots)
+    rootGroup: await parseGroup(slotsKey, rawSlots, []),
   };
 }
 
 function buildGroupObject(group: RedirectGroup): Record<string, unknown> {
   const result: Record<string, unknown> = {};
+  const usedKeys = new Set<string>();
+
+  function assign(key: string, value: unknown) {
+    if (usedKeys.has(key)) {
+      throw new DuplicateRedirectKeyError(key, group.name);
+    }
+    usedKeys.add(key);
+    result[key] = value;
+  }
 
   group.entries.forEach((entry) => {
     const key = entry.key.trim();
     if (!key) {
       return;
     }
-    result[key] = entry.value;
+    assign(key, entry.value);
   });
 
   group.children.forEach((child) => {
@@ -92,7 +162,7 @@ function buildGroupObject(group: RedirectGroup): Record<string, unknown> {
     if (!name) {
       return;
     }
-    result[name] = buildGroupObject(child);
+    assign(name, buildGroupObject(child));
   });
 
   return result;

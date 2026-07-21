@@ -14,6 +14,14 @@ import type { ResolvedRuntime } from "../types";
 import type { AnalyticsEventV2 } from "./events";
 import type { AnalyticsDeliveryConfig } from "./settings";
 
+const encoder = new TextEncoder();
+const maximumDeliveryAttempts = 2;
+
+let deliveryKeyCache: {
+  writeKey: string;
+  key: Promise<CryptoKey>;
+} | undefined;
+
 export function scheduleAnalyticsEvent(
   event: AnalyticsEventV2,
   runtime: ResolvedRuntime,
@@ -43,32 +51,72 @@ async function emitAnalyticsEvent(
   const body = JSON.stringify(event);
   const timestamp = String(Math.floor(completedAt / 1000));
   const signature = await createSignature(config.writeKey, `${timestamp}.${body}`);
-  const response = await runtime.fetchImpl(config.endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Analytics-Timestamp": timestamp,
-      "X-Analytics-Signature": `sha256=${signature}`
-    },
-    body,
-    redirect: "manual"
-  });
-  if (!response.ok) {
-    throw new Error(`collector responded with ${response.status}`);
+  for (let attempt = 1; attempt <= maximumDeliveryAttempts; attempt += 1) {
+    let response: Response;
+    try {
+      response = await runtime.fetchImpl(config.endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Analytics-Timestamp": timestamp,
+          "X-Analytics-Signature": `sha256=${signature}`
+        },
+        body,
+        redirect: "manual"
+      });
+    } catch (error) {
+      if (attempt === maximumDeliveryAttempts) {
+        throw error;
+      }
+      continue;
+    }
+
+    await discardCollectorResponse(response);
+    if (response.ok) {
+      return;
+    }
+    if (attempt === maximumDeliveryAttempts || !isRetryableStatus(response.status)) {
+      throw new Error(`collector responded with ${response.status}`);
+    }
   }
 }
 
+async function discardCollectorResponse(response: Response): Promise<void> {
+  try {
+    await response.body?.cancel();
+  } catch {
+  }
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 408 || status === 425 || status >= 500;
+}
+
 async function createSignature(key: string, value: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const cryptoKey = await globalThis.crypto.subtle.importKey(
+  const cryptoKey = await getDeliveryHmacKey(key);
+  const signature = await globalThis.crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(value));
+  return toHex(signature);
+}
+
+function getDeliveryHmacKey(writeKey: string): Promise<CryptoKey> {
+  if (deliveryKeyCache?.writeKey === writeKey) {
+    return deliveryKeyCache.key;
+  }
+
+  const key = globalThis.crypto.subtle.importKey(
     "raw",
-    encoder.encode(key),
+    encoder.encode(writeKey),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
   );
-  const signature = await globalThis.crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(value));
-  return toHex(signature);
+  deliveryKeyCache = { writeKey, key };
+  void key.catch(() => {
+    if (deliveryKeyCache?.key === key) {
+      deliveryKeyCache = undefined;
+    }
+  });
+  return key;
 }
 
 function toHex(value: ArrayBuffer): string {

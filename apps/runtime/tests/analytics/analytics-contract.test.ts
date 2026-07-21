@@ -13,10 +13,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  analyticsEventSchema,
-  normalizeAnalyticsEvent
-} from "../../../webui/src/lib/analytics/event-schema";
+import { normalizeAnalyticsEvent } from "../../../webui/src/lib/analytics/event-normalization";
+import { analyticsEventSchema } from "../../../webui/src/lib/analytics/event-schema";
 
 const baseEvent = {
   schemaVersion: 2,
@@ -80,16 +78,71 @@ test("bounds untrusted entry and upstream domains to the source namespace", () =
   assert.equal(normalized.upstreamEntryDomain, "unknown");
 });
 
+test("rejects mixed campaign and upstream attribution", () => {
+  const parsed = analyticsEventSchema.safeParse({
+    ...baseEvent,
+    eventKind: "link",
+    analyticsId: "route_2",
+    routePath: "/next",
+    linkType: "redirect",
+    matchKind: "exact",
+    matchOutcome: "matched",
+    campaignId: "docs-launch",
+    upstreamEventId: "9ce71ed6-8e8d-4f4e-969f-c1099f0f5df9",
+    upstreamAnalyticsId: "route_1",
+    upstreamEntryDomain: "api.i0c.cc",
+    upstreamProvider: "cloudflare"
+  });
+
+  assert.equal(parsed.success, false);
+});
+
 test("rejects inconsistent V2 bot classifications", () => {
   const parsed = analyticsEventSchema.safeParse({
     ...baseEvent,
     eventKind: "runtime",
     matchKind: "unmatched",
     matchOutcome: "not_found",
+    statusCode: 404,
     trafficClass: "suspected_automation",
     botCategory: "none",
     botConfidence: "none",
     deviceType: "desktop",
+    sampleRate: 0.1
+  });
+
+  assert.equal(parsed.success, false);
+});
+
+test("rejects inconsistent Runtime match classifications", () => {
+  const unmatchedAsSystem = analyticsEventSchema.safeParse({
+    ...baseEvent,
+    eventKind: "runtime",
+    matchKind: "system",
+    matchOutcome: "not_found",
+    statusCode: 404,
+    sampleRate: 0.1
+  });
+  const systemAsUnmatched = analyticsEventSchema.safeParse({
+    ...baseEvent,
+    eventKind: "runtime",
+    matchKind: "unmatched",
+    matchOutcome: "internal_error",
+    statusCode: 500,
+    sampleRate: 0.1
+  });
+
+  assert.equal(unmatchedAsSystem.success, false);
+  assert.equal(systemAsUnmatched.success, false);
+});
+
+test("rejects Runtime status codes that contradict their outcomes", () => {
+  const parsed = analyticsEventSchema.safeParse({
+    ...baseEvent,
+    eventKind: "runtime",
+    matchKind: "unmatched",
+    matchOutcome: "proxy_exhausted",
+    statusCode: 404,
     sampleRate: 0.1
   });
 

@@ -2,16 +2,15 @@ import { redirect } from "next/navigation"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 
 import { getWebUiReadSessionAuthorization } from "@/auth/authorization"
-import { toDetailViewModel, toQueryRange } from "@/components/analytics/adapters"
+import { toQueryRange } from "@/components/analytics/adapters/common"
+import { toDetailViewModel } from "@/components/analytics/adapters/traffic"
 import { AnalyticsDetailDashboard } from "@/components/analytics/analytics-dashboard"
 import { parseAnalyticsRange } from "@/components/analytics/format"
 import { buildAnalyticsHref } from "@/components/analytics/links"
-import {
-  AnalyticsPageHeader,
-  AnalyticsRouteNavigation,
-  AnalyticsShell,
-  AnalyticsStatePanel,
-} from "@/components/analytics/analytics-shell"
+import { AnalyticsPageHeader } from "@/components/analytics/analytics-page-header"
+import { AnalyticsRouteNavigation } from "@/components/analytics/analytics-route-navigation"
+import { AnalyticsShell } from "@/components/analytics/analytics-shell"
+import { AnalyticsStatePanel } from "@/components/analytics/analytics-state-panel"
 import { SignInPanel } from "@/components/ui/sign-in-panel"
 import {
   getAnalyticsDetail,
@@ -86,7 +85,6 @@ export default async function AnalyticsDetailPage({
     entryDomain: scope.entryDomain,
     availableEntryDomains: scope.availableEntryDomains.map((option) => ({
       value: option.value,
-      requestCount: option.requests,
     })),
   }
   const routeNavigation = (

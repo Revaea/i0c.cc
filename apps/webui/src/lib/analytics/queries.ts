@@ -15,6 +15,7 @@ import {
 } from "./queries/automation";
 import {
   analyticsCacheSeconds,
+  normalizeAnalyticsQueryScope,
   resolveScope,
   resolveSourceId,
 } from "./queries/scope";
@@ -28,7 +29,6 @@ import {
 import type {
   AnalyticsAutomationOverview,
   AnalyticsDetail,
-  AnalyticsLinkSummary,
   AnalyticsOverview,
   AnalyticsQueryScope,
   AnalyticsScope,
@@ -44,14 +44,6 @@ export type {
 
 export function isAnalyticsConfigured(): boolean {
   return isDatabaseConfigured() && readAnalyticsSourceId() !== null;
-}
-
-export async function getAnalyticsLinkSummaries(
-  input: AnalyticsQueryScope,
-): Promise<AnalyticsLinkSummary[]> {
-  const sourceId = resolveSourceId();
-  const { queryScope } = await resolveScope(sourceId, input);
-  return getLinkSummaries(sourceId, queryScope);
 }
 
 export async function getAnalyticsScope(input: AnalyticsQueryScope): Promise<AnalyticsScope> {
@@ -87,14 +79,16 @@ async function queryAnalyticsOverview(
 
 const getCachedAnalyticsOverview = unstable_cache(
   queryAnalyticsOverview,
-  ["analytics-overview-v2"],
+  ["analytics-overview-v3"],
   { revalidate: analyticsCacheSeconds, tags: [analyticsCacheTag] },
 );
 
 export async function getAnalyticsOverview(
   input: AnalyticsQueryScope,
 ): Promise<AnalyticsOverview> {
-  return getCachedAnalyticsOverview(resolveSourceId(), input);
+  const sourceId = resolveSourceId();
+  const normalizedInput = await normalizeAnalyticsQueryScope(sourceId, input);
+  return getCachedAnalyticsOverview(sourceId, normalizedInput);
 }
 
 async function queryAnalyticsDetail(
@@ -128,7 +122,7 @@ async function queryAnalyticsDetail(
 
 const getCachedAnalyticsDetail = unstable_cache(
   queryAnalyticsDetail,
-  ["analytics-detail-v2"],
+  ["analytics-detail-v3"],
   { revalidate: analyticsCacheSeconds, tags: [analyticsCacheTag] },
 );
 
@@ -136,7 +130,9 @@ export async function getAnalyticsDetail(
   analyticsId: string,
   input: AnalyticsQueryScope,
 ): Promise<AnalyticsDetail | null> {
-  return getCachedAnalyticsDetail(resolveSourceId(), analyticsId, input);
+  const sourceId = resolveSourceId();
+  const normalizedInput = await normalizeAnalyticsQueryScope(sourceId, input);
+  return getCachedAnalyticsDetail(sourceId, analyticsId, normalizedInput);
 }
 
 async function queryAnalyticsAutomationOverview(
@@ -165,12 +161,14 @@ async function queryAnalyticsAutomationOverview(
 
 const getCachedAnalyticsAutomationOverview = unstable_cache(
   queryAnalyticsAutomationOverview,
-  ["analytics-automation-overview-v2"],
+  ["analytics-automation-overview-v3"],
   { revalidate: analyticsCacheSeconds, tags: [analyticsCacheTag] },
 );
 
 export async function getAnalyticsAutomationOverview(
   input: AnalyticsQueryScope,
 ): Promise<AnalyticsAutomationOverview> {
-  return getCachedAnalyticsAutomationOverview(resolveSourceId(), input);
+  const sourceId = resolveSourceId();
+  const normalizedInput = await normalizeAnalyticsQueryScope(sourceId, input);
+  return getCachedAnalyticsAutomationOverview(sourceId, normalizedInput);
 }

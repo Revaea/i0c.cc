@@ -70,7 +70,12 @@ export function coerceRouteValues(input: unknown): RouteValue[] {
   return [];
 }
 
-export function inferEffectivePath(decodedPath: string, headers: Headers, compiledList: CompiledEntry[]): string {
+export function inferEffectivePath(
+  decodedPath: string,
+  headers: Headers,
+  requestOrigin: string,
+  compiledList: CompiledEntry[]
+): string {
   let effectivePath = decodedPath;
   const isRootFrameworkAsset = /^\/(_next|_nuxt)(\/|$)/.test(decodedPath);
   const referer = headers.get("referer") || headers.get("referrer");
@@ -78,6 +83,9 @@ export function inferEffectivePath(decodedPath: string, headers: Headers, compil
   if (isRootFrameworkAsset && referer) {
     try {
       const refUrl = new URL(referer);
+      if (refUrl.origin !== requestOrigin) {
+        return effectivePath;
+      }
       const refPath = normalisePath(refUrl.pathname);
 
       let bestBase: string | null = null;

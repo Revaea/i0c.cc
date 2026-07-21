@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import {
@@ -20,7 +20,7 @@ const requestSchema = z.object({
   expiresInDays: z.number().int().min(1).max(365).default(30)
 }).strict();
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const authorization = await getWebUiManagementRequestAuthorization(request);
   if (authorization.status !== "authorized") {
     return createWebUiAuthorizationErrorResponse(authorization.status);

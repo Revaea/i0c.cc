@@ -5,7 +5,7 @@ import { getDatabase } from "./database";
 import type {
   CanonicalAnalyticsEvent,
   CanonicalAnalyticsLinkEvent,
-} from "./event-schema";
+} from "./event-normalization";
 
 export interface AnalyticsIngestResult {
   isDuplicate: boolean;
@@ -102,8 +102,16 @@ async function ingestLinkEvent(
       ${event.occurredAt}
     )
     ON CONFLICT (source_id, analytics_id) DO UPDATE
-    SET route_path = EXCLUDED.route_path,
-        link_type = EXCLUDED.link_type,
+    SET route_path = CASE
+          WHEN EXCLUDED.last_seen_at >= analytics_link.last_seen_at
+            THEN EXCLUDED.route_path
+          ELSE analytics_link.route_path
+        END,
+        link_type = CASE
+          WHEN EXCLUDED.last_seen_at >= analytics_link.last_seen_at
+            THEN EXCLUDED.link_type
+          ELSE analytics_link.link_type
+        END,
         first_seen_at = LEAST(analytics_link.first_seen_at, EXCLUDED.first_seen_at),
         last_seen_at = GREATEST(analytics_link.last_seen_at, EXCLUDED.last_seen_at)
   `;

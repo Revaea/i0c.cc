@@ -4,7 +4,6 @@ export type AnalyticsRange = (typeof analyticsRanges)[number]
 
 export interface AnalyticsEntryDomainOption {
   value: string
-  requestCount: number
 }
 
 export interface AnalyticsScopeViewModel {

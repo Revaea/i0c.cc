@@ -12,9 +12,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "test": "tsx --test tests/**/*.test.ts",
+    "lint": "eslint && node scripts/validate-messages.mjs",
     "analytics:migrate": "node scripts/analytics-migrate.mjs",
-    "validate:redirects": "node scripts/validate-redirects.mjs"
+    "validate:redirects": "tsx scripts/validate-redirects.ts",
+    "validate:messages": "node scripts/validate-messages.mjs"
   },
   "dependencies": {
     "@visx/axis": "^4.0.0",
@@ -28,13 +30,13 @@
     "ajv": "^8.18.0",
     "ajv-formats": "^3.0.1",
     "i0c-redirect-worker": "workspace:*",
-    "next": "16.2.6",
+    "next": "16.2.10",
     "next-auth": "^4.24.13",
     "next-intl": "^4.9.2",
     "postgres": "^3.4.9",
     "qrcode.react": "^4.2.0",
-    "react": "19.2.1",
-    "react-dom": "19.2.1",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
     "zod": "^4.2.1"
   },
   "devDependencies": {
@@ -44,8 +46,9 @@
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

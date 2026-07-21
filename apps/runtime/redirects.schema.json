@@ -10,7 +10,7 @@
     "SLOT": { "$ref": "#/definitions/slots" }
   },
   "additionalProperties": true,
-  "anyOf": [
+  "oneOf": [
     { "required": ["Slots"] },
     { "required": ["slots"] },
     { "required": ["SLOT"] }
@@ -22,12 +22,7 @@
       "patternProperties": {
         "^/.*$": { "$ref": "#/definitions/routeEntry" }
       },
-      "additionalProperties": {
-        "anyOf": [
-          { "$ref": "#/definitions/routeEntry" },
-          { "$ref": "#/definitions/slots" }
-        ]
-      }
+      "additionalProperties": { "$ref": "#/definitions/slots" }
     },
     "routeEntry": {
       "description": "A route definition expressed as a string shortcut, object, or array of rules.",
@@ -94,12 +89,12 @@
           "oneOf": [
             {
               "type": "integer",
-              "minimum": 100,
+              "minimum": 200,
               "maximum": 599
             },
             {
               "type": "string",
-              "pattern": "^[0-9]{3}$"
+              "pattern": "^[2-5][0-9]{2}$"
             }
           ]
         },
