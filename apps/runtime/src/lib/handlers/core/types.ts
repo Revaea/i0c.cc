@@ -1,13 +1,13 @@
 /**
  * @file types.ts
  * @description
- * [EN] Type Definitions.
+ * [EN] Runtime core type definitions.
  * Defines all TypeScript interfaces, types, and shared data structures used throughout the library.
  * Centralizing types here prevents circular dependencies.
  *
- * [CN] 类型定义。
+ * [CN] Runtime 核心类型定义。
  * 定义库中使用的所有 TypeScript 接口、类型和共享数据结构。
- *在此处集中管理类型可防止循环依赖。
+ * 在此处集中管理类型可防止循环依赖。
  *
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */

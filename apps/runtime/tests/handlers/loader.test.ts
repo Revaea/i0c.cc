@@ -16,7 +16,7 @@ import test from "node:test";
 import {
   loadConfig,
   resolveRuntimeOptions
-} from "../../src/lib/handlers/loader";
+} from "../../src/lib/handlers/configuration/loader";
 
 test("uses the versioned redirect source instead of legacy environment bindings", () => {
   const runtime = resolveRuntimeOptions({

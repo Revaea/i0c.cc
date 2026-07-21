@@ -17,8 +17,8 @@ import {
   buildCompiledList,
   getCompiledList,
   resolveCompiledTarget
-} from "../../src/lib/handlers/matcher";
-import type { RouteConfig } from "../../src/lib/handlers/types";
+} from "../../src/lib/handlers/routing/matcher";
+import type { RouteConfig } from "../../src/lib/handlers/core/types";
 
 test("reuses compiled routes for the same slot tree", () => {
   const slots = {

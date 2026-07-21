@@ -13,9 +13,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { dispatchRouteRequest } from "../../src/lib/handlers/dispatcher";
-import { buildCompiledList } from "../../src/lib/handlers/matcher";
-import type { ResolvedRuntime } from "../../src/lib/handlers/types";
+import { dispatchRouteRequest } from "../../src/lib/handlers/routing/dispatcher";
+import { buildCompiledList } from "../../src/lib/handlers/routing/matcher";
+import type { ResolvedRuntime } from "../../src/lib/handlers/core/types";
 
 function createRuntime(fetchImpl: typeof fetch = fetch): ResolvedRuntime {
   return {

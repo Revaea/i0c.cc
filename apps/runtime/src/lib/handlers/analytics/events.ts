@@ -33,7 +33,7 @@ import type {
   AnalyticsUpstreamAttribution,
   NormalizedRule,
   ResolvedRuntime
-} from "../types";
+} from "../core/types";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const REFERRER_DOMAIN_PATTERN = /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/;

@@ -26,7 +26,7 @@ import type {
   CompiledEntry,
   NormalizedRule,
   ResolvedRuntime
-} from "./types";
+} from "../core/types";
 
 interface DispatchRouteRequestOptions {
   request: Request;

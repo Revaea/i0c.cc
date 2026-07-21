@@ -16,8 +16,8 @@ import {
   deriveAttributionHmacKey,
   normalizeAnalyticsHostname
 } from "./attribution";
-import { readBindingVar, readEnvVar } from "../env";
-import type { ResolvedRuntime } from "../types";
+import { readBindingVar, readEnvVar } from "../configuration/env";
+import type { ResolvedRuntime } from "../core/types";
 
 const ANALYTICS_WRITE_KEY = "ANALYTICS_WRITE_KEY";
 const ANALYTICS_RUNTIME_SAMPLE_RATE = 0.1;

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, type PointerEvent } from "react"
+import { useEffect, useMemo, useRef, type PointerEvent } from "react"
 
 import { AxisBottom, AxisLeft } from "@visx/axis"
 import { localPoint } from "@visx/event"
@@ -90,17 +90,19 @@ function getYAxis(maxValue: number, intervalCount: number) {
   }
 }
 
-function getLabelIndices(length: number, maximumLabels: number) {
+function getLabelTicks(length: number, maximumLabels: number) {
   if (length <= maximumLabels) {
     return Array.from({ length }, (_, index) => index)
   }
 
   const lastIndex = length - 1
-  const intervals = Math.max(1, maximumLabels - 1)
-  const step = Math.ceil(lastIndex / intervals)
-  const labelCount = Math.floor(lastIndex / step) + 1
+  const labelCount = Math.max(2, Math.min(length, maximumLabels))
+  const step = lastIndex / (labelCount - 1)
 
-  return Array.from({ length: labelCount }, (_, index) => index * step)
+  return Array.from(
+    { length: labelCount },
+    (_, index) => index * step,
+  )
 }
 
 function TrendChartCanvas({
@@ -122,6 +124,8 @@ function TrendChartCanvas({
     hideTooltip,
     showTooltip,
   } = useTooltip<ResolvedAnalyticsTrendChartDatum>()
+  const chartRootRef = useRef<HTMLDivElement>(null)
+  const activeTouchPointerIdRef = useRef<number | null>(null)
   const innerWidth = Math.max(0, width - chartMargin.left - chartMargin.right)
   const innerHeight = Math.max(0, height - chartMargin.top - chartMargin.bottom)
   const maximumValue = Math.max(
@@ -143,7 +147,7 @@ function TrendChartCanvas({
     clamp: true,
   })
   const maximumLabels = Math.max(2, Math.floor(innerWidth / 120) + 1)
-  const labelIndices = getLabelIndices(data.length, maximumLabels)
+  const labelTicks = getLabelTicks(data.length, maximumLabels)
   const activeIndex = tooltipData
     ? data.findIndex((point) => point.timestamp === tooltipData.timestamp)
     : -1
@@ -169,7 +173,7 @@ function TrendChartCanvas({
     })
   }
 
-  function handlePointerMove(event: PointerEvent<SVGRectElement>) {
+  function showPointerPoint(event: PointerEvent<SVGRectElement>) {
     const point = localPoint(event)
     if (!point || innerWidth <= 0) {
       return
@@ -184,12 +188,84 @@ function TrendChartCanvas({
     showPoint(index)
   }
 
+  function handlePointerDown(event: PointerEvent<SVGRectElement>) {
+    showPointerPoint(event)
+
+    if (event.pointerType !== "touch") {
+      return
+    }
+
+    activeTouchPointerIdRef.current = event.pointerId
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  function handlePointerMove(event: PointerEvent<SVGRectElement>) {
+    if (
+      event.pointerType === "touch"
+      && activeTouchPointerIdRef.current !== event.pointerId
+    ) {
+      return
+    }
+
+    showPointerPoint(event)
+  }
+
+  function handlePointerUp(event: PointerEvent<SVGRectElement>) {
+    if (
+      event.pointerType !== "touch"
+      || activeTouchPointerIdRef.current !== event.pointerId
+    ) {
+      return
+    }
+
+    activeTouchPointerIdRef.current = null
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+  }
+
+  function handlePointerCancel(event: PointerEvent<SVGRectElement>) {
+    if (
+      event.pointerType !== "touch"
+      || activeTouchPointerIdRef.current !== event.pointerId
+    ) {
+      return
+    }
+
+    activeTouchPointerIdRef.current = null
+    hideTooltip()
+  }
+
+  function handlePointerLeave(event: PointerEvent<SVGRectElement>) {
+    if (event.pointerType !== "touch") {
+      hideTooltip()
+    }
+  }
+
+  useEffect(() => {
+    function handleOutsidePointerDown(event: globalThis.PointerEvent) {
+      const chartRoot = chartRootRef.current
+      if (chartRoot && event.target instanceof Node && !chartRoot.contains(event.target)) {
+        hideTooltip()
+      }
+    }
+
+    document.addEventListener("pointerdown", handleOutsidePointerDown, true)
+
+    return () => {
+      document.removeEventListener("pointerdown", handleOutsidePointerDown, true)
+    }
+  }, [hideTooltip])
+
   if (innerWidth <= 0 || innerHeight <= 0) {
     return null
   }
 
   return (
-    <div className="relative h-full w-full">
+    <div
+      ref={chartRootRef}
+      className="relative h-full w-full touch-pan-x touch-pan-y touch-pinch-zoom select-none [-webkit-touch-callout:none]"
+    >
       <svg
         width={width}
         height={height}
@@ -261,7 +337,7 @@ function TrendChartCanvas({
           <AxisBottom
             top={innerHeight}
             scale={xScale}
-            tickValues={labelIndices}
+            tickValues={labelTicks}
             hideAxisLine
             hideTicks
             tickFormat={(value) => data[Math.round(Number(value))]?.axisLabel ?? ""}
@@ -269,11 +345,11 @@ function TrendChartCanvas({
               fill: "var(--muted)",
               fontSize: 11,
               textAnchor:
-                labelIndices.length === 1
+                labelTicks.length === 1
                   ? "middle"
                   : index === 0
                     ? "start"
-                    : index === labelIndices.length - 1
+                    : index === labelTicks.length - 1
                       ? "end"
                       : "middle",
               dy: 12,
@@ -314,8 +390,11 @@ function TrendChartCanvas({
             height={innerHeight}
             fill="transparent"
             onPointerMove={handlePointerMove}
-            onPointerDown={handlePointerMove}
-            onPointerLeave={hideTooltip}
+            onPointerDown={handlePointerDown}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+            onPointerLeave={handlePointerLeave}
+            onContextMenu={(event) => event.preventDefault()}
           />
         </Group>
       </svg>

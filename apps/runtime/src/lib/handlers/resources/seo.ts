@@ -12,8 +12,8 @@
 
 import { appConfig } from "@i0c/config";
 
-import { buildCompiledList } from "./matcher";
-import type { RouteValueEntry } from "./types";
+import { buildCompiledList } from "../routing/matcher";
+import type { RouteValueEntry } from "../core/types";
 
 function escapeXml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&apos;");
