@@ -2,9 +2,9 @@
 
 import { useTranslations } from "next-intl";
 
-import { formControlClassName } from "@/components/ui/form-control";
-import { LabelWithTooltip } from "@/components/ui/label-with-tooltip";
-import { QRCodeButton } from "@/components/ui/qr-code";
+import { formControlClassName } from "@/components/ui/controls/form-control";
+import { LabelWithTooltip } from "@/components/ui/controls/label-with-tooltip";
+import { QRCodeButton } from "@/components/ui/controls/qr-code";
 
 interface RouteQuickEditorProps {
   value: string;

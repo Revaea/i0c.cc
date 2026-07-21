@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
 import { JsonEditor } from "@/components/editor/json-editor";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/controls/button";
 
 export type EditorMode = "rules" | "json";
 

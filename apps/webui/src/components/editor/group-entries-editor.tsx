@@ -2,11 +2,11 @@
 
 import { useTranslations } from "next-intl";
 
-import { Button } from "@/components/ui/button";
-import { fieldLabelClassName, formControlClassName } from "@/components/ui/form-control";
+import { Button } from "@/components/ui/controls/button";
+import { fieldLabelClassName, formControlClassName } from "@/components/ui/controls/form-control";
 import type { RedirectGroup } from "@/composables/redirects-groups/model";
 
-import { RouteEntryEditor } from "@/components/editor/route-entry-editor";
+import { RouteEntryEditor } from "@/components/editor/route-entry/route-entry-editor";
 
 export type GroupEntriesEditorProps = {
   group: RedirectGroup;

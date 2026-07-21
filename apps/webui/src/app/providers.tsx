@@ -4,8 +4,8 @@ import { Suspense } from "react";
 import { SessionProvider } from "next-auth/react";
 import type { SessionProviderProps } from "next-auth/react";
 
-import { AppLayoutProvider } from "@/components/ui/app-layout-provider";
-import { NavigationProgress } from "@/components/ui/navigation-progress";
+import { AppLayoutProvider } from "@/components/ui/layout/app-layout-provider";
+import { NavigationProgress } from "@/components/ui/feedback/navigation-progress";
 
 type ProvidersProps = {
   children: React.ReactNode;

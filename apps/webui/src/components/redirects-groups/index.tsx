@@ -3,16 +3,16 @@
 import { useCallback, useState } from "react";
 import { useTranslations } from "next-intl";
 
-import { AppShell } from "@/components/ui/app-shell";
-import { AppSectionNavigationHeader } from "@/components/ui/app-section-navigation";
-import { ContentSkeleton, SidebarSkeletonBody, SidebarSkeletonCatalog, SidebarSkeletonFooter } from "@/components/ui/skeletons";
+import { AppShell } from "@/components/ui/layout/app-shell";
+import { AppSectionNavigationHeader } from "@/components/ui/layout/app-section-navigation";
+import { ContentSkeleton, SidebarSkeletonBody, SidebarSkeletonCatalog, SidebarSkeletonFooter } from "@/components/ui/feedback/skeletons";
 import { GroupEntriesEditor } from "@/components/editor/group-entries-editor";
 import { RightPanel } from "@/components/editor/right-panel";
 import { useRedirectsGroups } from "@/composables/redirects-groups";
-import { RouteEntriesCatalog } from "@/components/redirects-groups/manager-sidebar-catalog";
+import { RouteEntriesCatalog } from "@/components/redirects-groups/manager-sidebar/manager-sidebar-catalog";
 
-import { ManagerSidebarBody } from "./manager-sidebar-body";
-import { ManagerSidebarFooter } from "./manager-sidebar-footer";
+import { ManagerSidebarBody } from "./manager-sidebar/manager-sidebar-body";
+import { ManagerSidebarFooter } from "./manager-sidebar/manager-sidebar-footer";
 
 interface RedirectsGroupsManagerProps {
   isReadOnly?: boolean;

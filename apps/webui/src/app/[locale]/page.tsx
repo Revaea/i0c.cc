@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { getWebUiReadSessionAuthorization } from "@/auth/authorization";
-import { SignInPanel } from "@/components/ui/sign-in-panel";
+import { SignInPanel } from "@/components/ui/feedback/sign-in-panel";
 import { RedirectsGroupsPage } from "@/components/redirects-groups/redirects-groups-page";
 
 export default async function Home() {

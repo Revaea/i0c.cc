@@ -1,9 +1,18 @@
 import "server-only";
 
-import { appConfig, type WebUiAccessMode } from "@i0c/config";
 import type { JWT } from "next-auth/jwt";
 
-const githubUserIdPattern = /^[1-9]\d*$/;
+import { appConfig, type WebUiAccessMode } from "@i0c/config";
+
+import {
+  applyWebUiTokenAuthorization as applyTokenAuthorization,
+  canGitHubUserSignInForAccessMode,
+  isGitHubUserManagerForAccessMode,
+  isTokenAuthorizedForAccessMode,
+  isValidGitHubUserId,
+} from "./token-authorization";
+
+export { hasWebUiAccessToken } from "./token-authorization";
 
 interface AuthenticatedAccessPolicy {
   mode: "authenticated";
@@ -25,7 +34,7 @@ type WebUiAccessPolicy =
   | AllowlistAccessPolicy;
 
 function parseAllowedGitHubUserIds(values: readonly string[]): ReadonlySet<string> {
-  if (values.some((value) => !githubUserIdPattern.test(value))) {
+  if (values.some((value) => !isValidGitHubUserId(value))) {
     throw new Error(
       "appConfig.webui.access.managerGitHubUserIds must contain GitHub numeric user IDs",
     );
@@ -67,64 +76,52 @@ function readWebUiAccessPolicy(): WebUiAccessPolicy {
 }
 
 const accessPolicy = readWebUiAccessPolicy();
+const emptyGitHubUserIds = new Set<string>();
+
+function getManagerGitHubUserIds(): ReadonlySet<string> {
+  return accessPolicy.mode === "authenticated"
+    ? emptyGitHubUserIds
+    : accessPolicy.allowedGitHubUserIds;
+}
 
 export function isWebUiPublicReadOnly(): boolean {
   return accessPolicy.mode === "public-readonly";
 }
 
-function isValidGitHubUserId(
-  githubUserId: string | null | undefined,
-): githubUserId is string {
-  return Boolean(githubUserId && githubUserIdPattern.test(githubUserId));
-}
-
 export function canGitHubUserSignIn(
   githubUserId: string | null | undefined,
 ): boolean {
-  if (!isValidGitHubUserId(githubUserId)) {
-    return false;
-  }
-
-  if (
-    accessPolicy.mode === "authenticated" ||
-    accessPolicy.mode === "public-readonly"
-  ) {
-    return true;
-  }
-
-  return accessPolicy.allowedGitHubUserIds.has(githubUserId);
+  return canGitHubUserSignInForAccessMode(
+    githubUserId,
+    accessPolicy.mode,
+    getManagerGitHubUserIds(),
+  );
 }
 
 export function isGitHubUserManager(
   githubUserId: string | null | undefined,
 ): boolean {
-  if (!isValidGitHubUserId(githubUserId)) {
-    return false;
-  }
-
-  if (accessPolicy.mode === "authenticated") {
-    return true;
-  }
-
-  return accessPolicy.allowedGitHubUserIds.has(githubUserId);
-}
-
-export function hasWebUiAccessToken(
-  token: JWT | null,
-): token is JWT & { accessToken: string } {
-  return typeof token?.accessToken === "string" && token.accessToken.length > 0;
+  return isGitHubUserManagerForAccessMode(
+    githubUserId,
+    accessPolicy.mode,
+    getManagerGitHubUserIds(),
+  );
 }
 
 export function isWebUiTokenAuthorized(
   token: JWT | null,
 ): token is JWT & { accessToken: string } {
-  if (!hasWebUiAccessToken(token)) {
-    return false;
-  }
+  return isTokenAuthorizedForAccessMode(
+    token,
+    accessPolicy.mode,
+    getManagerGitHubUserIds(),
+  );
+}
 
-  if (accessPolicy.mode === "authenticated") {
-    return true;
-  }
-
-  return isGitHubUserManager(token.githubUserId);
+export function applyWebUiTokenAuthorization(token: JWT): boolean {
+  return applyTokenAuthorization(
+    token,
+    accessPolicy.mode,
+    getManagerGitHubUserIds(),
+  );
 }
