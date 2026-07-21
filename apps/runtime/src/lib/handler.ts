@@ -140,7 +140,8 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
       });
     }
 
-    const response = dispatch.hasProxyExhaustion
+    const isProxyUnavailable = dispatch.proxyFailureReason === "unavailable";
+    const response = isProxyUnavailable
       ? new Response("Bad Gateway: All upstream proxies failed.", {
         status: 502,
         headers: {
@@ -158,7 +159,7 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
     return finalizeRuntimeAnalytics({
       request,
       response,
-      outcome: dispatch.hasProxyExhaustion ? "proxy_exhausted" : "not_found",
+      outcome: isProxyUnavailable ? "proxy_exhausted" : "not_found",
       effectivePath,
       startedAt,
       runtime,

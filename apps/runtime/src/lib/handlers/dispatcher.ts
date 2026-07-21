@@ -2,11 +2,11 @@
  * @file dispatcher.ts
  * @description
  * [EN] Route response dispatcher.
- * Resolves compiled routes, coordinates proxy fallbacks and races, and returns match metadata
- * without owning request lifecycle or analytics finalization.
+ * Resolves compiled routes, coordinates proxy fallbacks and races, and returns match or terminal
+ * proxy-failure metadata without owning request lifecycle or analytics finalization.
  *
  * [CN] 路由响应分发器。
- * 负责解析已编译路由、协调代理回退与竞速，并返回匹配元数据，
+ * 负责解析已编译路由、协调代理回退与竞速，并返回匹配结果或最终代理失败元数据，
  * 不负责请求生命周期或分析事件收尾。
  *
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
@@ -16,7 +16,11 @@ import {
   collectProxyRaceCandidates,
   resolveCompiledTarget
 } from "./matcher";
-import { respondUsingRule, shouldFallbackProxy } from "./response";
+import {
+  classifyProxyFailure,
+  respondUsingRule,
+  type ProxyFailureReason
+} from "./response";
 import type {
   AnalyticsLinkMatchKind,
   CompiledEntry,
@@ -49,7 +53,21 @@ interface ProxyRaceCandidate {
 
 export interface DispatchRouteResult {
   match: DispatchedRoute | null;
-  hasProxyExhaustion: boolean;
+  proxyFailureReason: ProxyFailureReason | null;
+}
+
+interface ProxyRaceResult {
+  match: DispatchedRoute | null;
+  failureReason: ProxyFailureReason | null;
+}
+
+function mergeProxyFailureReason(
+  current: ProxyFailureReason | null,
+  next: ProxyFailureReason
+): ProxyFailureReason {
+  return current === "unavailable" || next === "unavailable"
+    ? "unavailable"
+    : "not_found";
 }
 
 async function discardProxyResponse(response: Response): Promise<void> {
@@ -63,8 +81,9 @@ async function raceProxyCandidates(
   request: Request,
   runtime: ResolvedRuntime,
   candidates: ProxyRaceCandidate[]
-): Promise<DispatchedRoute> {
+): Promise<ProxyRaceResult> {
   const controllers = candidates.map(() => new AbortController());
+  const failureReasons = candidates.map<ProxyFailureReason>(() => "unavailable");
   const tasks = candidates.map((candidate, candidateIndex) => {
     const controller = controllers[candidateIndex];
     const abortFromRequest = () => controller.abort(request.signal.reason);
@@ -73,9 +92,7 @@ async function raceProxyCandidates(
     } else {
       request.signal.addEventListener("abort", abortFromRequest, { once: true });
     }
-    const requestClone = new Request(request.clone(), {
-      signal: controller.signal
-    });
+    const requestClone = request.clone();
     return (async () => {
       try {
         const response = await respondUsingRule(
@@ -83,9 +100,12 @@ async function raceProxyCandidates(
           candidate.rule,
           candidate.targetUrl,
           runtime,
-          candidate.base
+          candidate.base,
+          controller.signal
         );
-        if (shouldFallbackProxy(response)) {
+        const failureReason = classifyProxyFailure(response);
+        if (failureReason) {
+          failureReasons[candidateIndex] = failureReason;
           await discardProxyResponse(response);
           throw new Error(`proxy ${response.status}`);
         }
@@ -104,20 +124,28 @@ async function raceProxyCandidates(
     })();
   });
 
-  const winner = await Promise.any(tasks);
-  controllers.forEach((controller, candidateIndex) => {
-    if (candidateIndex !== winner.candidateIndex) {
-      controller.abort();
-    }
-  });
-  void Promise.allSettled(tasks).then(async (results) => {
-    await Promise.all(results.map(async (result, candidateIndex) => {
-      if (candidateIndex !== winner.candidateIndex && result.status === "fulfilled") {
-        await discardProxyResponse(result.value.match.response);
+  try {
+    const winner = await Promise.any(tasks);
+    controllers.forEach((controller, candidateIndex) => {
+      if (candidateIndex !== winner.candidateIndex) {
+        controller.abort();
       }
-    }));
-  });
-  return winner.match;
+    });
+    void Promise.allSettled(tasks).then(async (results) => {
+      await Promise.all(results.map(async (result, candidateIndex) => {
+        if (candidateIndex !== winner.candidateIndex && result.status === "fulfilled") {
+          await discardProxyResponse(result.value.match.response);
+        }
+      }));
+    });
+    return { match: winner.match, failureReason: null };
+  } catch {
+    const failureReason = failureReasons.reduce<ProxyFailureReason | null>(
+      mergeProxyFailureReason,
+      null
+    );
+    return { match: null, failureReason: failureReason ?? "unavailable" };
+  }
 }
 
 export async function dispatchRouteRequest({
@@ -128,7 +156,7 @@ export async function dispatchRouteRequest({
   search,
   isStaticAssetPath
 }: DispatchRouteRequestOptions): Promise<DispatchRouteResult> {
-  let hasProxyExhaustion = false;
+  let proxyFailureReason: ProxyFailureReason | null = null;
 
   for (let index = 0; index < compiledList.length; index += 1) {
     const item = compiledList[index];
@@ -157,13 +185,24 @@ export async function dispatchRouteRequest({
       const { candidates, scanEnd } = collected;
       if (candidates.length > 1) {
         try {
-          const match = await raceProxyCandidates(request, runtime, candidates);
-          return { match, hasProxyExhaustion };
+          const race = await raceProxyCandidates(request, runtime, candidates);
+          if (race.match) {
+            return { match: race.match, proxyFailureReason: null };
+          }
+          if (race.failureReason) {
+            proxyFailureReason = mergeProxyFailureReason(
+              proxyFailureReason,
+              race.failureReason
+            );
+          }
         } catch {
-          hasProxyExhaustion = true;
-          index = scanEnd - 1;
-          continue;
+          proxyFailureReason = mergeProxyFailureReason(
+            proxyFailureReason,
+            "unavailable"
+          );
         }
+        index = scanEnd - 1;
+        continue;
       }
 
       index = scanEnd - 1;
@@ -172,9 +211,15 @@ export async function dispatchRouteRequest({
     const requestClone = request.clone() as Request;
     const response = await respondUsingRule(requestClone, rule, targetUrl, runtime, base);
 
-    if (rule.type === "proxy" && shouldFallbackProxy(response)) {
+    const failureReason = rule.type === "proxy"
+      ? classifyProxyFailure(response)
+      : null;
+    if (failureReason) {
       await discardProxyResponse(response);
-      hasProxyExhaustion = true;
+      proxyFailureReason = mergeProxyFailureReason(
+        proxyFailureReason,
+        failureReason
+      );
       continue;
     }
 
@@ -185,9 +230,9 @@ export async function dispatchRouteRequest({
         routePath: base,
         matchKind
       },
-      hasProxyExhaustion
+      proxyFailureReason: null
     };
   }
 
-  return { match: null, hasProxyExhaustion };
+  return { match: null, proxyFailureReason };
 }

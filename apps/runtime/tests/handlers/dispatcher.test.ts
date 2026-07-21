@@ -52,7 +52,7 @@ test("dispatches an exact redirect with match metadata", async () => {
   assert.equal(result.match.response.headers.get("location"), "https://example.com/guide");
   assert.equal(result.match.routePath, "/docs");
   assert.equal(result.match.matchKind, "exact");
-  assert.equal(result.hasProxyExhaustion, false);
+  assert.equal(result.proxyFailureReason, null);
 });
 
 test("prefers literal and parameter routes over broader patterns", async () => {
@@ -135,8 +135,57 @@ test("falls through failed proxies in priority order", async () => {
   assert.ok(result.match);
   assert.equal(await result.match.response.text(), "fallback");
   assert.equal(result.match.rule.target, "https://second.example");
-  assert.equal(result.hasProxyExhaustion, true);
+  assert.equal(result.proxyFailureReason, null);
   assert.equal(discardedResponses, 1);
+});
+
+test("classifies exhausted proxy not-found responses separately from outages", async () => {
+  const runtime = createRuntime(async () => new Response("missing", { status: 404 }));
+  const compiledList = buildCompiledList({
+    "/assets": [
+      { type: "proxy", target: "https://first.example", priority: 1 },
+      { type: "proxy", target: "https://second.example", priority: 2 }
+    ]
+  });
+
+  const result = await dispatchRouteRequest({
+    request: new Request("https://i0c.cc/assets/app.js"),
+    runtime,
+    compiledList,
+    effectivePath: "/assets/app.js",
+    search: "",
+    isStaticAssetPath: false
+  });
+
+  assert.equal(result.match, null);
+  assert.equal(result.proxyFailureReason, "not_found");
+});
+
+test("lets an unavailable proxy dominate mixed exhausted responses", async () => {
+  const runtime = createRuntime(async (input) => {
+    const request = input instanceof Request ? input : new Request(input);
+    return request.url.startsWith("https://first.example/")
+      ? new Response("missing", { status: 404 })
+      : new Response("unavailable", { status: 503 });
+  });
+  const compiledList = buildCompiledList({
+    "/assets": [
+      { type: "proxy", target: "https://first.example", priority: 1 },
+      { type: "proxy", target: "https://second.example", priority: 2 }
+    ]
+  });
+
+  const result = await dispatchRouteRequest({
+    request: new Request("https://i0c.cc/assets/app.js"),
+    runtime,
+    compiledList,
+    effectivePath: "/assets/app.js",
+    search: "",
+    isStaticAssetPath: false
+  });
+
+  assert.equal(result.match, null);
+  assert.equal(result.proxyFailureReason, "unavailable");
 });
 
 test("races static asset proxies and returns a successful candidate", async () => {
@@ -172,7 +221,29 @@ test("races static asset proxies and returns a successful candidate", async () =
   assert.ok(result.match);
   assert.equal(await result.match.response.text(), "asset");
   assert.equal(result.match.rule.target, "https://second.example");
-  assert.equal(result.hasProxyExhaustion, false);
+  assert.equal(result.proxyFailureReason, null);
+});
+
+test("preserves not-found classification when every raced proxy returns 404", async () => {
+  const runtime = createRuntime(async () => new Response("missing", { status: 404 }));
+  const compiledList = buildCompiledList({
+    "/assets": [
+      { type: "proxy", target: "https://first.example", priority: 1 },
+      { type: "proxy", target: "https://second.example", priority: 2 }
+    ]
+  });
+
+  const result = await dispatchRouteRequest({
+    request: new Request("https://i0c.cc/assets/app.js"),
+    runtime,
+    compiledList,
+    effectivePath: "/assets/app.js",
+    search: "",
+    isStaticAssetPath: true
+  });
+
+  assert.equal(result.match, null);
+  assert.equal(result.proxyFailureReason, "not_found");
 });
 
 test("aborts slower proxy candidates after the race has a winner", async () => {

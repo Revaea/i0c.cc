@@ -3,11 +3,12 @@
  * @description
  * [EN] Response Factory.
  * Constructs the final HTTP responses for the client. Contains specific logic for handling
- * Redirects (3xx status codes) and Proxies (request forwarding), including security headers.
+ * Redirects (3xx status codes) and Proxies (request forwarding), including security headers
+ * and proxy candidate failure classification.
  *
  * [CN] 响应工厂。
  * 为客户端构造最终的 HTTP 响应。包含处理重定向（3xx 状态码）和代理（请求转发）的具体逻辑，
- * 包括设置安全响应头。
+ * 包括设置安全响应头以及区分代理候选的失败原因。
  *
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
@@ -145,29 +146,39 @@ function prependProxyBasePath(pathname: string, basePath: string): string {
   return pathname === "/" ? `${prefix}/` : `${prefix}${pathname}`;
 }
 
-export function shouldFallbackProxy(response: Response): boolean {
-  return response.status === 404 || response.status >= 500;
+export type ProxyFailureReason = "not_found" | "unavailable";
+
+export function classifyProxyFailure(response: Response): ProxyFailureReason | null {
+  if (response.status === 404) {
+    return "not_found";
+  }
+  if (response.status >= 500) {
+    return "unavailable";
+  }
+  return null;
 }
 
-export async function respondUsingRule(
-  request: Request, 
+export async function respondUsingRule<CfHostMetadata, Cf>(
+  request: Request<CfHostMetadata, Cf>,
   rule: NormalizedRule, 
   targetUrl: string, 
   runtime: ResolvedRuntime,
-  basePath?: string
+  basePath?: string,
+  signal?: AbortSignal
 ): Promise<Response> {
   if (rule.type === "proxy") {
-    return proxyRequest(request, targetUrl, runtime, basePath);
+    return proxyRequest(request, targetUrl, runtime, basePath, signal);
   }
 
   return redirectResponse(targetUrl, rule.status);
 }
 
-async function proxyRequest(
-  request: Request,
+async function proxyRequest<CfHostMetadata, Cf>(
+  request: Request<CfHostMetadata, Cf>,
   targetUrl: string,
   runtime: ResolvedRuntime,
-  basePath: string = ""
+  basePath: string = "",
+  signal: AbortSignal = request.signal
 ): Promise<Response> {
   const originalUrl = new URL(request.url);
   const originalHost = originalUrl.host;
@@ -246,13 +257,13 @@ async function proxyRequest(
       headers,
       body: forwardBody,
       redirect: "manual",
-      signal: request.signal
+      signal
     });
 
     try {
       lastResponse = await runtime.fetchImpl(forwarded);
     } catch (e) {
-      if (!request.signal.aborted) {
+      if (!signal.aborted) {
         console.error(`Proxy fetch failed for ${currentTarget}:`, e);
       }
       return new Response("Bad Gateway: Upstream fetch failed.", { status: 502 });
