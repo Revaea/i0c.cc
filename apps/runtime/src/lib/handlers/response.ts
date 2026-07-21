@@ -55,6 +55,13 @@ const REQUEST_BODY_HEADERS = [
 const HEADER_NAME_PATTERN = /^[!#$%&'*+.^_`|~0-9a-z-]+$/i;
 const MAX_PROXY_REDIRECTS = 5;
 
+async function discardResponseBody(response: Response): Promise<void> {
+  try {
+    await response.body?.cancel();
+  } catch {
+  }
+}
+
 function isIPv4(hostname: string): boolean {
   return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname);
 }
@@ -262,6 +269,7 @@ async function proxyRequest(
         assertSafeProxyUrl(nextUrlObj);
       } catch (e) {
         console.error("Blocked unsafe upstream redirect:", e);
+        await discardResponseBody(lastResponse);
         return new Response("Bad Gateway: Unsafe upstream redirect.", { status: 502 });
       }
 
@@ -276,6 +284,7 @@ async function proxyRequest(
         shouldDropBodyHeaders = true;
       }
 
+      await discardResponseBody(lastResponse);
       currentTarget = nextUrl;
       redirectCount += 1;
       continue;

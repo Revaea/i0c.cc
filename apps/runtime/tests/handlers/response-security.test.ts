@@ -174,6 +174,7 @@ test("strips credentials and platform client metadata before proxying", async ()
 
 test("applies Fetch method semantics when following upstream redirects", async () => {
   const postRequests: Array<{ body: string; contentType: string | null; method: string }> = [];
+  let discardedRedirectResponses = 0;
   const postRuntime = createRuntime(async (input) => {
     const request = input instanceof Request ? input : new Request(input);
     postRequests.push({
@@ -182,7 +183,11 @@ test("applies Fetch method semantics when following upstream redirects", async (
       method: request.method
     });
     return postRequests.length === 1
-      ? new Response(null, { status: 302, headers: { Location: "/next" } })
+      ? new Response(new ReadableStream({
+        cancel() {
+          discardedRedirectResponses += 1;
+        }
+      }), { status: 302, headers: { Location: "/next" } })
       : new Response(null, { status: 204 });
   });
 
@@ -203,6 +208,7 @@ test("applies Fetch method semantics when following upstream redirects", async (
     { body: "payload", contentType: "text/plain", method: "POST" },
     { body: "", contentType: null, method: "GET" }
   ]);
+  assert.equal(discardedRedirectResponses, 1);
 
   const putRequests: Array<{ body: string; method: string }> = [];
   const putRuntime = createRuntime(async (input) => {
