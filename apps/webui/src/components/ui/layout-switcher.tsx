@@ -162,7 +162,7 @@ export function LayoutSwitcher({
           <label className="mt-4 block">
             <span className="flex items-center justify-between gap-3 text-xs font-semibold text-muted">
               {t("sidebarWidth")}
-              <output className="font-mono font-medium text-ink">{sidebarWidth}px</output>
+              <output className="font-mono font-medium text-ink">{Math.round(sidebarWidth)}px</output>
             </span>
             <input
               type="range"
