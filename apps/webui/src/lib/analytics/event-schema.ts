@@ -239,6 +239,20 @@ const analyticsRuntimeEventV2Schema = analyticsEventV2CommonSchema
         message: "matchKind does not match matchOutcome",
       });
     }
+
+    const expectedStatusCode = {
+      not_found: 404,
+      proxy_exhausted: 502,
+      config_unavailable: 503,
+      internal_error: 500,
+    }[event.matchOutcome];
+    if (event.statusCode !== expectedStatusCode) {
+      context.addIssue({
+        code: "custom",
+        path: ["statusCode"],
+        message: "statusCode does not match matchOutcome",
+      });
+    }
   });
 
 export const analyticsEventSchema = z.union([

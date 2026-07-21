@@ -103,6 +103,7 @@ test("rejects inconsistent V2 bot classifications", () => {
     eventKind: "runtime",
     matchKind: "unmatched",
     matchOutcome: "not_found",
+    statusCode: 404,
     trafficClass: "suspected_automation",
     botCategory: "none",
     botConfidence: "none",
@@ -119,6 +120,7 @@ test("rejects inconsistent Runtime match classifications", () => {
     eventKind: "runtime",
     matchKind: "system",
     matchOutcome: "not_found",
+    statusCode: 404,
     sampleRate: 0.1
   });
   const systemAsUnmatched = analyticsEventSchema.safeParse({
@@ -126,11 +128,25 @@ test("rejects inconsistent Runtime match classifications", () => {
     eventKind: "runtime",
     matchKind: "unmatched",
     matchOutcome: "internal_error",
+    statusCode: 500,
     sampleRate: 0.1
   });
 
   assert.equal(unmatchedAsSystem.success, false);
   assert.equal(systemAsUnmatched.success, false);
+});
+
+test("rejects Runtime status codes that contradict their outcomes", () => {
+  const parsed = analyticsEventSchema.safeParse({
+    ...baseEvent,
+    eventKind: "runtime",
+    matchKind: "unmatched",
+    matchOutcome: "proxy_exhausted",
+    statusCode: 404,
+    sampleRate: 0.1
+  });
+
+  assert.equal(parsed.success, false);
 });
 
 test("continues to normalize legacy V1 link events", () => {
