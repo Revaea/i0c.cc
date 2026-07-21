@@ -11,8 +11,10 @@
  */
 
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
 
+import { interLatinVariableFontPath } from "../../src/assets/inter-font";
 import { handleRedirectRequest } from "../../src/lib/handler";
 
 function createConfigFetch(
@@ -82,7 +84,29 @@ test("preserves the branded cacheable response for an unmatched route", async ()
 
   assert.equal(response.status, 404);
   assert.equal(response.headers.get("cache-control"), "public, max-age=60");
-  assert.match(await response.text(), /404/);
+  const html = await response.text();
+  assert.match(html, /404/);
+  assert.ok(html.includes(interLatinVariableFontPath));
+});
+
+test("serves the embedded Inter font without loading redirect config", async () => {
+  const response = await handleRedirectRequest(
+    new Request(`https://i0c.cc${interLatinVariableFontPath}`),
+    {
+      fetchImpl: async () => {
+        throw new Error("Font requests must not load redirect config");
+      }
+    }
+  );
+  const bytes = new Uint8Array(await response.arrayBuffer());
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("content-type"), "font/woff2");
+  assert.equal(response.headers.get("cache-control"), "public, max-age=31536000, immutable");
+  assert.deepEqual(Array.from(bytes.slice(0, 4)), [0x77, 0x4f, 0x46, 0x32]);
+  assert.ok(interLatinVariableFontPath.includes(
+    createHash("sha256").update(bytes).digest("hex").slice(0, 12)
+  ));
 });
 
 test("uses the versioned robots policy instead of a legacy environment binding", async () => {

@@ -8,6 +8,8 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
+import { interLatinVariableFontPath } from "@/assets/inter-font";
+
 export const notFoundPageHtml = `<!doctype html>
 <html lang="en">
   <head>
@@ -17,6 +19,14 @@ export const notFoundPageHtml = `<!doctype html>
     <meta name="theme-color" content="#ffffff">
     <title>404 · Page not found</title>
     <style>
+      @font-face {
+        font-family: "Inter";
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url("${interLatinVariableFontPath}") format("woff2");
+      }
+
       :root {
         color-scheme: light;
         --canvas: #ffffff;
@@ -26,7 +36,7 @@ export const notFoundPageHtml = `<!doctype html>
         --line: #e1e5eb;
         --accent: #3157d5;
         --accent-strong: #2545b8;
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
       * {

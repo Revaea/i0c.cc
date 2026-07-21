@@ -22,6 +22,7 @@ import {
 import { HTTPS_REDIRECT_STATUS } from "@handlers/constants";
 import { dispatchRouteRequest } from "@handlers/dispatcher";
 import { serveFavicon } from "@handlers/favicon-serve";
+import { interLatinVariableFontPath, serveInterFont } from "@handlers/font-serve";
 import { loadConfig, resolveRuntimeOptions } from "@handlers/loader";
 import {
   flattenSlots,
@@ -60,6 +61,10 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
 
     if (path === "/favicon.ico") {
       return clearAttributionCookie(serveFavicon(), analytics.hasAttributionCookie);
+    }
+
+    if (path === interLatinVariableFontPath) {
+      return clearAttributionCookie(serveInterFont(), analytics.hasAttributionCookie);
     }
 
     const redirectsConfig = await loadConfig(runtime);
