@@ -25,6 +25,8 @@
     "saveOk": "保存成功",
     "saveFail": "保存失败",
     "duplicateKey": "分组“{group}”中存在重复键“{key}”。",
+    "invalidJson": "重定向配置不是有效的 JSON。",
+    "invalidRoot": "重定向配置根节点必须是 JSON 对象。",
     "loadFail": "加载配置失败",
     "previewFailWithMessage": "// 预览生成失败：{message}",
     "previewFailUnknown": "// 预览生成失败",

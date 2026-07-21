@@ -26,6 +26,17 @@ export class DuplicateRedirectKeyError extends Error {
   }
 }
 
+export class InvalidRedirectConfigError extends Error {
+  constructor(readonly reason: "json" | "root") {
+    super(
+      reason === "json"
+        ? "Redirect config must contain valid JSON."
+        : "Redirect config root must be a JSON object.",
+    );
+    this.name = "InvalidRedirectConfigError";
+  }
+}
+
 function createAnalyticsIdentitySeed(
   groupPath: readonly string[],
   key: string,
@@ -106,10 +117,14 @@ export async function parseInitialContent(source: string): Promise<ParsedRedirec
   try {
     parsed = JSON.parse(source);
   } catch {
-    parsed = {};
+    throw new InvalidRedirectConfigError("json");
   }
 
-  const config = isRecord(parsed) ? parsed : {};
+  if (!isRecord(parsed)) {
+    throw new InvalidRedirectConfigError("root");
+  }
+
+  const config = parsed;
   const slotKeys = ["Slots", "slots", "SLOT"] as const;
   const detectedKey = slotKeys.find((key) => key in config && isRecord(config[key]));
   const slotsKey = detectedKey ?? "slots";

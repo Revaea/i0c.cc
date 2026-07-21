@@ -8,6 +8,7 @@ import {
 import {
   buildConfig,
   DuplicateRedirectKeyError,
+  InvalidRedirectConfigError,
   parseInitialContent,
 } from "../src/composables/redirects-groups/serialization";
 
@@ -101,6 +102,26 @@ test("rejects duplicate keys before config serialization can overwrite them", ()
       error instanceof DuplicateRedirectKeyError
       && error.key === "/docs"
       && error.groupName === "Slots"
+    ),
+  );
+});
+
+test("rejects invalid JSON instead of replacing it with an empty config", async () => {
+  await assert.rejects(
+    () => parseInitialContent("{"),
+    (error: unknown) => (
+      error instanceof InvalidRedirectConfigError
+      && error.reason === "json"
+    ),
+  );
+});
+
+test("rejects non-object config roots", async () => {
+  await assert.rejects(
+    () => parseInitialContent("[]"),
+    (error: unknown) => (
+      error instanceof InvalidRedirectConfigError
+      && error.reason === "root"
     ),
   );
 });

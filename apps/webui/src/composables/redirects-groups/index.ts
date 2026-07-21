@@ -27,6 +27,7 @@ import { useUndoRedo } from "./history";
 import {
   buildConfig,
   DuplicateRedirectKeyError,
+  InvalidRedirectConfigError,
   parseInitialContent,
 } from "./serialization";
 
@@ -50,6 +51,8 @@ export function useRedirectsGroups() {
   const formatSerializationError = useCallback(
     (error: unknown) => error instanceof DuplicateRedirectKeyError
       ? tGroups("duplicateKey", { key: error.key, group: error.groupName })
+      : error instanceof InvalidRedirectConfigError
+        ? tGroups(error.reason === "json" ? "invalidJson" : "invalidRoot")
       : error instanceof Error
         ? error.message
         : tGroups("saveFail"),
@@ -83,7 +86,7 @@ export function useRedirectsGroups() {
         resetHistory();
       } catch (error) {
         if (!cancelled) {
-          setLoadError(error instanceof Error ? error.message : tGroups("loadFail"));
+          setLoadError(formatSerializationError(error));
         }
       } finally {
         if (!cancelled) {
@@ -96,7 +99,7 @@ export function useRedirectsGroups() {
     return () => {
       cancelled = true;
     };
-  }, [loadConfig, resetHistory, tGroups]);
+  }, [formatSerializationError, loadConfig, resetHistory]);
 
   const loadFromUrl = useCallback(
     async (sourceUrl: string) => {
@@ -110,14 +113,14 @@ export function useRedirectsGroups() {
         setEditorState((prev) => applyParsedConfig(prev, parsed));
         resetHistory();
       } catch (error) {
-        const message = error instanceof Error ? error.message : tGroups("loadFail");
+        const message = formatSerializationError(error);
         setLoadError(message);
         throw error;
       } finally {
         setIsLoading(false);
       }
     },
-    [loadConfig, resetHistory, tGroups]
+    [formatSerializationError, loadConfig, resetHistory]
   );
 
   const selectedGroup = useMemo(() => {
@@ -198,7 +201,9 @@ export function useRedirectsGroups() {
 
   const applyJson = useCallback(
     async (content: string) => {
-      const parsed = await parseInitialContent(content);
+      const parsed = await parseInitialContent(content).catch((error: unknown) => {
+        throw new Error(formatSerializationError(error));
+      });
 
       pushCurrentSnapshot();
 
@@ -210,13 +215,13 @@ export function useRedirectsGroups() {
         2,
       );
     },
-    [pushCurrentSnapshot]
+    [formatSerializationError, pushCurrentSnapshot]
   );
 
   const save = useCallback((overrideContent?: string) => {
     try {
-      const config = buildConfig(rootGroup, baseConfig, slotsKey);
-      const content = overrideContent ?? JSON.stringify(config, null, 2);
+      const content = overrideContent
+        ?? JSON.stringify(buildConfig(rootGroup, baseConfig, slotsKey), null, 2);
       setSaveValidationError(null);
       saveConfig(content);
     } catch (error) {
