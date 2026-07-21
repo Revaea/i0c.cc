@@ -1,7 +1,12 @@
-import { appConfig } from "@i0c/config";
 import GitHubProvider from "next-auth/providers/github";
 
-import { canGitHubUserSignIn, isWebUiTokenAuthorized } from "./access-policy";
+import { appConfig } from "@i0c/config";
+
+import {
+  applyWebUiTokenAuthorization,
+  canGitHubUserSignIn,
+  isWebUiTokenAuthorized,
+} from "./access-policy";
 
 function requireEnv(key: string): string {
   const value = process.env[key];
@@ -53,9 +58,7 @@ export const authOptions = {
         }
       }
 
-      if (!isWebUiTokenAuthorized(token)) {
-        delete token.accessToken;
-      }
+      applyWebUiTokenAuthorization(token);
 
       return token;
     },
