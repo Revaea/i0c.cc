@@ -111,7 +111,7 @@ These rules apply only to TypeScript modules under `apps/runtime/src/lib`.
 - Each project README pair owns project-specific setup, environment variables, behavior, deployment, validation, limitations, and operational prerequisites.
 - When behavior documented in both languages changes, update the English and Chinese surfaces in the same diff. Preserve intentional language-specific context without leaving contradictory facts.
 - Add or rename an environment variable only with its owning `.env.example` and documentation. Examples must contain placeholders, never usable credentials.
-- Redirect shape changes must keep `apps/runtime/redirects.schema.json`, runtime parsing and types, WebUI serialization and editing, validation behavior, examples, localized copy, and affected documentation consistent.
+- Redirect shape changes must keep `packages/config/redirects.schema.json`, runtime parsing and types, WebUI serialization and editing, validation behavior, examples, localized copy, and affected documentation consistent.
 - `pnpm data:validate` reads its configured local file or Git ref and does not fetch the remote data branch. Do not describe it as fresh remote validation unless an authorized fetch ran first.
 - Treat `origin/data:redirects.json` as a local Git ref snapshot, not proof of current remote state.
 - Record a Live endpoint only when a credential-free HTTPS request reaches the intended stable deployment after redirects.

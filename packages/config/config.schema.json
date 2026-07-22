@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Revaea/i0c.cc/main/packages/config/config.schema.json",
+  "title": "i0c.cc instance configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "runtime", "analytics", "webui", "plugins"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://[^@/?#]+(?:[/?#].*)?$"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalOrigin", "robotsPolicy", "configCacheTtlSeconds", "redirectsCacheTtlSeconds"],
+      "properties": {
+        "canonicalOrigin": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://[^/?#]+$"
+        },
+        "robotsPolicy": {
+          "enum": ["allow", "disallow"]
+        },
+        "configCacheTtlSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "redirectsCacheTtlSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        }
+      }
+    },
+    "analytics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ingestEndpoint", "sourceId"],
+      "properties": {
+        "ingestEndpoint": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://[^@/?#]+(?:[/?#].*)?$"
+        },
+        "sourceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+        }
+      }
+    },
+    "webui": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["access"],
+      "properties": {
+        "access": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode", "managerGitHubUserIds"],
+          "properties": {
+            "mode": {
+              "enum": ["authenticated", "allowlist", "public-readonly"]
+            },
+            "managerGitHubUserIds": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]*$"
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "mode": { "const": "allowlist" }
+                },
+                "required": ["mode"]
+              },
+              "then": {
+                "properties": {
+                  "managerGitHubUserIds": { "minItems": 1 }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "plugins": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^(?:@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]*$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/plugin"
+      }
+    }
+  },
+  "$defs": {
+    "plugin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled"],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "config": {
+          "type": "object"
+        },
+        "secrets": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          }
+        }
+      }
+    }
+  }
+}

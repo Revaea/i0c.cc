@@ -8,9 +8,6 @@
     "url": "https://github.com/Revaea/i0c.cc.git"
   },
   "homepage": "https://github.com/Revaea/i0c.cc",
-  "exports": {
-    "./redirects.schema.json": "./redirects.schema.json"
-  },
   "scripts": {
     "build": "tsup --config tsup.config.ts && node scripts/post-build.mjs",
     "test": "tsx --test tests/**/*.test.ts",
@@ -36,6 +33,7 @@
   },
   "dependencies": {
     "@i0c/config": "workspace:*",
+    "@i0c/plugin-contracts": "workspace:*",
     "@vercel/functions": "^3.7.5"
   }
 }

@@ -15,7 +15,7 @@ interface RedirectSource {
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(scriptDir, "../../..")
-const defaultSchemaPath = path.join(repoRoot, "apps/runtime/redirects.schema.json")
+const defaultSchemaPath = path.join(repoRoot, "packages/config/redirects.schema.json")
 const defaultSource = "origin/data:redirects.json"
 const userArgs = process.argv.slice(2).filter((arg) => arg !== "--")
 

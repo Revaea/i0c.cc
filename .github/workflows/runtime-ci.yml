@@ -8,6 +8,7 @@ on:
       - .github/workflows/runtime-ci.yml
       - apps/runtime/**
       - packages/config/**
+      - packages/plugin-contracts/**
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
@@ -18,6 +19,7 @@ on:
       - .github/workflows/runtime-ci.yml
       - apps/runtime/**
       - packages/config/**
+      - packages/plugin-contracts/**
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml

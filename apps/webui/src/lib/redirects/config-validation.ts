@@ -1,6 +1,7 @@
 import Ajv, { type AnySchema, type ValidateFunction } from "ajv";
 import addFormats from "ajv-formats";
-import redirectsSchema from "i0c-redirect-worker/redirects.schema.json";
+
+import redirectsSchema from "@i0c/config/redirects.schema.json";
 
 import { findRedirectConfigSemanticIssues } from "./config-semantics";
 

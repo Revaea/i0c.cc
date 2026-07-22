@@ -40,6 +40,9 @@ importers:
       '@i0c/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@i0c/plugin-contracts':
+        specifier: workspace:*
+        version: link:../../packages/plugin-contracts
       '@vercel/functions':
         specifier: ^3.7.5
         version: 3.7.5(ws@8.21.0)
@@ -74,6 +77,9 @@ importers:
       '@i0c/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@i0c/plugin-contracts':
+        specifier: workspace:*
+        version: link:../../packages/plugin-contracts
       '@visx/axis':
         specifier: ^4.0.0
         version: 4.0.0(@types/react@19.2.17)(react@19.2.7)
@@ -104,9 +110,6 @@ importers:
       ajv-formats:
         specifier: ^3.0.1
         version: 3.0.1(ajv@8.20.0)
-      i0c-redirect-worker:
-        specifier: workspace:*
-        version: link:../runtime
       next:
         specifier: 16.2.10
         version: 16.2.10(@babel/core@7.29.7)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -164,6 +167,12 @@ importers:
         version: 5.9.3
 
   packages/config:
+    devDependencies:
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+
+  packages/plugin-contracts:
     devDependencies:
       typescript:
         specifier: ^6.0.2
