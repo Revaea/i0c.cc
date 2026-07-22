@@ -19,6 +19,7 @@ import {
   prepareAnalyticsRequest
 } from "../../src/lib/handlers/analytics";
 import type { AnalyticsRequestContext } from "../../src/lib/handlers/analytics";
+import { resolveRuntimeOptions } from "../../src/lib/handlers/configuration/loader";
 import type { NormalizedRule, ResolvedRuntime } from "../../src/lib/handlers/core/types";
 
 const analyticsEndpoint = "https://u.i0c.cc/api/analytics/events";
@@ -54,12 +55,13 @@ function createRequest(path = "/r"): Request {
 
 function createRuntime(overrides: Partial<ResolvedRuntime> = {}): ResolvedRuntime {
   return {
-    configUrl: "https://example.com/redirects.json",
-    cacheTtlSeconds: 60,
-    fetchImpl: fetch,
-    provider: "cloudflare",
-    now: () => completedAt,
-    random: () => 0,
+    ...resolveRuntimeOptions({
+      configUrl: "https://example.com/redirects.json",
+      dataConfigUrl: null,
+      provider: "cloudflare",
+      now: () => completedAt,
+      random: () => 0
+    }),
     ...overrides
   };
 }
@@ -132,6 +134,50 @@ test("uses versioned analytics settings and reads only the Runtime write key bin
   assert.equal(analytics.settings.sourceHostname, "i0c.cc");
   assert.equal(analytics.settings.runtimeSampleRate, 0.1);
   assert.ok(analytics.settings.attributionKey instanceof ArrayBuffer);
+});
+
+test("delivers events through an injected analytics sink without the default write key", async () => {
+  let capturedEventKind: string | undefined;
+  let capturedEndpoint: string | undefined;
+  let capturedPluginSecret: string | undefined;
+  let capturedWriteKey: string | undefined;
+  let deliveryPromise: Promise<unknown> | undefined;
+  const runtime = createRuntime({
+    analyticsSink: {
+      async emit(event, context) {
+        capturedEventKind = event.eventKind;
+        capturedEndpoint = context.endpoint;
+        capturedPluginSecret = context.readSecret("PLUGIN_TOKEN");
+        capturedWriteKey = context.writeKey;
+      }
+    },
+    envBindings: {
+      PLUGIN_TOKEN: "plugin-secret"
+    },
+    waitUntil: (promise) => {
+      deliveryPromise = promise;
+    }
+  });
+
+  const analytics = createAnalyticsContext();
+  analytics.settings.delivery = null;
+
+  finalizeRuntimeAnalytics({
+    request: createRequest("/missing"),
+    response: new Response("missing", { status: 404 }),
+    outcome: "not_found",
+    effectivePath: "/missing",
+    startedAt: completedAt - 10,
+    runtime,
+    analytics
+  });
+
+  assert.ok(deliveryPromise);
+  await deliveryPromise;
+  assert.equal(capturedEventKind, "runtime");
+  assert.equal(capturedEndpoint, analyticsEndpoint);
+  assert.equal(capturedPluginSecret, "plugin-secret");
+  assert.equal(capturedWriteKey, undefined);
 });
 
 test("delivers the Analytics V2 link event contract", async () => {

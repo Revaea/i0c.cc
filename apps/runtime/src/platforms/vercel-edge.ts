@@ -1,4 +1,5 @@
 import { waitUntil as vercelWaitUntil } from "@vercel/functions";
+import type { RuntimePlatformAdapter } from "@i0c/plugin-contracts";
 
 import { handleRedirectRequest, type HandlerOptions } from "@/lib/handler";
 
@@ -17,17 +18,24 @@ function getSecretBindings(): Record<string, unknown> | undefined {
 export const runtime = "edge";
 
 export function createVercelRouteHandler(options?: HandlerOptions) {
-  return async function vercelRoute(request: Request): Promise<Response> {
-    const bindings = options?.envBindings ?? getSecretBindings();
-    const base = options ?? {};
-    const merged: HandlerOptions = {
-      ...base,
-      envBindings: base.envBindings ?? bindings,
-      provider: base.provider ?? "vercel",
-      country: base.country ?? request.headers.get("x-vercel-ip-country") ?? undefined,
-      waitUntil: base.waitUntil ?? ((promise: Promise<unknown>) => vercelWaitUntil(promise))
-    };
-    return handleRedirectRequest(request, merged);
+  const adapter = {
+    id: "vercel",
+    async handle(request: Request): Promise<Response> {
+      const bindings = options?.envBindings ?? getSecretBindings();
+      const base = options ?? {};
+      const merged: HandlerOptions = {
+        ...base,
+        envBindings: base.envBindings ?? bindings,
+        provider: base.provider ?? "vercel",
+        country: base.country ?? request.headers.get("x-vercel-ip-country") ?? undefined,
+        waitUntil: base.waitUntil ?? ((promise: Promise<unknown>) => vercelWaitUntil(promise))
+      };
+      return handleRedirectRequest(request, merged);
+    }
+  } satisfies RuntimePlatformAdapter<[Request]>;
+
+  return function vercelRoute(request: Request): Promise<Response> {
+    return adapter.handle(request);
   };
 }
 

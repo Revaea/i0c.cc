@@ -18,6 +18,7 @@ import {
   finalizeRuntimeAnalytics
 } from "../../src/lib/handlers/analytics";
 import type { AnalyticsRequestContext } from "../../src/lib/handlers/analytics";
+import { resolveRuntimeOptions } from "../../src/lib/handlers/configuration/loader";
 import type { NormalizedRule, ResolvedRuntime } from "../../src/lib/handlers/core/types";
 
 const request = new Request("https://i0c.cc/r", {
@@ -35,12 +36,13 @@ const rule: NormalizedRule = {
 
 function createRuntime(overrides: Partial<ResolvedRuntime> = {}): ResolvedRuntime {
   return {
-    configUrl: "https://example.com/redirects.json",
-    cacheTtlSeconds: 60,
-    fetchImpl: fetch,
-    provider: "cloudflare",
-    now: () => Date.now(),
-    random: () => 0,
+    ...resolveRuntimeOptions({
+      configUrl: "https://example.com/redirects.json",
+      dataConfigUrl: null,
+      provider: "cloudflare",
+      now: () => Date.now(),
+      random: () => 0
+    }),
     ...overrides
   };
 }

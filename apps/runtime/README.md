@@ -1,6 +1,6 @@
 # i0c.cc Runtime
 
-Provider-selectable redirect runtime for fetch-compatible edge platforms: Cloudflare Workers, Vercel Edge Functions, and Netlify Edge Functions. It enforces HTTPS, serves a favicon, and applies redirect or proxy rules defined in a remote `redirects.json` file. Choose the adapter that fits the deployment; the three providers do not need to run together.
+Provider-selectable redirect runtime for fetch-compatible edge platforms: Cloudflare Workers, Vercel Edge Functions, and Netlify Edge Functions. It enforces HTTPS, serves a favicon, and loads non-sensitive instance settings from remote `config.json` plus rules from remote `redirects.json`. Choose the adapter that fits the deployment; the three providers do not need to run together.
 
 Live previews:
 
@@ -26,11 +26,11 @@ Use these settings when the platform asks for project or build configuration:
 | Vercel | `apps/runtime` | `pnpm build:vc` | `.vercel/output` |
 | Netlify | `apps/runtime` | `pnpm build:nf` | `dist` |
 
-Build from a full monorepo checkout. On Vercel, keep **Include source files outside of the Root Directory in the Build Step** enabled so the build can include `@i0c/config`.
+Build from a full monorepo checkout. On Vercel, keep **Include source files outside of the Root Directory in the Build Step** enabled so the build can include the shared workspace packages.
 
 After deploying:
 
-- Edit [../../packages/config/src/index.ts](../../packages/config/src/index.ts) when the redirect source or other non-sensitive Runtime settings need to change, then rebuild and redeploy.
+- Edit `config.json` or `redirects.json` on the `data` branch when non-sensitive settings or rules change. Built-in adapters pick up valid updates after their configured cache TTL without a rebuild.
 - Set `ANALYTICS_WRITE_KEY` on every provider that should deliver analytics events.
 - Re-run the package build after updating shared redirect logic, then redeploy.
 
@@ -40,23 +40,25 @@ After deploying:
 - Vercel Edge Functions: [src/platforms/vercel-edge.ts](src/platforms/vercel-edge.ts)
 - Netlify Edge Functions: [src/platforms/netlify-edge.ts](src/platforms/netlify-edge.ts)
 
-Need a custom runtime? Import `handleRedirectRequest` from [src/lib/handler.ts](src/lib/handler.ts) and call it with your own `Request` object plus optional `HandlerOptions`, for example to override the config URL or provide a custom cache implementation.
+Need a custom runtime? Import `handleRedirectRequest` from [src/lib/handler.ts](src/lib/handler.ts) and call it with your own `Request` object plus optional `HandlerOptions`. A custom adapter can inject a `RuntimeDataSource`, `AnalyticsSink`, cache, clock, fetch implementation, or explicit config URLs. The stable adapter shapes live in [../../packages/plugin-contracts](../../packages/plugin-contracts).
 
 ## Environment variables and configuration
 
-Non-sensitive settings are versioned in [../../packages/config/src/index.ts](../../packages/config/src/index.ts). The Runtime does not read legacy environment variables as overrides or fallbacks; values left in provider dashboards are ignored.
+Non-sensitive instance settings are versioned in `data/config.json`. [../../packages/config](../../packages/config) owns its schema, validation, bootstrap location, and safe fallback. The Runtime does not read legacy environment variables as overrides or fallbacks; values left in provider dashboards are ignored.
 
-### Versioned Runtime configuration
+### Remote Runtime configuration
 
-The shared configuration owns:
+`config.json` owns:
 
-- `redirects.github`: GitHub owner, repository, branch, and JSON path used to construct the raw redirect source URL.
 - `runtime.canonicalOrigin`: Canonical public Runtime origin used by shared consumers such as the WebUI QR code.
 - `runtime.robotsPolicy`: Set to `allow` to publish an open `robots.txt` and sitemap; set to `disallow` to block crawling and omit the sitemap.
+- `runtime.configCacheTtlSeconds`: Cache lifetime for `config.json`.
+- `runtime.redirectsCacheTtlSeconds`: Cache lifetime for `redirects.json`.
 - `analytics.ingestEndpoint`: HTTPS WebUI collector endpoint.
 - `analytics.sourceId`: Lowercase base hostname and stable statistics namespace shared by all providers.
+- `plugins`: Namespaced, non-sensitive plugin settings and references to environment-variable secret bindings.
 
-Programmatic consumers can still pass `HandlerOptions.configUrl` for an explicitly constructed custom adapter. The built-in Cloudflare, Vercel, and Netlify adapters always use the versioned redirect source.
+The Runtime caches each document independently, deduplicates in-flight loads, uses ETags where available, and retains the last valid in-memory or platform-cached value when a refresh fails. Invalid remote instance settings never replace the active configuration. Programmatic consumers can still pass explicit URLs or inject a complete data source through `HandlerOptions`.
 
 ### Configure the analytics secret
 
@@ -108,7 +110,7 @@ Add the schema reference below to unlock autocomplete and validation in supporti
 
 ```jsonc
 {
-  "$schema": "https://raw.githubusercontent.com/Revaea/i0c.cc/main/apps/runtime/redirects.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Revaea/i0c.cc/main/packages/config/redirects.schema.json",
   "Slots": {
     // ...
   }

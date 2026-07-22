@@ -12,6 +12,12 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
+import type { DataConfig } from "@i0c/config";
+import type {
+  AnalyticsSink,
+  RuntimeDataSource as RuntimeDataSourceContract
+} from "@i0c/plugin-contracts";
+
 export type RouteType = "prefix" | "exact" | "proxy";
 export type AnalyticsProvider = "cloudflare" | "vercel" | "netlify" | "unknown";
 export type AnalyticsRequestClass = "human" | "link_preview" | "crawler" | "monitor" | "asset" | "unknown";
@@ -80,18 +86,38 @@ export interface RedirectsConfig {
   [key: string]: unknown;
 }
 
-export interface MemoryCacheEntry {
-  config: RedirectsConfig;
-  expiresAt: number;
-}
-
 export interface CacheLike {
   match(request: Request): Promise<Response | undefined | null>;
   put(request: Request, response: Response): Promise<void>;
 }
 
+export type RuntimeDataSource = RuntimeDataSourceContract<DataConfig, RedirectsConfig>;
+
+export interface AnalyticsSinkEvent {
+  eventKind: AnalyticsEventKind;
+}
+
+export interface AnalyticsSinkContext {
+  completedAt: number;
+  dataConfig: DataConfig;
+  endpoint: string;
+  fetchImpl: typeof fetch;
+  provider: AnalyticsProvider;
+  readSecret(bindingName: string): string | undefined;
+  sourceId: string;
+  writeKey?: string;
+}
+
+export type RuntimeAnalyticsSink = AnalyticsSink<AnalyticsSinkEvent, AnalyticsSinkContext>;
+
 export interface HandlerOptions {
   configUrl?: string;
+  dataConfigUrl?: string | null;
+  redirectsConfigUrl?: string;
+  dataConfigCacheTtlSeconds?: number;
+  redirectsCacheTtlSeconds?: number;
+  dataSource?: RuntimeDataSource;
+  analyticsSink?: RuntimeAnalyticsSink;
   cache?: CacheLike;
   cacheTtlSeconds?: number;
   fetchImpl?: typeof fetch;
@@ -106,6 +132,11 @@ export interface HandlerOptions {
 
 export interface ResolvedRuntime {
   configUrl: string;
+  dataConfig: DataConfig;
+  dataConfigUrl?: string;
+  redirectsConfigUrl: string;
+  dataSource: RuntimeDataSource;
+  analyticsSink?: RuntimeAnalyticsSink;
   cache?: CacheLike;
   cacheTtlSeconds: number;
   fetchImpl: typeof fetch;

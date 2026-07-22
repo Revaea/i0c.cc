@@ -39,7 +39,11 @@ import type {
 } from "../core/types";
 
 export type { AnalyticsRuntimeSettings } from "./settings";
-export { ANALYTICS_ATTRIBUTION_QUERY_PARAM, clearAttributionCookie };
+export {
+  ANALYTICS_ATTRIBUTION_QUERY_PARAM,
+  clearAttributionCookie,
+  readAttributionCookie
+};
 
 export interface AnalyticsRequestContext {
   attribution?: VerifiedAttributionToken;
@@ -135,8 +139,10 @@ export async function finalizeMatchedAnalytics(input: MatchedAnalyticsInput): Pr
 
 async function finalizeMatchedAnalyticsInternal(input: MatchedAnalyticsInput): Promise<Response> {
   const completedAt = input.runtime.now();
-  const config = input.analytics.settings.delivery;
-  if (!config) {
+  const settings = input.analytics.settings;
+  const delivery = settings.delivery;
+  const sourceId = settings.sourceId;
+  if (!sourceId || (!delivery && !input.runtime.analyticsSink)) {
     return clearAttributionCookie(input.response, input.analytics.hasAttributionCookie);
   }
 
@@ -151,7 +157,7 @@ async function finalizeMatchedAnalyticsInternal(input: MatchedAnalyticsInput): P
     completedAt,
     runtime: input.runtime,
     entryDomain: input.analytics.entryDomain,
-    sourceId: config.sourceId,
+    sourceId,
     ...(input.analytics.attribution ? { attribution: input.analytics.attribution } : {})
   });
 
@@ -179,7 +185,7 @@ async function finalizeMatchedAnalyticsInternal(input: MatchedAnalyticsInput): P
     }
   }
 
-  scheduleAnalyticsEvent(event, input.runtime, config, completedAt);
+  scheduleAnalyticsEvent(event, input.runtime, { delivery, sourceId }, completedAt);
   return clearAttributionCookie(finalResponse, input.analytics.hasAttributionCookie);
 }
 
@@ -194,8 +200,10 @@ export function finalizeRuntimeAnalytics(input: RuntimeAnalyticsInput): Response
 
 function finalizeRuntimeAnalyticsInternal(input: RuntimeAnalyticsInput): Response {
   const finalResponse = clearAttributionCookie(input.response, input.analytics.hasAttributionCookie);
-  const config = input.analytics.settings.delivery;
-  if (!config) {
+  const settings = input.analytics.settings;
+  const delivery = settings.delivery;
+  const sourceId = settings.sourceId;
+  if (!sourceId || (!delivery && !input.runtime.analyticsSink)) {
     return finalResponse;
   }
 
@@ -214,10 +222,10 @@ function finalizeRuntimeAnalyticsInternal(input: RuntimeAnalyticsInput): Respons
     completedAt,
     runtime: input.runtime,
     entryDomain: input.analytics.entryDomain,
-    sourceId: config.sourceId,
+    sourceId,
     sampleRate
   });
-  scheduleAnalyticsEvent(event, input.runtime, config, completedAt);
+  scheduleAnalyticsEvent(event, input.runtime, { delivery, sourceId }, completedAt);
   return finalResponse;
 }
 

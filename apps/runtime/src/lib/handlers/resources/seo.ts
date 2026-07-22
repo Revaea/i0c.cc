@@ -10,7 +10,8 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
-import { appConfig } from "@i0c/config";
+import { defaultDataConfig } from "@i0c/config";
+import type { RobotsPolicy } from "@i0c/config";
 
 import { buildCompiledList } from "../routing/matcher";
 import type { RouteValueEntry } from "../core/types";
@@ -19,13 +20,18 @@ function escapeXml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&apos;");
 }
 
-export function isRobotsAllowed(): boolean {
-  return appConfig.runtime.robotsPolicy === "allow";
+export function isRobotsAllowed(
+  policy: RobotsPolicy = defaultDataConfig.runtime.robotsPolicy
+): boolean {
+  return policy === "allow";
 }
 
-export function generateRobots(origin: string): string {
+export function generateRobots(
+  origin: string,
+  policy: RobotsPolicy = defaultDataConfig.runtime.robotsPolicy
+): string {
   const sitemapUrl = `${origin.replace(/\/$/, "")}/sitemap.xml`;
-  const allowAll = isRobotsAllowed();
+  const allowAll = isRobotsAllowed(policy);
 
   const lines = ["User-agent: *", allowAll ? "Allow: /" : "Disallow: /"];
   if (allowAll) {

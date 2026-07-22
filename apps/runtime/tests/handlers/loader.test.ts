@@ -13,7 +13,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { defaultDataConfig } from "@i0c/config";
+
 import {
+  loadDataConfig,
   loadConfig,
   resolveRuntimeOptions
 } from "../../src/lib/handlers/configuration/loader";
@@ -30,6 +33,115 @@ test("uses the versioned redirect source instead of legacy environment bindings"
     runtime.configUrl,
     "https://raw.githubusercontent.com/Revaea/i0c.cc/data/redirects.json"
   );
+  assert.equal(
+    runtime.dataConfigUrl,
+    "https://raw.githubusercontent.com/Revaea/i0c.cc/data/config.json"
+  );
+});
+
+test("loads and validates the remote instance configuration", async () => {
+  const runtime = resolveRuntimeOptions({
+    dataConfigUrl: "https://config.example/data-config.json",
+    redirectsConfigUrl: "https://config.example/redirects.json",
+    now: () => 0,
+    fetchImpl: async (input) => {
+      assert.equal(String(input), "https://config.example/data-config.json");
+      return Response.json({
+        schemaVersion: 1,
+        runtime: {
+          canonicalOrigin: "https://links.example.com",
+          robotsPolicy: "disallow",
+          configCacheTtlSeconds: 300,
+          redirectsCacheTtlSeconds: 30
+        },
+        analytics: {
+          ingestEndpoint: "https://console.example.com/api/analytics/events",
+          sourceId: "links.example.com"
+        },
+        webui: {
+          access: {
+            mode: "allowlist",
+            managerGitHubUserIds: ["123"]
+          }
+        },
+        plugins: {}
+      });
+    }
+  });
+
+  const config = await loadDataConfig(runtime);
+
+  assert.equal(config.runtime.canonicalOrigin, "https://links.example.com");
+  assert.equal(config.runtime.robotsPolicy, "disallow");
+  assert.equal(config.analytics.sourceId, "links.example.com");
+});
+
+test("keeps the safe default when remote instance configuration is invalid", async (context) => {
+  context.mock.method(console, "error", () => undefined);
+  const runtime = resolveRuntimeOptions({
+    dataConfigUrl: "https://config.example/invalid-data-config.json",
+    now: () => 0,
+    fetchImpl: async () => Response.json({ schemaVersion: 2 })
+  });
+
+  const config = await loadDataConfig(runtime);
+
+  assert.equal(config.runtime.canonicalOrigin, "https://i0c.cc");
+  assert.equal(config.analytics.sourceId, "i0c.cc");
+});
+
+test("accepts a replaceable data source without using the remote fetch adapter", async () => {
+  let configLoads = 0;
+  let ruleLoads = 0;
+  const rules = { Slots: { Main: { "/docs": "https://example.com/docs" } } };
+  const runtime = resolveRuntimeOptions({
+    dataSource: {
+      async loadConfig() {
+        configLoads += 1;
+        return defaultDataConfig;
+      },
+      async loadRules() {
+        ruleLoads += 1;
+        return rules;
+      }
+    },
+    fetchImpl: async () => {
+      throw new Error("The remote adapter must not run for an injected data source");
+    }
+  });
+
+  assert.equal(await loadDataConfig(runtime), defaultDataConfig);
+  assert.equal(await loadConfig(runtime), rules);
+  assert.equal(configLoads, 1);
+  assert.equal(ruleLoads, 1);
+});
+
+test("revalidates expired instance configuration with an ETag", async () => {
+  let now = 0;
+  let fetchCalls = 0;
+  const runtime = resolveRuntimeOptions({
+    dataConfigUrl: "https://config.example/etag-data-config.json",
+    now: () => now,
+    fetchImpl: async (input, init) => {
+      fetchCalls += 1;
+      const request = new Request(input, init);
+      if (fetchCalls === 1) {
+        assert.equal(request.headers.get("if-none-match"), null);
+        return Response.json(defaultDataConfig, {
+          headers: { ETag: '"config-v1"' }
+        });
+      }
+      assert.equal(request.headers.get("if-none-match"), '"config-v1"');
+      return new Response(null, { status: 304 });
+    }
+  });
+
+  const first = await loadDataConfig(runtime);
+  now = 600_001;
+  const second = await loadDataConfig(runtime);
+
+  assert.equal(second, first);
+  assert.equal(fetchCalls, 2);
 });
 
 test("deduplicates concurrent config loads and reuses parsed data", async () => {
@@ -88,4 +200,26 @@ test("releases unsuccessful configuration responses", async (context) => {
 
   assert.equal(config, null);
   assert.equal(didCancelResponse, true);
+});
+
+test("backs off repeated remote loads after a transient failure", async (context) => {
+  context.mock.method(console, "error", () => undefined);
+  let now = 0;
+  let fetchCalls = 0;
+  const runtime = resolveRuntimeOptions({
+    configUrl: "https://config.example/backoff.json",
+    now: () => now,
+    fetchImpl: async () => {
+      fetchCalls += 1;
+      return new Response(null, { status: 503 });
+    }
+  });
+
+  assert.equal(await loadConfig(runtime), null);
+  assert.equal(await loadConfig(runtime), null);
+  assert.equal(fetchCalls, 1);
+
+  now = 10_001;
+  assert.equal(await loadConfig(runtime), null);
+  assert.equal(fetchCalls, 2);
 });

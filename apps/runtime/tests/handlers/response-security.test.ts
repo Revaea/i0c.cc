@@ -13,6 +13,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { resolveRuntimeOptions } from "../../src/lib/handlers/configuration/loader";
 import { respondUsingRule } from "../../src/lib/handlers/routing/response";
 import type { NormalizedRule, ResolvedRuntime } from "../../src/lib/handlers/core/types";
 
@@ -25,14 +26,14 @@ const proxyRule: NormalizedRule = {
 };
 
 function createRuntime(fetchImpl: typeof fetch): ResolvedRuntime {
-  return {
+  return resolveRuntimeOptions({
     configUrl: "https://config.example/redirects.json",
-    cacheTtlSeconds: 60,
+    dataConfigUrl: null,
     fetchImpl,
     provider: "cloudflare",
     now: () => Date.now(),
     random: () => 0
-  };
+  });
 }
 
 test("blocks non-public literal IP proxy targets", async (context) => {

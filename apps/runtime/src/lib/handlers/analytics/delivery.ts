@@ -10,12 +10,29 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
-import type { ResolvedRuntime } from "../core/types";
+import type {
+  AnalyticsSinkContext,
+  AnalyticsSinkEvent,
+  ResolvedRuntime,
+  RuntimeAnalyticsSink
+} from "../core/types";
 import type { AnalyticsEventV2 } from "./events";
 import type { AnalyticsDeliveryConfig } from "./settings";
+import { readRuntimeSecret } from "../configuration/env";
 
 const encoder = new TextEncoder();
 const maximumDeliveryAttempts = 2;
+
+interface AnalyticsDispatchSettings {
+  delivery: AnalyticsDeliveryConfig | null;
+  sourceId: string;
+}
+
+export const httpAnalyticsSink: RuntimeAnalyticsSink = {
+  async emit(event, context) {
+    await emitAnalyticsEvent(event, context);
+  }
+};
 
 let deliveryKeyCache: {
   writeKey: string;
@@ -25,10 +42,20 @@ let deliveryKeyCache: {
 export function scheduleAnalyticsEvent(
   event: AnalyticsEventV2,
   runtime: ResolvedRuntime,
-  config: AnalyticsDeliveryConfig,
+  settings: AnalyticsDispatchSettings,
   completedAt: number
 ): void {
-  const task = emitAnalyticsEvent(event, runtime, config, completedAt).catch((error: unknown) => {
+  const sink = runtime.analyticsSink ?? httpAnalyticsSink;
+  const task = sink.emit(event, {
+    completedAt,
+    dataConfig: runtime.dataConfig,
+    endpoint: settings.delivery?.endpoint ?? runtime.dataConfig.analytics.ingestEndpoint,
+    fetchImpl: runtime.fetchImpl,
+    provider: runtime.provider,
+    readSecret: (bindingName) => readRuntimeSecret(runtime.envBindings, bindingName),
+    sourceId: settings.sourceId,
+    ...(settings.delivery ? { writeKey: settings.delivery.writeKey } : {})
+  }).catch((error: unknown) => {
     console.error(`[Analytics] Failed to emit ${event.eventKind} event`, error);
   });
   if (!runtime.waitUntil) {
@@ -43,18 +70,19 @@ export function scheduleAnalyticsEvent(
 }
 
 async function emitAnalyticsEvent(
-  event: AnalyticsEventV2,
-  runtime: ResolvedRuntime,
-  config: AnalyticsDeliveryConfig,
-  completedAt: number
+  event: AnalyticsSinkEvent,
+  context: AnalyticsSinkContext
 ): Promise<void> {
+  if (!context.writeKey) {
+    throw new Error("analytics write key is required for HTTP delivery");
+  }
   const body = JSON.stringify(event);
-  const timestamp = String(Math.floor(completedAt / 1000));
-  const signature = await createSignature(config.writeKey, `${timestamp}.${body}`);
+  const timestamp = String(Math.floor(context.completedAt / 1000));
+  const signature = await createSignature(context.writeKey, `${timestamp}.${body}`);
   for (let attempt = 1; attempt <= maximumDeliveryAttempts; attempt += 1) {
     let response: Response;
     try {
-      response = await runtime.fetchImpl(config.endpoint, {
+      response = await context.fetchImpl(context.endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

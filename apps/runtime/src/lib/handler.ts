@@ -17,13 +17,18 @@ import {
   clearAttributionCookie,
   finalizeMatchedAnalytics,
   finalizeRuntimeAnalytics,
-  prepareAnalyticsRequest
+  prepareAnalyticsRequest,
+  readAttributionCookie
 } from "@handlers/analytics";
 import { HTTPS_REDIRECT_STATUS } from "@handlers/core/constants";
 import { dispatchRouteRequest } from "@handlers/routing/dispatcher";
 import { serveFavicon } from "@handlers/resources/favicon-serve";
 import { interLatinVariableFontPath, serveInterFont } from "@handlers/resources/font-serve";
-import { loadConfig, resolveRuntimeOptions } from "@handlers/configuration/loader";
+import {
+  loadDataConfig,
+  loadRedirects,
+  resolveRuntimeOptions
+} from "@handlers/configuration/loader";
 import {
   flattenSlots,
   getCompiledList,
@@ -36,7 +41,7 @@ import type { HandlerOptions, RouteValueEntry } from "@handlers/core/types";
 import { inferEffectivePath, isLikelyStaticAssetPath, normalisePath, safeDecode } from "@handlers/core/utils";
 
 export async function handleRedirectRequest(request: Request, options: HandlerOptions = {}): Promise<Response> {
-  const runtime = resolveRuntimeOptions(options);
+  let runtime = resolveRuntimeOptions(options);
   const startedAt = runtime.now();
   let analytics: AnalyticsRequestContext | undefined;
   let effectivePath = "/";
@@ -49,6 +54,24 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
       const destination = `https://${initialUrl.host}${initialUrl.pathname}${initialUrl.search}`;
       return createCanonicalRedirect(destination, containsAttributionToken);
     }
+
+    const initialPath = normalisePath(initialUrl.pathname);
+    if (!initialUrl.searchParams.has(ANALYTICS_ATTRIBUTION_QUERY_PARAM)) {
+      const hasAttributionCookie = Boolean(readAttributionCookie(request));
+      if (initialPath === "/favicon.ico") {
+        return clearAttributionCookie(serveFavicon(), hasAttributionCookie);
+      }
+      if (initialPath === interLatinVariableFontPath) {
+        return clearAttributionCookie(serveInterFont(), hasAttributionCookie);
+      }
+    }
+    const needsRedirects = initialPath !== "/favicon.ico" && initialPath !== interLatinVariableFontPath;
+    const redirectsPromise = needsRedirects ? loadRedirects(runtime) : undefined;
+    const dataConfig = await loadDataConfig(runtime);
+    runtime = {
+      ...runtime,
+      dataConfig
+    };
 
     analytics = await prepareAnalyticsRequest(request, runtime);
     if (analytics.cleanupResponse) {
@@ -67,7 +90,7 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
       return clearAttributionCookie(serveInterFont(), analytics.hasAttributionCookie);
     }
 
-    const redirectsConfig = await loadConfig(runtime);
+    const redirectsConfig = redirectsPromise ? await redirectsPromise : null;
     const slotSource = getSlotSource(redirectsConfig);
 
     if (!slotSource) {
@@ -93,7 +116,7 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
       const origin = url.origin;
 
       if (path === "/robots.txt") {
-        const robots = generateRobots(origin);
+        const robots = generateRobots(origin, runtime.dataConfig.runtime.robotsPolicy);
         const response = new Response(robots, {
           status: 200,
           headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" }
@@ -101,7 +124,7 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
         return clearAttributionCookie(response, analytics.hasAttributionCookie);
       }
 
-      if (!isRobotsAllowed()) {
+      if (!isRobotsAllowed(runtime.dataConfig.runtime.robotsPolicy)) {
         const response = new Response("Sitemap disabled", {
           status: 404,
           headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=300" }
@@ -202,5 +225,9 @@ function createCanonicalRedirect(destination: string, containsAttributionToken: 
   });
 }
 
-export { DEFAULT_CONFIG_URL } from "@handlers/configuration/config";
+export {
+  DEFAULT_CONFIG_URL,
+  DEFAULT_DATA_CONFIG_URL,
+  DEFAULT_REDIRECTS_CONFIG_URL
+} from "@handlers/configuration/config";
 export type { RedirectsConfig, RouteConfig, HandlerOptions } from "@handlers/core/types";

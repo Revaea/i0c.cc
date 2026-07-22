@@ -10,13 +10,11 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
-import { appConfig } from "@i0c/config";
-
 import {
   deriveAttributionHmacKey,
   normalizeAnalyticsHostname
 } from "./attribution";
-import { readBindingVar, readEnvVar } from "../configuration/env";
+import { readRuntimeSecret } from "../configuration/env";
 import type { ResolvedRuntime } from "../core/types";
 
 const ANALYTICS_WRITE_KEY = "ANALYTICS_WRITE_KEY";
@@ -51,9 +49,9 @@ export function createDefaultAnalyticsRuntimeSettings(): AnalyticsRuntimeSetting
 export async function resolveAnalyticsSettings(
   runtime: ResolvedRuntime
 ): Promise<AnalyticsRuntimeSettings> {
-  const sourceId = normalizeAnalyticsHostname(appConfig.analytics.sourceId) ?? undefined;
-  const endpointValue = appConfig.analytics.ingestEndpoint;
-  const writeKey = readRuntimeSecret(runtime, ANALYTICS_WRITE_KEY)?.trim();
+  const sourceId = normalizeAnalyticsHostname(runtime.dataConfig.analytics.sourceId) ?? undefined;
+  const endpointValue = runtime.dataConfig.analytics.ingestEndpoint;
+  const writeKey = readRuntimeSecret(runtime.envBindings, ANALYTICS_WRITE_KEY)?.trim();
   const sourceHostname = sourceId;
   let attributionKey: ArrayBuffer | undefined;
   if (writeKey && writeKey.length >= 32) {
@@ -99,10 +97,6 @@ function getAttributionHmacKey(writeKey: string): Promise<ArrayBuffer> {
     }
   });
   return key;
-}
-
-function readRuntimeSecret(runtime: ResolvedRuntime, key: string): string | undefined {
-  return readBindingVar(runtime.envBindings, key) ?? readEnvVar(key);
 }
 
 function isLoopbackHost(hostname: string): boolean {
