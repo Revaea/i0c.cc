@@ -12,6 +12,7 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
+import type { AnalyticsProvider as AnalyticsProviderType } from "@i0c/analytics-domain";
 import type {
   AnalyticsClassificationHookContext
 } from "@i0c/analytics-domain/classification";
@@ -25,11 +26,12 @@ import type {
   RuntimeCache,
   RuntimeDataSource as RuntimeDataSourceContract,
   RuntimeFeaturePipeline,
-  RuntimeFeatureRegistration
+  RuntimeFeatureRegistration,
+  RuntimePlatformManifest
 } from "@i0c/plugin-api";
 
 export type RouteType = "prefix" | "exact" | "proxy";
-export type AnalyticsProvider = "cloudflare" | "vercel" | "netlify" | "unknown";
+export type AnalyticsProvider = AnalyticsProviderType;
 export type AnalyticsRequestClass = "human" | "link_preview" | "crawler" | "monitor" | "asset" | "unknown";
 export type AnalyticsEventKind = "link" | "runtime";
 export type AnalyticsTrafficClass = "browser_like" | "declared_bot" | "suspected_automation" | "unknown";
@@ -130,7 +132,10 @@ export interface HandlerOptions {
   fetchImpl?: typeof fetch;
   fetchInit?: RequestInit;
   envBindings?: Record<string, unknown>;
+  readEnvironment?(name: string): unknown;
   provider?: AnalyticsProvider;
+  platformPluginId?: string;
+  runtimePlatformManifests?: readonly RuntimePlatformManifest[];
   country?: string;
   waitUntil?(promise: Promise<unknown>): void;
   now?: () => number;
@@ -151,7 +156,10 @@ export interface ResolvedRuntime {
   fetchImpl: typeof fetch;
   fetchInit?: RequestInit;
   envBindings?: Record<string, unknown>;
+  readEnvironment?: (name: string) => unknown;
   provider: AnalyticsProvider;
+  platformPluginId?: string;
+  runtimePlatformManifests: readonly RuntimePlatformManifest[];
   country?: string;
   waitUntil?: (promise: Promise<unknown>) => void;
   now: () => number;

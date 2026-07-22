@@ -2,37 +2,42 @@
  * @file registry.ts
  * @description
  * [EN] Runtime plugin catalog projection and remote declaration validation.
- * Keeps platform selection compile-time while enforcing enabled plugin configuration per request.
+ * Combines host-injected platform manifests with platform-neutral official presets.
  *
  * [CN] Runtime 插件目录投影与远程声明校验。
- * 保持平台在编译期选择，同时在每次配置刷新后校验启用插件。
+ * 将宿主注入的平台 Manifest 与平台无关的官方预设组合并校验。
  *
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
 import type { DataConfig, PluginInstanceConfig } from "@i0c/config";
-import { runtimeInstalledPluginRegistry } from "@i0c/plugin-catalog/runtime";
-import { PluginError } from "@i0c/plugin-api";
-import type { ResolvedPluginConfiguration } from "@i0c/plugin-api";
-
-import type { AnalyticsProvider } from "@handlers/core/types";
+import { installedPluginIds } from "@i0c/plugin-catalog";
+import { runtimePluginManifests } from "@i0c/plugin-catalog/runtime";
+import { PluginError, StaticPluginRegistry } from "@i0c/plugin-api";
+import type {
+  ResolvedPluginConfiguration,
+  RuntimePlatformManifest
+} from "@i0c/plugin-api";
 
 const GITHUB_RAW_SOURCE_PLUGIN_ID = "@i0c/github-raw-source";
 const HTTP_ANALYTICS_SINK_PLUGIN_ID = "@i0c/analytics-sink-http";
 const BOT_CLASSIFIER_PLUGIN_ID = "@i0c/feature-bot-classifier";
 
-const platformPluginIds = {
-  cloudflare: "@i0c/runtime-cloudflare",
-  netlify: "@i0c/runtime-netlify",
-  vercel: "@i0c/runtime-vercel"
-} as const satisfies Partial<Record<AnalyticsProvider, string>>;
+const runtimeCorePluginManifests = runtimePluginManifests.filter(
+  (manifest) => manifest.kind !== "runtime-platform"
+);
+
+export interface RuntimePlatformSelection {
+  platformPluginId?: string;
+  runtimePlatformManifests: readonly RuntimePlatformManifest[];
+}
 
 export function resolveRuntimePlugins(
   config: DataConfig,
-  provider: AnalyticsProvider
+  platform: RuntimePlatformSelection
 ) {
   return new Set(
-    resolveRuntimePluginConfigurations(config, provider).map(
+    resolveRuntimePluginConfigurations(config, platform).map(
       (plugin) => plugin.manifest.id
     )
   );
@@ -40,19 +45,17 @@ export function resolveRuntimePlugins(
 
 export function resolveRuntimePluginConfigurations(
   config: DataConfig,
-  provider: AnalyticsProvider
+  platform: RuntimePlatformSelection
 ): readonly ResolvedPluginConfiguration[] {
-  const platformPluginId = provider === "unknown"
-    ? undefined
-    : platformPluginIds[provider];
-  const declarations = selectRuntimeDeclarations(config.plugins, platformPluginId);
-  const result = runtimeInstalledPluginRegistry.resolve("runtime", declarations);
+  const registry = createRuntimePluginRegistry(platform.runtimePlatformManifests);
+  const declarations = selectRuntimeDeclarations(config.plugins, platform);
+  const result = registry.resolve("runtime", declarations);
   if (result.status === "invalid") {
     throw new PluginError(
       "@i0c/runtime-host",
       "PLUGIN_CONFIG_INVALID",
       result.issues.map((issue) => `${issue.path}: ${issue.message}`).join("\n"),
-      { details: { provider } }
+      { details: { platformPluginId: platform.platformPluginId } }
     );
   }
 
@@ -64,11 +67,11 @@ export function resolveRuntimePluginConfigurations(
       "The Runtime data-source plugin must be enabled"
     );
   }
-  if (platformPluginId && !enabledIds.has(platformPluginId)) {
+  if (platform.platformPluginId && !enabledIds.has(platform.platformPluginId)) {
     throw new PluginError(
-      platformPluginId,
+      platform.platformPluginId,
       "PLUGIN_NOT_INSTALLED",
-      `The ${provider} Runtime platform plugin must be enabled`
+      `The Runtime platform plugin ${platform.platformPluginId} must be enabled`
     );
   }
   return result.plugins;
@@ -76,28 +79,45 @@ export function resolveRuntimePluginConfigurations(
 
 export function isRuntimePluginEnabled(
   config: DataConfig,
-  provider: AnalyticsProvider,
+  platform: RuntimePlatformSelection,
   pluginId: string
 ): boolean {
-  return resolveRuntimePlugins(config, provider).has(pluginId);
+  return resolveRuntimePlugins(config, platform).has(pluginId);
+}
+
+function createRuntimePluginRegistry(
+  platformManifests: readonly RuntimePlatformManifest[]
+): StaticPluginRegistry {
+  const uniquePlatformManifests = [...new Map(
+    platformManifests.map((manifest) => [manifest.id, manifest])
+  ).values()];
+  return new StaticPluginRegistry(
+    [...runtimeCorePluginManifests, ...uniquePlatformManifests],
+    {
+      recognizedPluginIds: [
+        ...installedPluginIds,
+        ...uniquePlatformManifests.map((manifest) => manifest.id)
+      ]
+    }
+  );
 }
 
 function selectRuntimeDeclarations(
   configured: Readonly<Record<string, PluginInstanceConfig>>,
-  platformPluginId: string | undefined
+  platform: RuntimePlatformSelection
 ): Record<string, PluginInstanceConfig> {
   const declarations = { ...configured };
-  for (const id of Object.values(platformPluginIds)) {
-    if (id !== platformPluginId) {
-      delete declarations[id];
+  for (const manifest of platform.runtimePlatformManifests) {
+    if (manifest.id !== platform.platformPluginId) {
+      delete declarations[manifest.id];
     }
   }
 
   declarations[GITHUB_RAW_SOURCE_PLUGIN_ID] ??= { enabled: true };
   declarations[HTTP_ANALYTICS_SINK_PLUGIN_ID] ??= { enabled: true };
   declarations[BOT_CLASSIFIER_PLUGIN_ID] ??= { enabled: true };
-  if (platformPluginId) {
-    declarations[platformPluginId] ??= { enabled: true };
+  if (platform.platformPluginId) {
+    declarations[platform.platformPluginId] ??= { enabled: true };
   }
   return declarations;
 }

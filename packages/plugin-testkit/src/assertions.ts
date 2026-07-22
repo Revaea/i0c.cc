@@ -11,6 +11,7 @@ import {
   RuntimeFeaturePipeline,
   type RuntimeFeatureRegistration,
   type RuntimePlatformAdapter,
+  type RuntimePlatformPlugin,
   type VersionedDataRepository,
   validatePluginManifest,
 } from "@i0c/plugin-api"
@@ -146,6 +147,15 @@ export async function assertRuntimePlatformContract<
   if (input.expectedBody !== undefined) {
     assert.equal(await response.text(), input.expectedBody)
   }
+}
+
+export function assertRuntimePlatformPlugin(
+  plugin: RuntimePlatformPlugin,
+): void {
+  assertPluginManifest(plugin.manifest)
+  assert.equal(plugin.manifest.kind, "runtime-platform")
+  assert.ok(plugin.manifest.provider.trim())
+  assert.equal(typeof plugin.create, "function")
 }
 
 export interface RuntimeFeatureEventContractInput<TEvent> {

@@ -25,20 +25,22 @@ import { RuntimeFeaturePipeline } from "@i0c/plugin-api";
 import type { RuntimeFeatureRegistration } from "@i0c/plugin-api";
 
 import type {
-  AnalyticsProvider,
   RuntimeAnalyticsFeaturePipeline,
   RuntimeFeatureRegistrationInput
 } from "@handlers/core/types";
 
 import { runtimePluginLogger } from "./logger";
-import { resolveRuntimePluginConfigurations } from "./registry";
+import {
+  resolveRuntimePluginConfigurations,
+  type RuntimePlatformSelection
+} from "./registry";
 
 export function createRuntimeFeaturePipeline(
   config: DataConfig,
-  provider: AnalyticsProvider,
+  platform: RuntimePlatformSelection,
   additionalRegistrations: readonly RuntimeFeatureRegistrationInput[] = []
 ): RuntimeAnalyticsFeaturePipeline {
-  const configuredPlugins = resolveRuntimePluginConfigurations(config, provider);
+  const configuredPlugins = resolveRuntimePluginConfigurations(config, platform);
   const registrations: RuntimeFeatureRegistration<
     AnalyticsClassificationHookContext
   >[] = [...additionalRegistrations];

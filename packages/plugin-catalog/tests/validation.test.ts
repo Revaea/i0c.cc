@@ -1,6 +1,8 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
+import type { RuntimePlatformManifest } from "@i0c/plugin-api"
+
 import {
   installedPluginIds,
   installedPluginManifests,
@@ -20,6 +22,26 @@ test("allows all Runtime platform declarations across separate deployment hosts"
     "@i0c/runtime-vercel": { enabled: true },
     "@i0c/runtime-netlify": { enabled: true },
   }), [])
+})
+
+test("accepts an installed platform outside the official catalog", () => {
+  const externalManifest = {
+    id: "@example/runtime-external",
+    name: "External Runtime",
+    version: "1.0.0",
+    apiVersion: 1,
+    kind: "runtime-platform",
+    slot: "runtime-platform",
+    hosts: ["runtime"],
+    capabilities: ["request-adapter"],
+    config: { version: 1 },
+    secrets: {},
+    provider: "external-edge",
+  } as const satisfies RuntimePlatformManifest
+
+  assert.deepEqual(validateInstalledPluginDeclarations({
+    "@example/runtime-external": { enabled: true },
+  }, [externalManifest]), [])
 })
 
 test("validates plugin-owned configuration schemas", () => {

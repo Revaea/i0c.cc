@@ -5,6 +5,7 @@ import process from "node:process"
 const repositoryRoot = path.resolve(process.argv[2] ?? process.cwd())
 const pluginApiRoot = path.join(repositoryRoot, "packages", "plugin-api")
 const pluginsRoot = path.join(repositoryRoot, "plugins")
+const fixturesRoot = path.join(repositoryRoot, "fixtures")
 const sourceExtensions = new Set([".js", ".jsx", ".mjs", ".mts", ".ts", ".tsx"])
 const issues = []
 
@@ -105,7 +106,11 @@ function resolveExportTarget(value) {
 
 function checkEntryBoundary(packageRoot, exportName, entryPath) {
   const forbiddenRoots = new Set(["mongodb", "next", "postgres", "react", "react-dom"])
-  if (exportName === "./config" || exportName === "./manifest") {
+  if (
+    exportName === "./config"
+    || exportName === "./installation"
+    || exportName === "./manifest"
+  ) {
     forbiddenRoots.add("@cloudflare/workers-types")
     forbiddenRoots.add("@netlify/edge-functions")
     forbiddenRoots.add("@vercel/functions")
@@ -146,7 +151,10 @@ for (const filePath of collectFiles(path.join(pluginApiRoot, "src"))) {
   }
 }
 
-for (const packageRoot of collectPackageRoots(pluginsRoot)) {
+for (const packageRoot of [
+  ...collectPackageRoots(pluginsRoot),
+  ...collectPackageRoots(fixturesRoot),
+]) {
   const packageJsonPath = path.join(packageRoot, "package.json")
   const packageJson = readJson(packageJsonPath)
   const dependencies = packageJson.dependencies ?? {}
@@ -171,7 +179,12 @@ for (const packageRoot of collectPackageRoots(pluginsRoot)) {
     }
   }
 
-  for (const exportName of ["./config", "./manifest", "./runtime"]) {
+  for (const exportName of [
+    "./config",
+    "./installation",
+    "./manifest",
+    "./runtime",
+  ]) {
     const exportPath = resolveExportTarget(packageJson.exports?.[exportName])
     if (exportPath) {
       checkEntryBoundary(

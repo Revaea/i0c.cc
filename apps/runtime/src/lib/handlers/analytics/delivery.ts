@@ -45,7 +45,11 @@ export function scheduleAnalyticsEvent(
     endpoint: settings.delivery?.endpoint ?? runtime.dataConfig.analytics.ingestEndpoint,
     fetchImpl: runtime.fetchImpl,
     provider: runtime.provider,
-    readSecret: (bindingName) => readRuntimeSecret(runtime.envBindings, bindingName),
+    readSecret: (bindingName) => readRuntimeSecret(
+      runtime.envBindings,
+      bindingName,
+      runtime.readEnvironment
+    ),
     sourceId: settings.sourceId,
     ...(settings.delivery ? { writeKey: settings.delivery.writeKey } : {})
   }).catch((error: unknown) => {

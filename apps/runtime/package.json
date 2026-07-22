@@ -10,24 +10,24 @@
   "homepage": "https://github.com/Revaea/i0c.cc",
   "scripts": {
     "check": "tsc --noEmit",
-    "build": "tsup --config tsup.config.ts && node scripts/post-build.mjs",
-    "build:cf": "tsup --config tsup.cloudflare.config.ts && node scripts/check-platform-build.mjs cloudflare",
+    "build": "pnpm build:cf && pnpm build:vc && pnpm build:nf",
+    "build:platform": "tsx scripts/build-platform.ts",
+    "build:external-fixture": "pnpm build:platform external --config ../../fixtures/runtime-platform-external/i0c.runtime.config.ts && node scripts/check-platform-build.mjs external platforms/external.js",
+    "build:cf": "pnpm build:platform cloudflare && node scripts/check-platform-build.mjs cloudflare platforms/cloudflare.js",
+    "build:cf:watch": "pnpm build:platform cloudflare --watch",
     "test": "tsx --test tests/**/*.test.ts",
-    "dev:cf": "wrangler dev",
-    "deploy:cf": "wrangler deploy",
-    "build:vc": "tsup --config tsup.vercel.config.ts && node scripts/prepare-vercel-output.mjs && node scripts/check-platform-build.mjs vercel",
-    "build:vc:watch": "tsup --config tsup.config.ts --watch --onSuccess \"node scripts/post-build.mjs\"",
-    "dev:vc": "concurrently \"pnpm build:vc:watch\" \"pnpm dlx vercel@52.2.1 dev\"",
+    "dev:cf": "pnpm build:cf && concurrently \"pnpm build:cf:watch\" \"wrangler dev\"",
+    "deploy:cf": "pnpm build:cf && wrangler deploy",
+    "build:vc": "pnpm build:platform vercel && node scripts/prepare-vercel-output.mjs && node scripts/check-platform-build.mjs vercel api/index.js",
+    "dev:vc": "pnpm dlx vercel@52.2.1 dev",
     "deploy:vc": "pnpm dlx vercel@52.2.1 --prod",
-    "build:nf": "tsup --config tsup.netlify.config.ts && node scripts/prepare-netlify-output.mjs && node scripts/check-platform-build.mjs netlify",
+    "build:nf": "pnpm build:platform netlify && node scripts/prepare-netlify-output.mjs && node scripts/check-platform-build.mjs netlify platforms/netlify-edge.js",
     "dev:nf": "pnpm dlx netlify-cli@latest dev",
     "deploy:nf": "pnpm dlx netlify-cli@latest deploy --build"
   },
   "devDependencies": {
-    "@esbuild-plugins/tsconfig-paths": "^0.1.2",
     "@types/node": "^25.5.0",
     "concurrently": "^9.2.1",
-    "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "wrangler": "^4.78.0"
@@ -40,8 +40,7 @@
     "@i0c/plugin-catalog": "workspace:*",
     "@i0c/plugin-feature-bot-classifier": "workspace:*",
     "@i0c/plugin-github-data": "workspace:*",
-    "@i0c/plugin-runtime-cloudflare": "workspace:*",
-    "@i0c/plugin-runtime-netlify": "workspace:*",
-    "@i0c/plugin-runtime-vercel": "workspace:*"
+    "@i0c/runtime-build": "workspace:*",
+    "@i0c/runtime-host": "workspace:*"
   }
 }

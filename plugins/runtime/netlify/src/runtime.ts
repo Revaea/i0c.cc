@@ -1,9 +1,9 @@
 import type {
   RuntimePlatformAdapter,
+  RuntimePlatformPlugin,
   RuntimeRequestHandler,
 } from "@i0c/plugin-api"
 
-import type { NetlifyRuntimeAdapterOptions } from "./config"
 import { netlifyRuntimeManifest } from "./manifest"
 
 declare const Netlify: undefined | {
@@ -32,14 +32,14 @@ export interface NetlifyRuntimeServices {
 
 export function createNetlifyAdapter(
   handler: RuntimeRequestHandler,
-  config: NetlifyRuntimeAdapterOptions,
   services: NetlifyRuntimeServices = {},
 ): RuntimePlatformAdapter<readonly [Request, NetlifyContext]> {
   return {
     id: "netlify",
     async handle(request, context) {
-      const envBindings = readBindings(config, services)
       const country = context.geo?.country?.code
+      const readEnvironment = services.readEnvironment ?? ((name: string) =>
+        typeof Netlify !== "undefined" ? Netlify.env?.get(name) : undefined)
       const waitUntil =
         typeof context.waitUntil === "function"
           ? (promise: Promise<unknown>) => context.waitUntil?.(promise)
@@ -47,8 +47,8 @@ export function createNetlifyAdapter(
 
       return handler(request, {
         ...(country ? { country } : {}),
-        ...(envBindings ? { envBindings } : {}),
         provider: "netlify",
+        readEnvironment,
         ...(waitUntil ? { waitUntil } : {}),
       })
     },
@@ -57,32 +57,15 @@ export function createNetlifyAdapter(
 
 export function createNetlifyEdgeHandler(
   handler: RuntimeRequestHandler,
-  config: NetlifyRuntimeAdapterOptions,
   services?: NetlifyRuntimeServices,
 ): NetlifyHandler {
-  const adapter = createNetlifyAdapter(handler, config, services)
+  const adapter = createNetlifyAdapter(handler, services)
   return (request, context) => adapter.handle(request, context)
 }
 
 export const netlifyRuntimePlugin = {
   manifest: netlifyRuntimeManifest,
   create: createNetlifyEdgeHandler,
-}
+} satisfies RuntimePlatformPlugin<ReturnType<typeof createNetlifyEdgeHandler>>
 
-function readBindings(
-  config: NetlifyRuntimeAdapterOptions,
-  services: NetlifyRuntimeServices,
-): Record<string, unknown> | undefined {
-  const readEnvironment = services.readEnvironment ?? ((name: string) =>
-    typeof Netlify !== "undefined" ? Netlify.env?.get(name) : undefined)
-  const bindings: Record<string, unknown> = {}
-
-  for (const name of config.secretBindings) {
-    const value = readEnvironment(name)
-    if (value !== undefined) {
-      bindings[name] = value
-    }
-  }
-
-  return Object.keys(bindings).length > 0 ? bindings : undefined
-}
+export const runtimePlatformPlugin = netlifyRuntimePlugin

@@ -14,6 +14,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { defaultDataConfig } from "@i0c/config";
+import { runtimePlatformManifests } from "@i0c/runtime-config";
 
 import {
   loadDataConfig,
@@ -112,6 +113,8 @@ test("rejects a remote configuration that disables the active platform", async (
   const runtime = resolveRuntimeOptions({
     dataConfigUrl: "https://config.example/disabled-platform.json",
     provider: "cloudflare",
+    platformPluginId: "@i0c/runtime-cloudflare",
+    runtimePlatformManifests,
     now: () => 0,
     fetchImpl: async () => Response.json({
       ...defaultDataConfig,
@@ -123,7 +126,7 @@ test("rejects a remote configuration that disables the active platform", async (
 
   await assert.rejects(
     loadDataConfig(runtime),
-    /cloudflare Runtime platform plugin must be enabled/
+    /Runtime platform plugin @i0c\/runtime-cloudflare must be enabled/
   );
 });
 

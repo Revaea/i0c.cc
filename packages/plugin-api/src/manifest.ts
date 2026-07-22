@@ -46,3 +46,9 @@ export interface PluginManifest<
   config: PluginConfigurationManifest
   secrets: Readonly<Record<string, PluginSecretRequirement>>
 }
+
+export interface RuntimePlatformManifest<
+  TCapability extends string = string,
+> extends PluginManifest<"runtime-platform", "runtime", TCapability> {
+  provider: string
+}

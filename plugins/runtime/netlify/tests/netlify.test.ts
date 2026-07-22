@@ -4,22 +4,23 @@ import test from "node:test"
 import {
   assertPluginManifest,
   assertRuntimePlatformContract,
+  assertRuntimePlatformPlugin,
 } from "@i0c/plugin-testkit"
 
 import { netlifyRuntimeManifest } from "../src/manifest"
-import { createNetlifyAdapter } from "../src/runtime"
+import { createNetlifyAdapter, runtimePlatformPlugin } from "../src/runtime"
 
 test("declares a valid manifest and adapts Netlify requests", async () => {
   assertPluginManifest(netlifyRuntimeManifest)
+  assertRuntimePlatformPlugin(runtimePlatformPlugin)
 
   const adapter = createNetlifyAdapter(
     async (_request, context) => {
       assert.equal(context.provider, "netlify")
       assert.equal(context.country, "CN")
-      assert.equal(context.envBindings?.ANALYTICS_WRITE_KEY, "test-key")
+      assert.equal(context.readEnvironment?.("ANALYTICS_WRITE_KEY"), "test-key")
       return new Response("ok")
     },
-    { secretBindings: ["ANALYTICS_WRITE_KEY"] },
     { readEnvironment: () => "test-key" },
   )
 

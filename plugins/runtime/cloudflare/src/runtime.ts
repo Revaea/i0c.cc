@@ -2,6 +2,7 @@ import type { ExecutionContext } from "@cloudflare/workers-types"
 import type {
   RuntimeCache,
   RuntimePlatformAdapter,
+  RuntimePlatformPlugin,
   RuntimeRequestHandler,
 } from "@i0c/plugin-api"
 
@@ -28,14 +29,18 @@ export function createCloudflareAdapter(
           : undefined
       const country = (request as Request & { cf?: { country?: string } }).cf?.country
       const cache = services.cache ?? getDefaultCache(config)
+      const envBindings = env && typeof env === "object"
+        ? env as Record<string, unknown>
+        : undefined
 
       return handler(request, {
         ...(cache ? { cache } : {}),
         ...(country ? { country } : {}),
-        ...(env && typeof env === "object"
-          ? { envBindings: env as Record<string, unknown> }
-          : {}),
+        ...(envBindings ? { envBindings } : {}),
         provider: "cloudflare",
+        ...(envBindings
+          ? { readEnvironment: (name: string) => envBindings[name] }
+          : {}),
         ...(waitUntil ? { waitUntil } : {}),
       })
     },
@@ -58,8 +63,12 @@ export function createCloudflareWorker(
 
 export const cloudflareRuntimePlugin = {
   manifest: cloudflareRuntimeManifest,
-  create: createCloudflareWorker,
-}
+  create(handler) {
+    return createCloudflareWorker(handler, { useDefaultCache: true })
+  },
+} satisfies RuntimePlatformPlugin<ReturnType<typeof createCloudflareWorker>>
+
+export const runtimePlatformPlugin = cloudflareRuntimePlugin
 
 function getDefaultCache(config: CloudflareRuntimeAdapterOptions): RuntimeCache | undefined {
   if (!config.useDefaultCache || typeof caches === "undefined") {

@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url"
 import { validateDataConfig } from "@i0c/config"
 import { validateInstalledPluginDeclarations } from "@i0c/plugin-catalog"
 
+import { runtimePlatformManifests } from "../../../i0c.runtime.config"
+
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(scriptDir, "../../..")
 const defaultSource = "origin/data:config.json"
@@ -50,7 +52,10 @@ function main(): void {
   const input = readSource(source)
   const result = validateDataConfig(parseJson(input.content, input.label))
   if (result.status === "valid") {
-    const pluginIssues = validateInstalledPluginDeclarations(result.config.plugins)
+    const pluginIssues = validateInstalledPluginDeclarations(
+      result.config.plugins,
+      runtimePlatformManifests,
+    )
     if (pluginIssues.length > 0) {
       console.error(`Plugin configuration validation failed: ${input.label}`)
       for (const issue of pluginIssues.slice(0, 8)) {

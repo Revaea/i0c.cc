@@ -65,13 +65,20 @@ export async function resolveAnalyticsSettings(
   const sinkDeclaration = runtime.dataConfig.plugins[HTTP_ANALYTICS_SINK_PLUGIN_ID];
   const sinkEnabled = isRuntimePluginEnabled(
     runtime.dataConfig,
-    runtime.provider,
+    {
+      platformPluginId: runtime.platformPluginId,
+      runtimePlatformManifests: runtime.runtimePlatformManifests
+    },
     HTTP_ANALYTICS_SINK_PLUGIN_ID
   );
   const writeKeyBinding = sinkDeclaration?.secrets?.writeKey
     ?? httpAnalyticsSinkManifest.secrets.writeKey.defaultBinding
     ?? ANALYTICS_WRITE_KEY;
-  const writeKey = readRuntimeSecret(runtime.envBindings, writeKeyBinding)?.trim();
+  const writeKey = readRuntimeSecret(
+    runtime.envBindings,
+    writeKeyBinding,
+    runtime.readEnvironment
+  )?.trim();
   const { maximumDeliveryAttempts } = resolveHttpAnalyticsSinkConfig(
     sinkDeclaration?.config
   );

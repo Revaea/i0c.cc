@@ -26,7 +26,11 @@ const referrerDomainSchema = z
   .regex(/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/)
   .nullish();
 
-const providerSchema = z.enum(["cloudflare", "vercel", "netlify", "unknown"]);
+export const analyticsProviderSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$/);
 const deviceTypeSchema = z.enum(["desktop", "mobile", "tablet", "bot", "unknown"]);
 const trafficClassSchema = z.enum([
   "browser_like",
@@ -87,7 +91,7 @@ const analyticsEventV1Schema = z
     deviceType: deviceTypeSchema,
     countryCode: countryCodeSchema,
     referrerDomain: referrerDomainSchema,
-    provider: providerSchema,
+    provider: analyticsProviderSchema,
     latencyMs: z.number().int().nonnegative().max(3_600_000),
   })
   .strict()
@@ -124,7 +128,7 @@ const analyticsEventV2CommonSchema = z.object({
   occurredAt: z.string().datetime({ offset: true }),
   sourceId: identifierSchema,
   entryDomain: hostnameSchema,
-  provider: providerSchema,
+  provider: analyticsProviderSchema,
   statusCode: z.number().int().min(100).max(599),
   trafficClass: trafficClassSchema,
   botCategory: botCategorySchema,
@@ -183,7 +187,7 @@ const analyticsLinkEventV2Schema = analyticsEventV2CommonSchema
     upstreamEventId: uuidSchema.nullish(),
     upstreamAnalyticsId: identifierSchema.nullish(),
     upstreamEntryDomain: hostnameSchema.nullish(),
-    upstreamProvider: providerSchema.nullish(),
+    upstreamProvider: analyticsProviderSchema.nullish(),
     sampleRate: z.literal(1),
   })
   .strict()
@@ -261,7 +265,7 @@ export const analyticsEventSchema = z.union([
   analyticsEventV1Schema,
 ]);
 
-export type AnalyticsProvider = z.infer<typeof providerSchema>;
+export type AnalyticsProvider = z.infer<typeof analyticsProviderSchema>;
 export type AnalyticsDeviceType = z.infer<typeof deviceTypeSchema>;
 export type AnalyticsTrafficClass = z.infer<typeof trafficClassSchema>;
 export type AnalyticsBotCategory = z.infer<typeof botCategorySchema>;

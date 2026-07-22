@@ -40,7 +40,9 @@ test("removes the bot classifier from the pipeline when disabled", async () => {
       ...defaultDataConfig.plugins,
       [BOT_CLASSIFIER_PLUGIN_ID]: { enabled: false }
     }
-  }, "cloudflare");
+  }, {
+    runtimePlatformManifests: []
+  });
 
   assert.equal(await pipeline.onAnalyticsEvent(event), event);
 });

@@ -88,7 +88,10 @@ export function resolveRuntimeOptions(options: HandlerOptions): ResolvedRuntime 
     ...(options.analyticsSink ? { analyticsSink: options.analyticsSink } : {}),
     featurePipeline: createRuntimeFeaturePipeline(
       currentDataConfig,
-      provider,
+      {
+        platformPluginId: options.platformPluginId,
+        runtimePlatformManifests: options.runtimePlatformManifests ?? []
+      },
       runtimeFeatures
     ),
     runtimeFeatures,
@@ -97,7 +100,10 @@ export function resolveRuntimeOptions(options: HandlerOptions): ResolvedRuntime 
     fetchImpl,
     fetchInit: options.fetchInit,
     envBindings: options.envBindings,
+    readEnvironment: options.readEnvironment,
     provider,
+    platformPluginId: options.platformPluginId,
+    runtimePlatformManifests: options.runtimePlatformManifests ?? [],
     country: options.country,
     waitUntil: options.waitUntil,
     now,
@@ -108,7 +114,10 @@ export function resolveRuntimeOptions(options: HandlerOptions): ResolvedRuntime 
 export async function loadDataConfig(runtime: ResolvedRuntime): Promise<DataConfig> {
   const config = await runtime.dataSource.loadConfig();
   const resolved = config ?? runtime.dataConfig;
-  resolveRuntimePlugins(resolved, runtime.provider);
+  resolveRuntimePlugins(resolved, {
+    platformPluginId: runtime.platformPluginId,
+    runtimePlatformManifests: runtime.runtimePlatformManifests
+  });
   return resolved;
 }
 

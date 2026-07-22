@@ -9,6 +9,7 @@ const pluginIdPattern = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/
 const pluginVersionPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
 const secretNamePattern = /^[a-z][A-Za-z0-9]*$/
 const secretBindingPattern = /^[A-Z][A-Z0-9_]*$/
+const runtimeProviderPattern = /^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$/
 
 export interface PluginManifestValidationResult {
   valid: boolean
@@ -56,6 +57,17 @@ export function validatePluginManifest(manifest: PluginManifest): PluginManifest
 
   if (!Number.isSafeInteger(manifest.config.version) || manifest.config.version < 1) {
     issues.push("config.version must be a positive integer")
+  }
+
+  if (manifest.kind === "runtime-platform") {
+    const provider = (manifest as PluginManifest & { provider?: unknown }).provider
+    if (
+      typeof provider !== "string"
+      || provider.length > 64
+      || !runtimeProviderPattern.test(provider)
+    ) {
+      issues.push("runtime platform provider must be a lowercase stable identifier")
+    }
   }
 
   for (const [name, requirement] of Object.entries(manifest.secrets)) {

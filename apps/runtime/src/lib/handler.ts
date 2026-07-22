@@ -74,7 +74,10 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
       dataConfig,
       featurePipeline: createRuntimeFeaturePipeline(
         dataConfig,
-        runtime.provider,
+        {
+          platformPluginId: runtime.platformPluginId,
+          runtimePlatformManifests: runtime.runtimePlatformManifests
+        },
         runtime.runtimeFeatures
       )
     };

@@ -5,19 +5,22 @@ import type { ExecutionContext } from "@cloudflare/workers-types"
 import {
   assertPluginManifest,
   assertRuntimePlatformContract,
+  assertRuntimePlatformPlugin,
 } from "@i0c/plugin-testkit"
 
 import { cloudflareRuntimeManifest } from "../src/manifest"
-import { createCloudflareAdapter } from "../src/runtime"
+import { createCloudflareAdapter, runtimePlatformPlugin } from "../src/runtime"
 
 test("declares a valid manifest and adapts Cloudflare requests", async () => {
   assertPluginManifest(cloudflareRuntimeManifest)
+  assertRuntimePlatformPlugin(runtimePlatformPlugin)
 
   const adapter = createCloudflareAdapter(
     async (_request, context) => {
       assert.equal(context.provider, "cloudflare")
       assert.equal(context.country, "CN")
       assert.equal(context.envBindings?.ANALYTICS_WRITE_KEY, "test-key")
+      assert.equal(context.readEnvironment?.("ANALYTICS_WRITE_KEY"), "test-key")
       assert.equal(typeof context.waitUntil, "function")
       return new Response("ok")
     },

@@ -38,6 +38,7 @@ test("owns the ordered PostgreSQL migration set", async () => {
     "003_runtime_traffic_analysis.sql",
     "004_raw_event_retention.sql",
     "005_aggregate_rebuild.sql",
+    "006_open_runtime_providers.sql",
   ])
 
   for (const filename of filenames) {

@@ -1,6 +1,6 @@
 import {
   PLUGIN_API_VERSION,
-  type PluginManifest,
+  type RuntimePlatformManifest,
 } from "@i0c/plugin-api"
 
 import { netlifyRuntimePluginConfigSchema } from "./config"
@@ -10,6 +10,7 @@ export const netlifyRuntimeManifest = {
   name: "Netlify Runtime",
   version: "0.1.0",
   apiVersion: PLUGIN_API_VERSION,
+  provider: "netlify",
   kind: "runtime-platform",
   slot: "runtime-platform",
   hosts: ["runtime"],
@@ -19,4 +20,4 @@ export const netlifyRuntimeManifest = {
     schema: netlifyRuntimePluginConfigSchema,
   },
   secrets: {},
-} as const satisfies PluginManifest
+} as const satisfies RuntimePlatformManifest

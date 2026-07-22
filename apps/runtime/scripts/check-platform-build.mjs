@@ -4,15 +4,10 @@ import process from "node:process"
 
 const runtimeRoot = path.resolve(import.meta.dirname, "..")
 const platform = process.argv[2]
-const expectedEntries = {
-  cloudflare: "platforms/cloudflare.js",
-  netlify: "platforms/netlify-edge.js",
-  vercel: "api/index.js",
-}
-const expectedEntry = expectedEntries[platform]
+const expectedEntry = process.argv[3]
 
-if (!expectedEntry) {
-  throw new Error(`Unknown Runtime platform ${platform ?? ""}`)
+if (!platform || !expectedEntry) {
+  throw new Error("Runtime platform and expected entry are required")
 }
 
 const distRoot = path.join(runtimeRoot, "dist")

@@ -1,6 +1,6 @@
 import type { PluginInitializationContext } from "./context"
 import type { PluginHealthCheck } from "./health"
-import type { PluginManifest } from "./manifest"
+import type { PluginManifest, RuntimePlatformManifest } from "./manifest"
 import type { PluginMigrationProvider } from "./migrations"
 import type { Awaitable, JsonObject } from "./types"
 
@@ -39,11 +39,17 @@ export interface RuntimePlatformContext {
   country?: string
   envBindings?: Record<string, unknown>
   provider: string
+  readEnvironment?(name: string): unknown
   waitUntil?(promise: Promise<unknown>): void
 }
 
 export interface RuntimeRequestHandler {
   (request: Request, context: RuntimePlatformContext): Promise<Response>
+}
+
+export interface RuntimePlatformPlugin<TDeployment = unknown> {
+  readonly manifest: RuntimePlatformManifest
+  create(handler: RuntimeRequestHandler): TDeployment
 }
 
 export interface AnalyticsStoreTypes {

@@ -7,6 +7,7 @@
   "exports": {
     "./manifest": "./src/manifest.ts",
     "./config": "./src/config.ts",
+    "./installation": "./src/installation.ts",
     "./runtime": "./src/runtime.ts"
   },
   "sideEffects": false,
@@ -16,7 +17,8 @@
     "test": "tsx --test tests/**/*.test.ts"
   },
   "dependencies": {
-    "@i0c/plugin-api": "workspace:*"
+    "@i0c/plugin-api": "workspace:*",
+    "@i0c/runtime-build": "workspace:*"
   },
   "devDependencies": {
     "@i0c/plugin-testkit": "workspace:*",

@@ -4,6 +4,8 @@ import type { DataConfig, PluginInstanceConfig } from "@i0c/config";
 import { installedPluginManifests } from "@i0c/plugin-catalog";
 import type { PluginManifest } from "@i0c/plugin-api";
 
+import { runtimePlatformManifests } from "../../../../../i0c.runtime.config";
+
 import { getAnalyticsStore } from "@/lib/analytics/store";
 import { getEffectiveDataConfig } from "@/lib/configuration/data-config";
 
@@ -19,9 +21,7 @@ const D1_ANALYTICS_STORE_PLUGIN_ID = "@i0c/analytics-store-d1";
 const compatibilityEnabledPluginIds = new Set([
   "@i0c/github-raw-source",
   "@i0c/github-contents-repository",
-  "@i0c/runtime-cloudflare",
-  "@i0c/runtime-vercel",
-  "@i0c/runtime-netlify",
+  ...runtimePlatformManifests.map((manifest) => manifest.id),
   "@i0c/analytics-sink-http",
   "@i0c/feature-bot-classifier",
 ]);
@@ -35,7 +35,7 @@ export async function getWebUiPluginStatusSnapshot(): Promise<WebUiPluginStatusS
     : "disabled";
 
   return {
-    plugins: installedPluginManifests
+    plugins: mergeInstalledManifests()
       .map((manifest) => createPluginStatus(
         manifest,
         config,
@@ -46,6 +46,16 @@ export async function getWebUiPluginStatusSnapshot(): Promise<WebUiPluginStatusS
         left.kind.localeCompare(right.kind) || left.name.localeCompare(right.name)
       ),
   };
+}
+
+function mergeInstalledManifests(): readonly PluginManifest[] {
+  const manifests = new Map<string, PluginManifest>(
+    installedPluginManifests.map((manifest) => [manifest.id, manifest])
+  );
+  for (const manifest of runtimePlatformManifests) {
+    manifests.set(manifest.id, manifest);
+  }
+  return [...manifests.values()];
 }
 
 function createPluginStatus(
