@@ -15,9 +15,12 @@ This repository is maintained for personal use and engineering experimentation. 
 | Project | Path | Description |
 |---------|------|-------------|
 | Runtime | [apps/runtime](apps/runtime) | Provider-selectable redirect runtime for Cloudflare Workers, Vercel Edge Functions, and Netlify Edge Functions. |
-| WebUI | [apps/webui](apps/webui) | Next.js management panel for editing `redirects.json` and querying short-link analytics. |
+| WebUI | [apps/webui](apps/webui) | Next.js management panel for editing `config.json` and `redirects.json`, inspecting plugins, and querying analytics. |
 | Configuration | [packages/config](packages/config) | Bootstrap defaults, both data-document schemas, and validation shared by both applications. |
-| Plugin contracts | [packages/plugin-contracts](packages/plugin-contracts) | Small internal contracts for data sources, editable repositories, Runtime platforms, and analytics sinks. |
+| Plugin API | [packages/plugin-api](packages/plugin-api) | Stable compile-time manifests, lifecycle contracts, and typed extension boundaries for official plugins. |
+| Plugin Testkit | [packages/plugin-testkit](packages/plugin-testkit) | Shared plugin contracts and dependency-boundary checks. |
+| Plugin Catalog | [packages/plugin-catalog](packages/plugin-catalog) | Host-specific static registration and plugin configuration validation. |
+| Official plugins | [plugins](plugins) | Git data, three Runtime adapters, HTTP analytics delivery, PostgreSQL and D1 stores, and bot classification. |
 
 ## Live previews
 
@@ -44,7 +47,7 @@ Use these settings when the platform asks for project or build configuration:
 
 | Platform | Project root | Build command | Output |
 |----------|--------------|---------------|--------|
-| Cloudflare Workers | `apps/runtime` | `pnpm build` | From `wrangler.toml` |
+| Cloudflare Workers | `apps/runtime` | `pnpm build:cf` | `dist/platforms/cloudflare.js` |
 | Vercel | `apps/runtime` | `pnpm build:vc` | `.vercel/output` |
 | Netlify | `apps/runtime` | `pnpm build:nf` | `dist` |
 
@@ -106,17 +109,22 @@ Run the WebUI:
 pnpm webui:dev
 ```
 
-Build both projects separately:
+Build the selected Runtime adapter and WebUI separately:
 
 ```bash
-pnpm runtime:build
+pnpm runtime:build:cf
+pnpm runtime:build:vc
+pnpm runtime:build:nf
 pnpm webui:build
 ```
 
-Run the Runtime analytics contract tests:
+Run the plugin, Runtime, and WebUI tests:
 
 ```bash
+pnpm plugins:check
+pnpm runtime:check
 pnpm runtime:test
+pnpm webui:test
 ```
 
 Run the full local validation before committing:

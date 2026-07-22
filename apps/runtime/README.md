@@ -22,7 +22,7 @@ Use these settings when the platform asks for project or build configuration:
 
 | Platform | Project root | Build command | Output |
 |----------|--------------|---------------|--------|
-| Cloudflare Workers | `apps/runtime` | `pnpm build` | From `wrangler.toml` |
+| Cloudflare Workers | `apps/runtime` | `pnpm build:cf` | `dist/platforms/cloudflare.js` |
 | Vercel | `apps/runtime` | `pnpm build:vc` | `.vercel/output` |
 | Netlify | `apps/runtime` | `pnpm build:nf` | `dist` |
 
@@ -40,7 +40,9 @@ After deploying:
 - Vercel Edge Functions: [src/platforms/vercel-edge.ts](src/platforms/vercel-edge.ts)
 - Netlify Edge Functions: [src/platforms/netlify-edge.ts](src/platforms/netlify-edge.ts)
 
-Need a custom runtime? Import `handleRedirectRequest` from [src/lib/handler.ts](src/lib/handler.ts) and call it with your own `Request` object plus optional `HandlerOptions`. A custom adapter can inject a `RuntimeDataSource`, `AnalyticsSink`, cache, clock, fetch implementation, or explicit config URLs. The stable adapter shapes live in [../../packages/plugin-contracts](../../packages/plugin-contracts).
+Need a custom runtime? Import `handleRedirectRequest` from [src/lib/handler.ts](src/lib/handler.ts) and call it with your own `Request` object plus optional `HandlerOptions`. A custom adapter can inject a `RuntimeDataSource`, `AnalyticsSink`, cache, clock, fetch implementation, or explicit config URLs. Stable plugin manifests and adapter contracts live in [../../packages/plugin-api](../../packages/plugin-api).
+
+Each provider entrypoint statically imports only its own Runtime adapter, while the host assembles the GitHub Raw Source, signed HTTP Sink, and bot-classifier Feature from the installed catalog. Remote declarations control optional enablement, configuration, and Secret binding names. Provider adapter options and the initial Git data location remain bootstrap settings because they are required before `config.json` can be read. See [../../docs/plugins.md](../../docs/plugins.md) for the package and failure boundaries.
 
 ## Environment variables and configuration
 
@@ -78,11 +80,15 @@ See [../../docs/analytics.md](../../docs/analytics.md) for counting semantics, a
 
 Custom adapters that enable analytics should also pass `provider`, optional `country`, and the platform's `waitUntil` through `HandlerOptions`.
 
-Run the contract tests and provider build from the repository root:
+Run the plugin contracts, Runtime tests, and independent provider builds from the repository root:
 
 ```bash
+pnpm plugins:check
+pnpm runtime:check
 pnpm runtime:test
-pnpm runtime:build
+pnpm runtime:build:cf
+pnpm runtime:build:vc
+pnpm runtime:build:nf
 ```
 
 ### `redirects.json` quick reference

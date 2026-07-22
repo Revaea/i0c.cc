@@ -1,81 +1,141 @@
-# Internal plugin architecture
+# Compile-time plugin architecture
 
-## Purpose
+## Scope
 
-i0c.cc uses a small compile-time plugin architecture to keep provider and storage choices replaceable without turning a personal project into a dynamic plugin platform.
+i0c.cc uses a small, statically registered plugin architecture. It keeps the redirect core independent from a particular edge provider, Git transport, analytics delivery path, or analytics database without turning this personal project into a dynamic plugin platform.
 
-Plugins are ordinary workspace or package dependencies selected by the application build. Remote data can configure an installed plugin, but it can never download or execute new code.
+Plugins are workspace packages selected at build time. Remote `config.json` may configure or disable installed optional plugins, but it cannot discover, download, install, or execute new code.
 
-## Data documents
+## Package map
 
-The `data` branch is the editable non-secret data plane:
+| Layer | Package or directory | Responsibility |
+|-------|----------------------|----------------|
+| Domain | `@i0c/analytics-domain` | Provider-neutral analytics events, ranges, classifications, and store result types |
+| Protocol | `@i0c/plugin-api` | Manifests, host and slot types, plugin contracts, health, migrations, feature hooks, and WebUI slots |
+| Contracts | `@i0c/plugin-testkit` | Manifest, adapter, repository, sink, store, migration, feature, and dependency-boundary tests |
+| Catalog | `@i0c/plugin-catalog` | Static installed-manifest lists and host-specific configuration validation |
+| Git data | `@i0c/plugin-github-data` | GitHub Raw Runtime source and GitHub Contents WebUI repository |
+| Runtime | `@i0c/plugin-runtime-cloudflare`, `@i0c/plugin-runtime-vercel`, `@i0c/plugin-runtime-netlify` | Provider request, environment, cache, country, and background-task adaptation |
+| Sink | `@i0c/plugin-analytics-sink-http` | Signed best-effort HTTP analytics delivery |
+| Stores | `@i0c/plugin-analytics-store-postgres`, `@i0c/plugin-analytics-store-d1` | Analytics ingest, queries, rebuild, retention, health, and owned migrations |
+| Feature | `@i0c/plugin-feature-bot-classifier` | Runtime analytics classification through the bounded feature pipeline |
 
-- `config.json` contains versioned instance settings and namespaced plugin configuration.
-- `redirects.json` contains redirect rules.
+The applications are hosts: `apps/runtime` assembles Runtime plugins, while `apps/webui` assembles repository and analytics-store plugins. Plugins may depend on the protocol and domain packages, but they may not import application internals.
 
-Both documents are validated independently. Runtime caches them independently, deduplicates in-flight refreshes, and keeps the last valid value when a refresh fails. WebUI reads and writes the same documents through a versioned repository adapter.
+## Data documents and bootstrap boundary
 
-The GitHub repository, branch, document paths, OAuth scope, and safe fallback must exist before remote data can be read. Those bootstrap values remain in `@i0c/config` and require a rebuild when changed.
+The `data` branch remains the editable non-secret data plane:
 
-## Stable boundaries
+- `config.json` stores versioned instance settings and installed-plugin declarations.
+- `redirects.json` stores redirect rules.
 
-`@i0c/plugin-contracts` owns four small interfaces:
+Runtime reads and caches the two documents independently, deduplicates concurrent refreshes, uses ETags, and retains the last valid value after a failed refresh. WebUI reads and writes them independently through the versioned repository contract.
 
-| Boundary | Current implementation | Replacement use case |
-|----------|------------------------|----------------------|
-| `RuntimeDataSource` | GitHub Raw JSON with memory and platform caches | Database, KV, D1, object storage, or another HTTP source |
-| `VersionedDataRepository` | GitHub Contents API | Database-backed WebUI editing or another versioned control plane |
-| `RuntimePlatformAdapter` | Cloudflare, Vercel, and Netlify edge adapters | Another fetch-compatible runtime |
-| `AnalyticsSink` | Signed HTTP delivery to the WebUI collector | Queue, log pipeline, or another collector |
+Some values must exist before either document can be loaded. The GitHub owner, repository, branch, paths, OAuth scope, initial Raw URLs, and platform adapter options are therefore **bootstrap configuration**, not remote plugin configuration. They live in `@i0c/config` or the provider entrypoint and require a rebuild when changed. The Git and Runtime manifests intentionally reject those bootstrap-only fields under `plugins.*.config`; accepting them there would create settings that validate but cannot initialize their own loader.
 
-The PostgreSQL analytics query and migration layer remains application-owned. It should be generalized only when a second real analytics store is implemented; an unused universal database abstraction would add complexity without proving compatibility.
+## Manifest and configuration model
 
-## Configuration and secrets
+Every installed plugin has a manifest with a unique ID, package version, independent Plugin API version, supported hosts, kind, slot, capabilities, configuration version and Schema, Secret declarations, and optional health or migration capability.
 
-Each installed plugin uses one key under `config.json`:
+The remote declaration shape is:
 
 ```json
 {
   "plugins": {
-    "example-sink": {
+    "@i0c/analytics-sink-http": {
       "enabled": true,
+      "version": 1,
       "config": {
-        "endpoint": "https://example.com/events"
+        "maximumDeliveryAttempts": 2
       },
       "secrets": {
-        "token": "EXAMPLE_SINK_TOKEN"
+        "writeKey": "ANALYTICS_WRITE_KEY"
       }
     }
   }
 }
 ```
 
-`config` accepts JSON-safe public values. `secrets` maps plugin-local names to deployment environment-variable names. Secret values remain in provider bindings and are resolved only inside trusted Runtime code.
+- `config` contains JSON-safe public values and is validated by the selected plugin's own Schema.
+- `secrets` maps plugin-local names to environment-variable or platform-binding names. Secret values never enter the data branch.
+- Unknown plugins, incompatible config versions, undeclared Secret names, unsupported hosts, and single-slot conflicts are rejected.
+- The Runtime build selects exactly one provider adapter. A declaration for another supported provider may coexist in the shared document without being assembled into that build.
+- The Git Runtime source, Git WebUI repository, and current Runtime provider are mandatory bootstrap capabilities. Explicitly disabling one invalidates that host's configuration.
+- The HTTP Sink, bot classifier, and analytics Store are optional. Disabling them removes delivery, feature registration, or analytics storage respectively.
 
-An injected `AnalyticsSink` can resolve its own secret bindings and does not require the default `ANALYTICS_WRITE_KEY`. That key is required only by the built-in signed HTTP sink.
+Missing declarations use compatibility defaults during the first migration. Once explicit declarations are published, `enabled`, plugin config, and Secret mappings drive the selected factories and feature pipeline.
 
-## Adding an internal plugin
+## Runtime features and WebUI extensions
 
-1. Add a workspace package with one narrow responsibility.
-2. Implement the relevant contract from `@i0c/plugin-contracts`.
-3. Add a validated namespace to `config.json` only if the plugin needs public settings.
-4. Keep secret values in environment variables and document placeholders in the owning `.env.example`.
-5. Register the package explicitly in the owning application; do not use runtime package discovery.
-6. Add owner-scoped tests and path-filtered CI coverage.
+The first Runtime feature API exposes only the physically integrated `onAnalyticsEvent` hook. Registrations have deterministic order, a bounded timeout, and an explicit failure policy. Non-critical analytics, logging, and automation-classification failures are fail-open and cannot replace a valid redirect response. Match and response mutation hooks remain deferred because plugins must not change core routing semantics.
 
-## Rollout and failure behavior
+The first feature plugin moves bot and automation classification into `onAnalyticsEvent`. Runtime tests also inject a failing feature to prove that redirect behavior remains available.
 
-1. Merge and deploy code that understands the new configuration version.
-2. Add or update the validated `data/config.json` document.
-3. Wait for the configured cache TTL, then verify Runtime and WebUI behavior.
-4. Remove obsolete non-sensitive provider environment variables only after verification.
+WebUI owns four statically registered extension slots:
 
-An unavailable or invalid remote config does not replace the active value. Warm instances use the last valid cache; cold instances use the checked-in safe default. Managers can still load invalid raw `config.json` content in the WebUI and repair it.
+- `analytics.overview.cards`
+- `analytics.detail.sections`
+- `settings.plugins`
+- `rule-editor.fields`
+
+The current official catalog keeps these slots empty except for the host-owned plugin status panel. The slots are physical render points for future compile-time UI extensions, not an online installation mechanism. Plugin messages are dynamically imported only when the status panel mounts.
+
+`GET /api/plugins/status` reports installed manifests, configuration state, capabilities, observable Secret bindings, selected-store health, and missing prerequisites. It requires WebUI read access, disables response caching, bounds health checks with a timeout, and does not expose raw database errors or Secret values.
+
+## Analytics stores and migrations
+
+`AnalyticsStore` exposes domain operations rather than SQL. Both PostgreSQL and D1 implement the same shared behavior contract for idempotent ingest, traffic and automation queries, hourly and daily aggregation, entry-domain filtering, raw-event rebuild, 181-day raw retention, aggregate retention, health, and capability reporting.
+
+- PostgreSQL is the current deployed Store and continues to use `DATABASE_URL` by default. Its migrations live in `plugins/store/postgres/migrations`.
+- D1 is the second implementation used to prove that the contract is not PostgreSQL-shaped. Its independent migrations live in `plugins/store/d1/migrations`; a D1-enabled host must inject a D1 binding before selecting it.
+
+Each Store owns `status`, `plan`, and `apply` migration semantics. Builds, application startup, health checks, and ordinary requests never apply migrations automatically. PostgreSQL's real shared contract runs in Plugin CI against an isolated PostgreSQL service; local runs skip only that integration test when `TEST_POSTGRES_URL` is absent. D1 runs the same behavior contract through the Node SQLite-backed D1 test adapter.
+
+## Checks and CI
+
+Run checks serially from the repository root:
+
+```bash
+pnpm plugins:check
+pnpm runtime:check
+pnpm runtime:test
+pnpm runtime:build:cf
+pnpm runtime:build:vc
+pnpm runtime:build:nf
+pnpm webui:test
+pnpm webui:lint
+pnpm webui:build
+```
+
+Plugin CI checks types, manifests, contracts, independent plugin packages, PostgreSQL integration behavior, and import or bundle boundaries. Runtime CI tests shared semantics and builds each provider separately. WebUI CI covers its tests, lint, and build. Config CI validates the core and plugin catalogs. Each workflow is path-filtered to its real owners and its own workflow file.
+
+## Adding an official plugin
+
+1. Add one workspace package with a narrow kind and explicit host entrypoints such as `./manifest`, `./config`, `./runtime`, `./collector`, or `./webui`.
+2. Define its manifest, configuration Schema, defaults, Secret declarations, capabilities, and factory inside the plugin package.
+3. Implement the narrow Plugin API contract; do not import `apps/runtime` or `apps/webui`.
+4. Register the manifest in the appropriate static catalog projection.
+5. Reuse Plugin Testkit contracts and add implementation-specific tests.
+6. Extend dependency-boundary checks and path-filtered CI ownership when the new package introduces a new surface.
+7. Merge and deploy code that understands the declaration before publishing the corresponding `data/config.json` change.
+
+## Failure and rollout behavior
+
+An invalid remote configuration never replaces a valid cached value. Warm instances retain their last valid config; cold instances use the checked-in compatibility default. WebUI keeps the raw invalid document available to authenticated managers for repair.
+
+Publish in this order:
+
+1. Merge code and Schema changes.
+2. Deploy the affected hosts.
+3. Publish validated `data/config.json` and `data/redirects.json` changes.
+4. Wait for the configured cache TTL and verify WebUI plus the selected Runtime providers.
+5. Remove obsolete non-sensitive dashboard variables only after production verification.
 
 ## Non-goals
 
-- No dynamic code loading from `config.json`.
-- No public plugin marketplace or plugin installation UI.
-- No shared secret store inside the data branch.
+- No runtime npm or URL plugin loading.
+- No public plugin marketplace or online install/uninstall UI.
+- No untrusted plugin sandbox.
+- No Secret values in the data branch.
 - No requirement to deploy all Runtime adapters together.
-- No universal analytics database adapter until a second implementation proves the contract.
+- No universal database or provider abstraction beyond implemented, contract-tested capabilities.

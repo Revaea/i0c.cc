@@ -57,7 +57,9 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
 
 ## 短链接统计
 
-统计功能使用标准 PostgreSQL，不依赖特定厂商的数据库 API。对于小型部署，可以使用 [Neon](https://neon.com/pricing) 等免费托管 PostgreSQL；[Supabase](https://supabase.com/pricing) 也可以直接使用同一套数据库结构和应用代码。如果服务商提供连接池地址，建议优先使用。
+当前部署的统计功能选择 PostgreSQL Store 插件，不依赖特定厂商的数据库 API。对于小型部署，可以使用 [Neon](https://neon.com/pricing) 等免费托管 PostgreSQL；[Supabase](https://supabase.com/pricing) 也可以使用同一插件和迁移。如果服务商提供连接池地址，建议优先使用。
+
+仓库还包含完整的 D1 Store，它通过同一套统计行为契约，并拥有独立迁移。D1 目前用于验证协议和支持其他宿主；当前 Vercel WebUI 仍使用 PostgreSQL。选择 D1 的宿主必须在 Store 初始化前注入 D1 binding。`data/config.json` 必须至多选择一个 Store；关闭全部 Store 时，规则编辑仍可使用，统计路由会报告缺失能力。
 
 1. 创建 PostgreSQL 数据库，并在 WebUI 环境中配置：
 
@@ -67,7 +69,7 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
    CRON_SECRET="replace-with-an-independent-strong-secret"
    ```
 
-2. 在仓库根目录执行已提交的数据库迁移：
+2. 在仓库根目录执行 PostgreSQL 插件迁移：
 
    ```bash
    pnpm analytics:migrate
@@ -93,7 +95,7 @@ Runtime 会发送匹配流量对应的配置规则路径、入口域名、平台
 
 数据库地址和签名密钥必须仅保存在服务端。Vercel 每天调用受保护的保留端点：原始事件、幂等收据和上游声明在 181 天后过期，小时与天级聚合继续保留。免费方案的额度和休眠策略可能变化，生产使用前请检查服务商的最新限制。
 
-完整事件契约、归因行为、数据库迁移顺序、隐私限制、投递保证和验收场景详见 [统计架构文档](../../docs/analytics.zh-CN.md)。迁移属于明确的外部写入，WebUI 构建不会自动执行迁移。
+完整事件契约、归因行为、数据库迁移顺序、隐私限制、投递保证和验收场景详见 [统计架构文档](../../docs/analytics.zh-CN.md)。每个 Store 插件自己实现迁移 `status`、`plan` 与 `apply`；迁移属于明确的外部写入，WebUI 构建、启动和健康检查都不会自动执行迁移。
 
 ## 部署
 
@@ -116,6 +118,7 @@ WebUI 不会把原有非敏感环境变量作为覆盖值或回退值读取。Ve
 - 可视化编辑 `redirects.json`：分组树管理 + 规则表单编辑。
 - JSON 编辑器：行号、当前行高亮、JSON 语法校验（格式错误提示）。
 - 校验后编辑 `config.json`；当前文档无效时仍可查看原文并修复。
+- 通过认证后查看已安装 Manifest、配置状态、能力、缺失绑定和所选 Store 健康状态。
 - 表单行为对齐 Schema（规范来源：[https://raw.githubusercontent.com/Revaea/i0c.cc/main/packages/config/redirects.schema.json](https://raw.githubusercontent.com/Revaea/i0c.cc/main/packages/config/redirects.schema.json)）。
 - 支持撤销/重做，便于快速回退编辑。
 - 保存时调用 GitHub Contents API，创建带提交说明的 commit。

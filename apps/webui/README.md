@@ -62,7 +62,9 @@ This project provides three editing modes:
 
 ## Short-link analytics
 
-The analytics feature uses standard PostgreSQL and does not depend on a vendor-specific database API. A free hosted PostgreSQL database such as [Neon](https://neon.com/pricing) is suitable for a small deployment; [Supabase](https://supabase.com/pricing) can use the same schema and application code. Prefer the provider's pooled connection URL when one is available.
+The deployed analytics feature selects the PostgreSQL Store plugin and does not depend on a vendor-specific database API. A free hosted PostgreSQL database such as [Neon](https://neon.com/pricing) is suitable for a small deployment; [Supabase](https://supabase.com/pricing) can use the same plugin and migrations. Prefer the provider's pooled connection URL when one is available.
+
+The repository also contains a complete D1 Store that passes the same analytics behavior contract with independent migrations. It is a protocol-validation and alternate-host option; the current Vercel WebUI remains on PostgreSQL. A host selecting D1 must inject its D1 binding before the Store is initialized. Select exactly one Store through `data/config.json`; disabling every Store keeps rule editing available while analytics routes report the missing capability.
 
 1. Create a PostgreSQL database and add these values to the WebUI environment:
 
@@ -72,7 +74,7 @@ The analytics feature uses standard PostgreSQL and does not depend on a vendor-s
    CRON_SECRET="replace-with-an-independent-strong-secret"
    ```
 
-2. Apply the checked-in migrations from the repository root:
+2. Apply the PostgreSQL plugin migrations from the repository root:
 
    ```bash
    pnpm analytics:migrate
@@ -101,7 +103,7 @@ endpoint daily: raw events, idempotency receipts, and upstream claims expire aft
 hourly and daily aggregates remain available. Free-plan quotas and inactivity policies can change,
 so check the provider's current limits before production use.
 
-See [../../docs/analytics.md](../../docs/analytics.md) for the complete event contract, attribution behavior, database migration order, privacy limits, delivery guarantees, and acceptance scenarios. Migrations are deliberate external writes and are never run automatically by the WebUI build.
+See [../../docs/analytics.md](../../docs/analytics.md) for the complete event contract, attribution behavior, database migration order, privacy limits, delivery guarantees, and acceptance scenarios. Each Store plugin owns migration `status`, `plan`, and `apply`; migrations are deliberate external writes and are never run automatically by the WebUI build, startup, or health check.
 
 ## Deploy
 
@@ -126,6 +128,7 @@ The WebUI does not read former non-sensitive environment variables as overrides 
 - Visual editing of `redirects.json`: group tree management + rule form editing.
 - JSON editor: line numbers, current line highlighting, JSON syntax validation (error prompts for formatting issues).
 - Validated `config.json` editing with raw-content recovery when the current document is invalid.
+- Authenticated plugin status reporting for installed manifests, configuration state, capabilities, missing bindings, and selected-Store health.
 - Form behavior aligned with the schema (specification source: [https://raw.githubusercontent.com/Revaea/i0c.cc/main/packages/config/redirects.schema.json](https://raw.githubusercontent.com/Revaea/i0c.cc/main/packages/config/redirects.schema.json)).
 - Supports undo/redo for quick editing rollback.
 - Calls the GitHub Contents API to create commits with commit messages when saving.

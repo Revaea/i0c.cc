@@ -22,7 +22,7 @@
 
 | 平台 | 项目根目录 | 构建命令 | 输出 |
 |------|------------|----------|------|
-| Cloudflare Workers | `apps/runtime` | `pnpm build` | 由 `wrangler.toml` 决定 |
+| Cloudflare Workers | `apps/runtime` | `pnpm build:cf` | `dist/platforms/cloudflare.js` |
 | Vercel | `apps/runtime` | `pnpm build:vc` | `.vercel/output` |
 | Netlify | `apps/runtime` | `pnpm build:nf` | `dist` |
 
@@ -40,7 +40,9 @@
 - Vercel Edge Functions：[src/platforms/vercel-edge.ts](src/platforms/vercel-edge.ts)
 - Netlify Edge Functions：[src/platforms/netlify-edge.ts](src/platforms/netlify-edge.ts)
 
-需要自定义运行时？可以从 [src/lib/handler.ts](src/lib/handler.ts) 引入 `handleRedirectRequest`，再配合自己的 `Request` 对象和可选的 `HandlerOptions` 使用。自定义适配器可以注入 `RuntimeDataSource`、`AnalyticsSink`、缓存、时钟、fetch 实现或明确的配置地址。稳定的适配器形状位于 [../../packages/plugin-contracts](../../packages/plugin-contracts)。
+需要自定义运行时？可以从 [src/lib/handler.ts](src/lib/handler.ts) 引入 `handleRedirectRequest`，再配合自己的 `Request` 对象和可选的 `HandlerOptions` 使用。自定义适配器可以注入 `RuntimeDataSource`、`AnalyticsSink`、缓存、时钟、fetch 实现或明确的配置地址。稳定的插件 Manifest 与适配器契约位于 [../../packages/plugin-api](../../packages/plugin-api)。
+
+每个平台入口只静态导入自己的 Runtime 适配器，宿主再从已安装目录装配 GitHub Raw Source、带签名的 HTTP Sink 与机器人分类 Feature。远程声明会控制可选插件的启停、配置和 Secret 绑定名称。平台适配器参数与初始 Git 数据位置必须在读取 `config.json` 前可用，因此仍属于启动配置。包结构与故障边界详见 [../../docs/plugins.zh-CN.md](../../docs/plugins.zh-CN.md)。
 
 ## 环境变量与配置
 
@@ -78,11 +80,15 @@ Runtime 会分别缓存两份文档，合并进行中的重复加载，在可用
 
 自定义适配器启用统计后，还应通过 `HandlerOptions` 传入 `provider`、可选的 `country` 和平台提供的 `waitUntil`。
 
-在仓库根目录运行契约测试和平台构建：
+在仓库根目录运行插件契约、Runtime 测试与独立平台构建：
 
 ```bash
+pnpm plugins:check
+pnpm runtime:check
 pnpm runtime:test
-pnpm runtime:build
+pnpm runtime:build:cf
+pnpm runtime:build:vc
+pnpm runtime:build:nf
 ```
 
 ### `redirects.json` 配置速查
