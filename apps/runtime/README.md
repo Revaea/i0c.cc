@@ -36,13 +36,13 @@ After deploying:
 
 ## Choose an adapter
 
-- Cloudflare Workers: [src/platforms/cloudflare.ts](src/platforms/cloudflare.ts)
-- Vercel Edge Functions: [src/platforms/vercel-edge.ts](src/platforms/vercel-edge.ts)
-- Netlify Edge Functions: [src/platforms/netlify-edge.ts](src/platforms/netlify-edge.ts)
+- Runtime host: [src/entry.ts](src/entry.ts)
+- Installed platforms: [../../i0c.runtime.config.ts](../../i0c.runtime.config.ts)
+- Build assembly: [../../packages/runtime-build](../../packages/runtime-build)
 
-Need a custom runtime? Import `handleRedirectRequest` from [src/lib/handler.ts](src/lib/handler.ts) and call it with your own `Request` object plus optional `HandlerOptions`. A custom adapter can inject a `RuntimeDataSource`, `AnalyticsSink`, cache, clock, fetch implementation, or explicit config URLs. Stable plugin manifests and adapter contracts live in [../../packages/plugin-api](../../packages/plugin-api).
+Need a custom platform? Publish a package with standard `./manifest`, `./runtime`, and `./installation` exports, install it, and add its installation descriptor to `i0c.runtime.config.ts`. The Runtime host source and official catalog do not need platform-specific changes. Programmatic consumers can still import `handleRedirectRequest` from [src/lib/handler.ts](src/lib/handler.ts). Stable plugin manifests and adapter contracts live in [../../packages/plugin-api](../../packages/plugin-api).
 
-Each provider entrypoint statically imports only its own Runtime adapter, while the host assembles the GitHub Raw Source, signed HTTP Sink, and bot-classifier Feature from the installed catalog. Remote declarations control optional enablement, configuration, and Secret binding names. Provider adapter options and the initial Git data location remain bootstrap settings because they are required before `config.json` can be read. See [../../docs/plugins.md](../../docs/plugins.md) for the package and failure boundaries.
+Each build injects only the selected Runtime adapter, while the host assembles the GitHub Raw Source, signed HTTP Sink, and bot-classifier Feature from installed manifests. Remote declarations control optional enablement, configuration, and Secret binding names. Installed platform packages and the initial Git data location remain bootstrap settings because they are required before `config.json` can be read. See [../../docs/plugins.md](../../docs/plugins.md) for the package and failure boundaries.
 
 ## Environment variables and configuration
 

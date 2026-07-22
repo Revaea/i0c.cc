@@ -36,13 +36,13 @@
 
 ## 选择适配器
 
-- Cloudflare Workers：[src/platforms/cloudflare.ts](src/platforms/cloudflare.ts)
-- Vercel Edge Functions：[src/platforms/vercel-edge.ts](src/platforms/vercel-edge.ts)
-- Netlify Edge Functions：[src/platforms/netlify-edge.ts](src/platforms/netlify-edge.ts)
+- Runtime 宿主：[src/entry.ts](src/entry.ts)
+- 已安装平台：[../../i0c.runtime.config.ts](../../i0c.runtime.config.ts)
+- 构建装配：[../../packages/runtime-build](../../packages/runtime-build)
 
-需要自定义运行时？可以从 [src/lib/handler.ts](src/lib/handler.ts) 引入 `handleRedirectRequest`，再配合自己的 `Request` 对象和可选的 `HandlerOptions` 使用。自定义适配器可以注入 `RuntimeDataSource`、`AnalyticsSink`、缓存、时钟、fetch 实现或明确的配置地址。稳定的插件 Manifest 与适配器契约位于 [../../packages/plugin-api](../../packages/plugin-api)。
+需要自定义平台？发布一个带标准 `./manifest`、`./runtime` 与 `./installation` 导出的包，安装后把 Installation 描述符加入 `i0c.runtime.config.ts` 即可。Runtime 宿主源码和官方 Catalog 不需要增加平台专属改动。程序化消费者仍可从 [src/lib/handler.ts](src/lib/handler.ts) 引入 `handleRedirectRequest`。稳定的插件 Manifest 与适配器契约位于 [../../packages/plugin-api](../../packages/plugin-api)。
 
-每个平台入口只静态导入自己的 Runtime 适配器，宿主再从已安装目录装配 GitHub Raw Source、带签名的 HTTP Sink 与机器人分类 Feature。远程声明会控制可选插件的启停、配置和 Secret 绑定名称。平台适配器参数与初始 Git 数据位置必须在读取 `config.json` 前可用，因此仍属于启动配置。包结构与故障边界详见 [../../docs/plugins.zh-CN.md](../../docs/plugins.zh-CN.md)。
+每次构建只注入所选 Runtime 适配器，宿主再从已安装 Manifest 装配 GitHub Raw Source、带签名的 HTTP Sink 与机器人分类 Feature。远程声明会控制可选插件的启停、配置和 Secret 绑定名称。已安装平台包与初始 Git 数据位置必须在读取 `config.json` 前可用，因此仍属于启动配置。包结构与故障边界详见 [../../docs/plugins.zh-CN.md](../../docs/plugins.zh-CN.md)。
 
 ## 环境变量与配置
 

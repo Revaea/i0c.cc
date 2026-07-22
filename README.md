@@ -19,7 +19,9 @@ This repository is maintained for personal use and engineering experimentation. 
 | Configuration | [packages/config](packages/config) | Bootstrap defaults, both data-document schemas, and validation shared by both applications. |
 | Plugin API | [packages/plugin-api](packages/plugin-api) | Stable compile-time manifests, lifecycle contracts, and typed extension boundaries for official plugins. |
 | Plugin Testkit | [packages/plugin-testkit](packages/plugin-testkit) | Shared plugin contracts and dependency-boundary checks. |
-| Plugin Catalog | [packages/plugin-catalog](packages/plugin-catalog) | Host-specific static registration and plugin configuration validation. |
+| Plugin Catalog | [packages/plugin-catalog](packages/plugin-catalog) | Optional official presets and host-specific plugin configuration validation. |
+| Runtime Host | [packages/runtime-host](packages/runtime-host) | Platform-neutral Runtime deployment assembly. |
+| Runtime Build | [packages/runtime-build](packages/runtime-build) | Build-time platform installation and selected-adapter bundling. |
 | Official plugins | [plugins](plugins) | Git data, three Runtime adapters, HTTP analytics delivery, PostgreSQL and D1 stores, and bot classification. |
 
 ## Live previews
