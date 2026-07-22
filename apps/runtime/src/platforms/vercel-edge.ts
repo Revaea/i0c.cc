@@ -1,42 +1,26 @@
-import { waitUntil as vercelWaitUntil } from "@vercel/functions";
-import type { RuntimePlatformAdapter } from "@i0c/plugin-contracts";
+import { createVercelEdgeHandler } from "@i0c/plugin-runtime-vercel/runtime";
 
 import { handleRedirectRequest, type HandlerOptions } from "@/lib/handler";
-
-declare const process: undefined | { env?: Record<string, string | undefined> };
-
-function getSecretBindings(): Record<string, unknown> | undefined {
-  const writeKey = typeof process !== "undefined"
-    ? process?.env?.ANALYTICS_WRITE_KEY
-    : undefined;
-  if (writeKey) {
-    return { ANALYTICS_WRITE_KEY: writeKey };
-  }
-  return undefined;
-}
 
 export const runtime = "edge";
 
 export function createVercelRouteHandler(options?: HandlerOptions) {
-  const adapter = {
-    id: "vercel",
-    async handle(request: Request): Promise<Response> {
-      const bindings = options?.envBindings ?? getSecretBindings();
+  return createVercelEdgeHandler(
+    (request, context) => {
       const base = options ?? {};
-      const merged: HandlerOptions = {
+      return handleRedirectRequest(request, {
+        ...context,
         ...base,
-        envBindings: base.envBindings ?? bindings,
+        envBindings: base.envBindings ?? context.envBindings,
         provider: base.provider ?? "vercel",
-        country: base.country ?? request.headers.get("x-vercel-ip-country") ?? undefined,
-        waitUntil: base.waitUntil ?? ((promise: Promise<unknown>) => vercelWaitUntil(promise))
-      };
-      return handleRedirectRequest(request, merged);
+        country: base.country ?? context.country,
+        waitUntil: base.waitUntil ?? context.waitUntil
+      });
+    },
+    {
+      secretBindings: ["ANALYTICS_WRITE_KEY"]
     }
-  } satisfies RuntimePlatformAdapter<[Request]>;
-
-  return function vercelRoute(request: Request): Promise<Response> {
-    return adapter.handle(request);
-  };
+  );
 }
 
 const defaultHandler = createVercelRouteHandler();

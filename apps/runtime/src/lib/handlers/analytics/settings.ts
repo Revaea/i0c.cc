@@ -11,6 +11,16 @@
  */
 
 import {
+  resolveHttpAnalyticsSinkConfig
+} from "@i0c/plugin-analytics-sink-http/config";
+import {
+  HTTP_ANALYTICS_SINK_PLUGIN_ID,
+  httpAnalyticsSinkManifest
+} from "@i0c/plugin-analytics-sink-http/manifest";
+
+import { isRuntimePluginEnabled } from "@/plugins/registry";
+
+import {
   deriveAttributionHmacKey,
   normalizeAnalyticsHostname
 } from "./attribution";
@@ -27,6 +37,7 @@ let attributionKeyCache: {
 
 export interface AnalyticsDeliveryConfig {
   endpoint: string;
+  maximumDeliveryAttempts: number;
   sourceId: string;
   writeKey: string;
 }
@@ -51,7 +62,19 @@ export async function resolveAnalyticsSettings(
 ): Promise<AnalyticsRuntimeSettings> {
   const sourceId = normalizeAnalyticsHostname(runtime.dataConfig.analytics.sourceId) ?? undefined;
   const endpointValue = runtime.dataConfig.analytics.ingestEndpoint;
-  const writeKey = readRuntimeSecret(runtime.envBindings, ANALYTICS_WRITE_KEY)?.trim();
+  const sinkDeclaration = runtime.dataConfig.plugins[HTTP_ANALYTICS_SINK_PLUGIN_ID];
+  const sinkEnabled = isRuntimePluginEnabled(
+    runtime.dataConfig,
+    runtime.provider,
+    HTTP_ANALYTICS_SINK_PLUGIN_ID
+  );
+  const writeKeyBinding = sinkDeclaration?.secrets?.writeKey
+    ?? httpAnalyticsSinkManifest.secrets.writeKey.defaultBinding
+    ?? ANALYTICS_WRITE_KEY;
+  const writeKey = readRuntimeSecret(runtime.envBindings, writeKeyBinding)?.trim();
+  const { maximumDeliveryAttempts } = resolveHttpAnalyticsSinkConfig(
+    sinkDeclaration?.config
+  );
   const sourceHostname = sourceId;
   let attributionKey: ArrayBuffer | undefined;
   if (writeKey && writeKey.length >= 32) {
@@ -63,12 +86,17 @@ export async function resolveAnalyticsSettings(
   }
 
   let delivery: AnalyticsDeliveryConfig | null = null;
-  if (endpointValue && sourceId && writeKey && writeKey.length >= 32) {
+  if (sinkEnabled && endpointValue && sourceId && writeKey && writeKey.length >= 32) {
     try {
       const endpoint = new URL(endpointValue);
       const isLocalHttp = endpoint.protocol === "http:" && isLoopbackHost(endpoint.hostname);
       if ((endpoint.protocol === "https:" || isLocalHttp) && !endpoint.username && !endpoint.password) {
-        delivery = { endpoint: endpoint.toString(), sourceId, writeKey };
+        delivery = {
+          endpoint: endpoint.toString(),
+          maximumDeliveryAttempts,
+          sourceId,
+          writeKey
+        };
       }
     } catch {
       delivery = null;

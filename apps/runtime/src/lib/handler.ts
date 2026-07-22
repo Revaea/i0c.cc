@@ -36,6 +36,7 @@ import {
 } from "@handlers/routing/matcher";
 import { generateRobots, generateSitemapXml, isRobotsAllowed } from "@handlers/resources/seo";
 import { notFoundPageHtml } from "@handlers/resources/templates";
+import { createRuntimeFeaturePipeline } from "@/plugins/features";
 import type { AnalyticsRequestContext } from "@handlers/analytics";
 import type { HandlerOptions, RouteValueEntry } from "@handlers/core/types";
 import { inferEffectivePath, isLikelyStaticAssetPath, normalisePath, safeDecode } from "@handlers/core/utils";
@@ -70,7 +71,12 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
     const dataConfig = await loadDataConfig(runtime);
     runtime = {
       ...runtime,
-      dataConfig
+      dataConfig,
+      featurePipeline: createRuntimeFeaturePipeline(
+        dataConfig,
+        runtime.provider,
+        runtime.runtimeFeatures
+      )
     };
 
     analytics = await prepareAnalyticsRequest(request, runtime);

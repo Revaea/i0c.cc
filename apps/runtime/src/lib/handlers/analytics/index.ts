@@ -189,16 +189,20 @@ async function finalizeMatchedAnalyticsInternal(input: MatchedAnalyticsInput): P
   return clearAttributionCookie(finalResponse, input.analytics.hasAttributionCookie);
 }
 
-export function finalizeRuntimeAnalytics(input: RuntimeAnalyticsInput): Response {
+export async function finalizeRuntimeAnalytics(
+  input: RuntimeAnalyticsInput
+): Promise<Response> {
   try {
-    return finalizeRuntimeAnalyticsInternal(input);
+    return await finalizeRuntimeAnalyticsInternal(input);
   } catch (error) {
     console.error("[Analytics] Failed to finalize runtime event", error);
     return input.response;
   }
 }
 
-function finalizeRuntimeAnalyticsInternal(input: RuntimeAnalyticsInput): Response {
+async function finalizeRuntimeAnalyticsInternal(
+  input: RuntimeAnalyticsInput
+): Promise<Response> {
   const finalResponse = clearAttributionCookie(input.response, input.analytics.hasAttributionCookie);
   const settings = input.analytics.settings;
   const delivery = settings.delivery;
@@ -213,7 +217,7 @@ function finalizeRuntimeAnalyticsInternal(input: RuntimeAnalyticsInput): Respons
   }
 
   const completedAt = input.runtime.now();
-  const event = createRuntimeAnalyticsEvent({
+  const event = await createRuntimeAnalyticsEvent({
     request: input.request,
     response: input.response,
     outcome: input.outcome,

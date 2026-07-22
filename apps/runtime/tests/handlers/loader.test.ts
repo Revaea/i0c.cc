@@ -90,6 +90,43 @@ test("keeps the safe default when remote instance configuration is invalid", asy
   assert.equal(config.analytics.sourceId, "i0c.cc");
 });
 
+test("rejects a remote configuration that disables the required data source", async () => {
+  const runtime = resolveRuntimeOptions({
+    dataConfigUrl: "https://config.example/disabled-source.json",
+    now: () => 0,
+    fetchImpl: async () => Response.json({
+      ...defaultDataConfig,
+      plugins: {
+        "@i0c/github-raw-source": { enabled: false }
+      }
+    })
+  });
+
+  await assert.rejects(
+    loadDataConfig(runtime),
+    /data-source plugin must be enabled/
+  );
+});
+
+test("rejects a remote configuration that disables the active platform", async () => {
+  const runtime = resolveRuntimeOptions({
+    dataConfigUrl: "https://config.example/disabled-platform.json",
+    provider: "cloudflare",
+    now: () => 0,
+    fetchImpl: async () => Response.json({
+      ...defaultDataConfig,
+      plugins: {
+        "@i0c/runtime-cloudflare": { enabled: false }
+      }
+    })
+  });
+
+  await assert.rejects(
+    loadDataConfig(runtime),
+    /cloudflare Runtime platform plugin must be enabled/
+  );
+});
+
 test("accepts a replaceable data source without using the remote fetch adapter", async () => {
   let configLoads = 0;
   let ruleLoads = 0;

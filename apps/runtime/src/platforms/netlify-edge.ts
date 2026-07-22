@@ -1,69 +1,32 @@
-import type { RuntimePlatformAdapter } from "@i0c/plugin-contracts";
+import {
+  createNetlifyEdgeHandler as createNetlifyPluginHandler,
+  type NetlifyHandler
+} from "@i0c/plugin-runtime-netlify/runtime";
 
 import { handleRedirectRequest, type HandlerOptions } from "@/lib/handler";
 
-declare const Netlify: undefined | {
-  env?: {
-    get(key: string): string | undefined;
-  };
-};
-
-type NetlifyContext = {
-  geo?: {
-    country?: {
-      code?: string;
-    };
-  };
-  waitUntil?(promise: Promise<unknown>): void;
-};
-
-type NetlifyHandler = (request: Request, context: NetlifyContext) => Promise<Response> | Response;
-
-const NETLIFY_BINDING_KEYS = [
-  "ANALYTICS_WRITE_KEY"
-] as const;
-
-function getNetlifyBindings(): Record<string, unknown> | undefined {
-  if (typeof Netlify === "undefined" || !Netlify.env) {
-    return undefined;
-  }
-
-  const bindings: Record<string, unknown> = {};
-  for (const key of NETLIFY_BINDING_KEYS) {
-    const value = Netlify.env.get(key);
-    if (value !== undefined) {
-      bindings[key] = value;
-    }
-  }
-  return bindings;
-}
-
-export function createNetlifyEdgeHandler(options?: HandlerOptions): NetlifyHandler {
-  const adapter = {
-    id: "netlify",
-    async handle(request: Request, context: NetlifyContext): Promise<Response> {
-      const bindings = options?.envBindings ?? getNetlifyBindings();
+export function createNetlifyRouteHandler(options?: HandlerOptions): NetlifyHandler {
+  return createNetlifyPluginHandler(
+    (request, context) => {
       const base = options ?? {};
-      const platformWaitUntil = context && typeof context.waitUntil === "function"
-        ? (promise: Promise<unknown>) => context.waitUntil?.(promise)
-        : undefined;
-      const merged: HandlerOptions = {
+      return handleRedirectRequest(request, {
+        ...context,
         ...base,
-        envBindings: base.envBindings ?? bindings,
+        envBindings: base.envBindings ?? context.envBindings,
         provider: base.provider ?? "netlify",
-        country: base.country ?? context?.geo?.country?.code,
-        waitUntil: base.waitUntil ?? platformWaitUntil
-      };
-      return handleRedirectRequest(request, merged);
+        country: base.country ?? context.country,
+        waitUntil: base.waitUntil ?? context.waitUntil
+      });
+    },
+    {
+      secretBindings: ["ANALYTICS_WRITE_KEY"]
     }
-  } satisfies RuntimePlatformAdapter<[Request, NetlifyContext]>;
-
-  return function netlifyEdgeHandler(request: Request, context: NetlifyContext): Promise<Response> {
-    return adapter.handle(request, context);
-  };
+  );
 }
 
-const defaultHandler = createNetlifyEdgeHandler();
+export const createNetlifyEdgeHandler = createNetlifyRouteHandler;
+
+const defaultHandler = createNetlifyRouteHandler();
 
 export const config = { path: "/*" };
 

@@ -12,11 +12,21 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
-import type { DataConfig } from "@i0c/config";
+import type {
+  AnalyticsClassificationHookContext
+} from "@i0c/analytics-domain/classification";
+import type {
+  DataConfig,
+  RedirectsConfig as SharedRedirectsConfig,
+  SlotBranch as SharedSlotBranch
+} from "@i0c/config";
 import type {
   AnalyticsSink,
-  RuntimeDataSource as RuntimeDataSourceContract
-} from "@i0c/plugin-contracts";
+  RuntimeCache,
+  RuntimeDataSource as RuntimeDataSourceContract,
+  RuntimeFeaturePipeline,
+  RuntimeFeatureRegistration
+} from "@i0c/plugin-api";
 
 export type RouteType = "prefix" | "exact" | "proxy";
 export type AnalyticsProvider = "cloudflare" | "vercel" | "netlify" | "unknown";
@@ -77,19 +87,9 @@ export interface CompiledEntry {
   order: number;
 }
 
-export type SlotBranch = Record<string, unknown>;
-
-export interface RedirectsConfig {
-  Slots?: SlotBranch;
-  slots?: SlotBranch;
-  SLOT?: SlotBranch;
-  [key: string]: unknown;
-}
-
-export interface CacheLike {
-  match(request: Request): Promise<Response | undefined | null>;
-  put(request: Request, response: Response): Promise<void>;
-}
+export type SlotBranch = SharedSlotBranch;
+export type RedirectsConfig = SharedRedirectsConfig;
+export type CacheLike = RuntimeCache;
 
 export type RuntimeDataSource = RuntimeDataSourceContract<DataConfig, RedirectsConfig>;
 
@@ -109,6 +109,12 @@ export interface AnalyticsSinkContext {
 }
 
 export type RuntimeAnalyticsSink = AnalyticsSink<AnalyticsSinkEvent, AnalyticsSinkContext>;
+export type RuntimeAnalyticsFeaturePipeline = RuntimeFeaturePipeline<
+  AnalyticsClassificationHookContext
+>;
+export type RuntimeFeatureRegistrationInput = RuntimeFeatureRegistration<
+  AnalyticsClassificationHookContext
+>;
 
 export interface HandlerOptions {
   configUrl?: string;
@@ -118,6 +124,7 @@ export interface HandlerOptions {
   redirectsCacheTtlSeconds?: number;
   dataSource?: RuntimeDataSource;
   analyticsSink?: RuntimeAnalyticsSink;
+  runtimeFeatures?: readonly RuntimeFeatureRegistrationInput[];
   cache?: CacheLike;
   cacheTtlSeconds?: number;
   fetchImpl?: typeof fetch;
@@ -137,6 +144,8 @@ export interface ResolvedRuntime {
   redirectsConfigUrl: string;
   dataSource: RuntimeDataSource;
   analyticsSink?: RuntimeAnalyticsSink;
+  featurePipeline: RuntimeAnalyticsFeaturePipeline;
+  runtimeFeatures: readonly RuntimeFeatureRegistrationInput[];
   cache?: CacheLike;
   cacheTtlSeconds: number;
   fetchImpl: typeof fetch;

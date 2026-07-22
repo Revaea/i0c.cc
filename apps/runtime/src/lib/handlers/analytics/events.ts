@@ -13,12 +13,6 @@
 import {
   normalizeAnalyticsHostname
 } from "./attribution";
-import {
-  classifyAnalyticsDevice,
-  classifyAnalyticsProbe,
-  classifyAnalyticsResource,
-  classifyAnalyticsTraffic
-} from "./classification";
 import type { VerifiedAttributionToken } from "./attribution";
 import type {
   AnalyticsBotCategory,
@@ -131,7 +125,11 @@ export async function createMatchedAnalyticsEvent(
 ): Promise<LinkAnalyticsEventV2> {
   const analyticsId = await resolveAnalyticsId(input.routePath, input.rule);
   const attribution = resolveAttributionForRule(input.attribution, analyticsId);
-  const classification = classifyRequest(input.request, input.effectivePath);
+  const classification = await classifyRequest(
+    input.runtime,
+    input.request,
+    input.effectivePath
+  );
   const eventId = globalThis.crypto.randomUUID();
   return {
     ...createEventBase({
@@ -159,10 +157,14 @@ export async function createMatchedAnalyticsEvent(
   };
 }
 
-export function createRuntimeAnalyticsEvent(
+export async function createRuntimeAnalyticsEvent(
   input: RuntimeEventInput
-): RuntimeAnalyticsEventV2 {
-  const classification = classifyRequest(input.request, input.effectivePath);
+): Promise<RuntimeAnalyticsEventV2> {
+  const classification = await classifyRequest(
+    input.runtime,
+    input.request,
+    input.effectivePath
+  );
   return {
     ...createEventBase({
       eventKind: "runtime",
@@ -184,22 +186,31 @@ export function createRuntimeAnalyticsEvent(
   };
 }
 
-function classifyRequest(request: Request, effectivePath: string): {
+async function classifyRequest(
+  runtime: ResolvedRuntime,
+  request: Request,
+  effectivePath: string
+): Promise<{
   botCategory: AnalyticsBotCategory;
   botConfidence: AnalyticsBotConfidence;
   deviceType: AnalyticsDeviceType;
   probeCategory: AnalyticsProbeCategory;
   resourceClass: AnalyticsResourceClass;
   trafficClass: AnalyticsTrafficClass;
-} {
-  const probeCategory = classifyAnalyticsProbe(effectivePath);
-  const traffic = classifyAnalyticsTraffic(request, probeCategory);
-  return {
-    ...traffic,
-    probeCategory,
-    resourceClass: classifyAnalyticsResource(request, effectivePath),
-    deviceType: classifyAnalyticsDevice(request, traffic)
-  };
+}> {
+  const result = await runtime.featurePipeline.onAnalyticsEvent({
+    request,
+    pathname: effectivePath,
+    classification: {
+      botCategory: "none",
+      botConfidence: "none",
+      deviceType: "unknown",
+      probeCategory: "none",
+      resourceClass: "unknown",
+      trafficClass: "unknown"
+    }
+  });
+  return result.classification;
 }
 
 function createEventBase(input: {
@@ -214,7 +225,7 @@ function createEventBase(input: {
   entryDomain: string;
   sourceId: string;
   sampleRate: number;
-  classification: ReturnType<typeof classifyRequest>;
+  classification: Awaited<ReturnType<typeof classifyRequest>>;
 }): AnalyticsEventBaseV2 {
   const countryCode = resolveCountryCode(input.request, input.runtime.country);
   return {
