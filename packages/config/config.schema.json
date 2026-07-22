@@ -116,6 +116,10 @@
         "enabled": {
           "type": "boolean"
         },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
         "config": {
           "type": "object"
         },

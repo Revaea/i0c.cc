@@ -5,6 +5,15 @@ export type JsonPrimitive = boolean | number | string | null
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue }
 export type JsonObject = { [key: string]: JsonValue }
 
+export type SlotBranch = Record<string, unknown>
+
+export interface RedirectsConfig {
+  Slots?: SlotBranch
+  slots?: SlotBranch
+  SLOT?: SlotBranch
+  [key: string]: unknown
+}
+
 export interface DataSourceTarget {
   owner: string
   repository: string
@@ -24,6 +33,7 @@ export interface BootstrapConfig {
 
 export interface PluginInstanceConfig {
   enabled: boolean
+  version?: number
   config?: JsonObject
   secrets?: Record<string, string>
 }

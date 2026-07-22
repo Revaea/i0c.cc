@@ -8,7 +8,9 @@ export type {
   JsonPrimitive,
   JsonValue,
   PluginInstanceConfig,
+  RedirectsConfig,
   RobotsPolicy,
+  SlotBranch,
   WebUiAccessMode,
 } from "./types"
 export type {

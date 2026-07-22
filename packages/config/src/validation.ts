@@ -152,7 +152,14 @@ function validatePlugin(value: unknown, path: string, issues: DataConfigValidati
     return
   }
 
-  validateKnownKeys(value, new Set(["enabled", "config", "secrets"]), path, issues)
+  validateKnownKeys(value, new Set(["enabled", "version", "config", "secrets"]), path, issues)
+
+  if (
+    value.version !== undefined &&
+    (!Number.isSafeInteger(value.version) || typeof value.version !== "number" || value.version < 1)
+  ) {
+    issues.push(issue(`${path}/version`, "must be a positive integer"))
+  }
 
   if (value.config !== undefined && !isJsonObject(value.config)) {
     issues.push(issue(`${path}/config`, "must be a JSON object"))

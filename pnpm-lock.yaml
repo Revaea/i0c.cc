@@ -37,19 +37,37 @@ importers:
 
   apps/runtime:
     dependencies:
+      '@i0c/analytics-domain':
+        specifier: workspace:*
+        version: link:../../packages/analytics-domain
       '@i0c/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@i0c/plugin-contracts':
+      '@i0c/plugin-analytics-sink-http':
         specifier: workspace:*
-        version: link:../../packages/plugin-contracts
-      '@vercel/functions':
-        specifier: ^3.7.5
-        version: 3.7.5(ws@8.21.0)
+        version: link:../../plugins/sink/http
+      '@i0c/plugin-api':
+        specifier: workspace:*
+        version: link:../../packages/plugin-api
+      '@i0c/plugin-catalog':
+        specifier: workspace:*
+        version: link:../../packages/plugin-catalog
+      '@i0c/plugin-feature-bot-classifier':
+        specifier: workspace:*
+        version: link:../../plugins/feature/bot-classifier
+      '@i0c/plugin-github-data':
+        specifier: workspace:*
+        version: link:../../plugins/source/github
+      '@i0c/plugin-runtime-cloudflare':
+        specifier: workspace:*
+        version: link:../../plugins/runtime/cloudflare
+      '@i0c/plugin-runtime-netlify':
+        specifier: workspace:*
+        version: link:../../plugins/runtime/netlify
+      '@i0c/plugin-runtime-vercel':
+        specifier: workspace:*
+        version: link:../../plugins/runtime/vercel
     devDependencies:
-      '@cloudflare/workers-types':
-        specifier: ^4.20260329.1
-        version: 4.20260329.1
       '@esbuild-plugins/tsconfig-paths':
         specifier: ^0.1.2
         version: 0.1.2(esbuild@0.28.1)(typescript@6.0.2)
@@ -70,16 +88,31 @@ importers:
         version: 6.0.2
       wrangler:
         specifier: ^4.78.0
-        version: 4.105.0(@cloudflare/workers-types@4.20260329.1)
+        version: 4.105.0
 
   apps/webui:
     dependencies:
+      '@i0c/analytics-domain':
+        specifier: workspace:*
+        version: link:../../packages/analytics-domain
       '@i0c/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@i0c/plugin-contracts':
+      '@i0c/plugin-analytics-store-d1':
         specifier: workspace:*
-        version: link:../../packages/plugin-contracts
+        version: link:../../plugins/store/d1
+      '@i0c/plugin-analytics-store-postgres':
+        specifier: workspace:*
+        version: link:../../plugins/store/postgres
+      '@i0c/plugin-api':
+        specifier: workspace:*
+        version: link:../../packages/plugin-api
+      '@i0c/plugin-catalog':
+        specifier: workspace:*
+        version: link:../../packages/plugin-catalog
+      '@i0c/plugin-github-data':
+        specifier: workspace:*
+        version: link:../../plugins/source/github
       '@visx/axis':
         specifier: ^4.0.0
         version: 4.0.0(@types/react@19.2.17)(react@19.2.7)
@@ -119,9 +152,6 @@ importers:
       next-intl:
         specifier: ^4.9.2
         version: 4.13.0(next@16.2.10(@babel/core@7.29.7)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)(typescript@5.9.3)
-      postgres:
-        specifier: ^3.4.9
-        version: 3.4.9
       qrcode.react:
         specifier: ^4.2.0
         version: 4.2.0(react@19.2.7)
@@ -166,14 +196,259 @@ importers:
         specifier: ^5
         version: 5.9.3
 
+  packages/analytics-domain:
+    dependencies:
+      zod:
+        specifier: ^4.2.1
+        version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.5.0
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+
   packages/config:
     devDependencies:
       typescript:
         specifier: ^6.0.2
         version: 6.0.2
 
-  packages/plugin-contracts:
+  packages/plugin-api:
     devDependencies:
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+
+  packages/plugin-catalog:
+    dependencies:
+      '@i0c/plugin-analytics-sink-http':
+        specifier: workspace:*
+        version: link:../../plugins/sink/http
+      '@i0c/plugin-analytics-store-d1':
+        specifier: workspace:*
+        version: link:../../plugins/store/d1
+      '@i0c/plugin-analytics-store-postgres':
+        specifier: workspace:*
+        version: link:../../plugins/store/postgres
+      '@i0c/plugin-api':
+        specifier: workspace:*
+        version: link:../plugin-api
+      '@i0c/plugin-feature-bot-classifier':
+        specifier: workspace:*
+        version: link:../../plugins/feature/bot-classifier
+      '@i0c/plugin-github-data':
+        specifier: workspace:*
+        version: link:../../plugins/source/github
+      '@i0c/plugin-runtime-cloudflare':
+        specifier: workspace:*
+        version: link:../../plugins/runtime/cloudflare
+      '@i0c/plugin-runtime-netlify':
+        specifier: workspace:*
+        version: link:../../plugins/runtime/netlify
+      '@i0c/plugin-runtime-vercel':
+        specifier: workspace:*
+        version: link:../../plugins/runtime/vercel
+    devDependencies:
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.5.0
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+
+  packages/plugin-testkit:
+    dependencies:
+      '@i0c/plugin-api':
+        specifier: workspace:*
+        version: link:../plugin-api
+    devDependencies:
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.5.0
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+
+  plugins/feature/bot-classifier:
+    dependencies:
+      '@i0c/analytics-domain':
+        specifier: workspace:*
+        version: link:../../../packages/analytics-domain
+      '@i0c/plugin-api':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-api
+    devDependencies:
+      '@i0c/plugin-testkit':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-testkit
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.5.0
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+
+  plugins/runtime/cloudflare:
+    dependencies:
+      '@i0c/plugin-api':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-api
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20260329.1
+        version: 4.20260329.1
+      '@i0c/plugin-testkit':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-testkit
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.5.0
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+
+  plugins/runtime/netlify:
+    dependencies:
+      '@i0c/plugin-api':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-api
+    devDependencies:
+      '@i0c/plugin-testkit':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-testkit
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.5.0
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+
+  plugins/runtime/vercel:
+    dependencies:
+      '@i0c/plugin-api':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-api
+      '@vercel/functions':
+        specifier: ^3.7.5
+        version: 3.7.5(ws@8.21.0)
+    devDependencies:
+      '@i0c/plugin-testkit':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-testkit
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.5.0
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+
+  plugins/sink/http:
+    dependencies:
+      '@i0c/plugin-api':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-api
+    devDependencies:
+      '@i0c/plugin-testkit':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-testkit
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.5.0
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+
+  plugins/source/github:
+    dependencies:
+      '@i0c/config':
+        specifier: workspace:*
+        version: link:../../../packages/config
+      '@i0c/plugin-api':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-api
+    devDependencies:
+      '@i0c/plugin-testkit':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-testkit
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.5.0
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+
+  plugins/store/d1:
+    dependencies:
+      '@i0c/analytics-domain':
+        specifier: workspace:*
+        version: link:../../../packages/analytics-domain
+      '@i0c/plugin-api':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-api
+    devDependencies:
+      '@i0c/plugin-testkit':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-testkit
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.5.0
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+
+  plugins/store/postgres:
+    dependencies:
+      '@i0c/analytics-domain':
+        specifier: workspace:*
+        version: link:../../../packages/analytics-domain
+      '@i0c/plugin-api':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-api
+      postgres:
+        specifier: ^3.4.9
+        version: 3.4.9
+    devDependencies:
+      '@i0c/plugin-testkit':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-testkit
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.5.0
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
       typescript:
         specifier: ^6.0.2
         version: 6.0.2
@@ -6540,7 +6815,7 @@ snapshots:
       '@cloudflare/workerd-linux-arm64': 1.20260625.1
       '@cloudflare/workerd-windows-64': 1.20260625.1
 
-  wrangler@4.105.0(@cloudflare/workers-types@4.20260329.1):
+  wrangler@4.105.0:
     dependencies:
       '@cloudflare/kv-asset-handler': 0.5.0
       '@cloudflare/unenv-preset': 2.16.1(unenv@2.0.0-rc.24)(workerd@1.20260625.1)
@@ -6551,7 +6826,6 @@ snapshots:
       unenv: 2.0.0-rc.24
       workerd: 1.20260625.1
     optionalDependencies:
-      '@cloudflare/workers-types': 4.20260329.1
       fsevents: 2.3.3
     transitivePeerDependencies:
       - bufferutil

@@ -34,5 +34,61 @@ export const defaultDataConfig = {
       managerGitHubUserIds: ["59095086", "186124801", "186082640"],
     },
   },
-  plugins: {},
+  plugins: {
+    "@i0c/github-raw-source": {
+      enabled: true,
+      version: 1,
+    },
+    "@i0c/github-contents-repository": {
+      enabled: true,
+      version: 1,
+    },
+    "@i0c/runtime-cloudflare": {
+      enabled: true,
+      version: 1,
+    },
+    "@i0c/runtime-vercel": {
+      enabled: true,
+      version: 1,
+    },
+    "@i0c/runtime-netlify": {
+      enabled: true,
+      version: 1,
+    },
+    "@i0c/analytics-sink-http": {
+      enabled: true,
+      version: 1,
+      config: {
+        maximumDeliveryAttempts: 2,
+      },
+      secrets: {
+        writeKey: "ANALYTICS_WRITE_KEY",
+      },
+    },
+    "@i0c/feature-bot-classifier": {
+      enabled: true,
+      version: 1,
+      config: {
+        hookTimeoutMs: 20,
+      },
+    },
+    "@i0c/analytics-store-postgres": {
+      enabled: true,
+      version: 1,
+      config: {
+        maxConnections: 3,
+        idleTimeoutSeconds: 20,
+        developmentIdleTimeoutSeconds: 0,
+        connectTimeoutSeconds: 30,
+        retentionDays: 181,
+      },
+      secrets: {
+        databaseUrl: "DATABASE_URL",
+      },
+    },
+    "@i0c/analytics-store-d1": {
+      enabled: false,
+      version: 1,
+    },
+  },
 } as const satisfies DataConfig
