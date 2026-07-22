@@ -42,12 +42,12 @@ export type {
   AnalyticsRange,
 } from "./types";
 
-export function isAnalyticsConfigured(): boolean {
-  return isDatabaseConfigured() && readAnalyticsSourceId() !== null;
+export async function isAnalyticsConfigured(): Promise<boolean> {
+  return isDatabaseConfigured() && await readAnalyticsSourceId() !== null;
 }
 
 export async function getAnalyticsScope(input: AnalyticsQueryScope): Promise<AnalyticsScope> {
-  const sourceId = resolveSourceId();
+  const sourceId = await resolveSourceId();
   const { publicScope } = await resolveScope(sourceId, input);
 
   return publicScope;
@@ -86,7 +86,7 @@ const getCachedAnalyticsOverview = unstable_cache(
 export async function getAnalyticsOverview(
   input: AnalyticsQueryScope,
 ): Promise<AnalyticsOverview> {
-  const sourceId = resolveSourceId();
+  const sourceId = await resolveSourceId();
   const normalizedInput = await normalizeAnalyticsQueryScope(sourceId, input);
   return getCachedAnalyticsOverview(sourceId, normalizedInput);
 }
@@ -130,7 +130,7 @@ export async function getAnalyticsDetail(
   analyticsId: string,
   input: AnalyticsQueryScope,
 ): Promise<AnalyticsDetail | null> {
-  const sourceId = resolveSourceId();
+  const sourceId = await resolveSourceId();
   const normalizedInput = await normalizeAnalyticsQueryScope(sourceId, input);
   return getCachedAnalyticsDetail(sourceId, analyticsId, normalizedInput);
 }
@@ -168,7 +168,7 @@ const getCachedAnalyticsAutomationOverview = unstable_cache(
 export async function getAnalyticsAutomationOverview(
   input: AnalyticsQueryScope,
 ): Promise<AnalyticsAutomationOverview> {
-  const sourceId = resolveSourceId();
+  const sourceId = await resolveSourceId();
   const normalizedInput = await normalizeAnalyticsQueryScope(sourceId, input);
   return getCachedAnalyticsAutomationOverview(sourceId, normalizedInput);
 }

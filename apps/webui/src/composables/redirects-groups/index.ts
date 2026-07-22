@@ -267,6 +267,7 @@ export function useRedirectsGroups() {
     undo,
     redo,
     isPending: configFile.isPending,
+    canonicalOrigin: configFile.canonicalOrigin,
     save,
     applyJson,
     previewJson,

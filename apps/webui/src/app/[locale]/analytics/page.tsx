@@ -47,7 +47,7 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
     : query.entryDomain ?? "all"
   const basePath = `/${locale}/analytics`
 
-  if (!isAnalyticsConfigured()) {
+  if (!await isAnalyticsConfigured()) {
     return (
       <AnalyticsShell>
         <AnalyticsPageHeader

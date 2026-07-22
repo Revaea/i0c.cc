@@ -1,22 +1,23 @@
 'use client';
 
-import { appConfig } from "@i0c/config";
 import { useEffect, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { useTranslations } from 'next-intl';
 import Image from "next/image";
 
 import { Button } from "@/components/ui/controls/button";
+import { useRuntimeSettings } from "@/components/redirects-groups/runtime-settings-context";
 
 export function QRCodeButton({ pathKey, domain }: { pathKey: string; domain?: string; }) {
   const t = useTranslations('qrCode');
+  const { canonicalOrigin } = useRuntimeSettings();
   const [open, setOpen] = useState(false);
   const [showIcon, setShowIcon] = useState(true);
   const [isDropUp, setIsDropUp] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const qrWrapperRef = useRef<HTMLDivElement | null>(null);
 
-  const baseUrl = domain || appConfig.runtime.canonicalOrigin;
+  const baseUrl = domain || canonicalOrigin;
   const cleanPath = pathKey.startsWith('/') ? pathKey : `/${pathKey}`;
   const finalUrl = `${baseUrl}${cleanPath}`;
 

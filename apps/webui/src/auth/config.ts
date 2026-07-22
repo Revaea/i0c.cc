@@ -1,6 +1,6 @@
 import GitHubProvider from "next-auth/providers/github";
 
-import { appConfig } from "@i0c/config";
+import { bootstrapConfig } from "@i0c/config";
 
 import {
   applyWebUiTokenAuthorization,
@@ -30,7 +30,7 @@ export const authOptions = {
           // Default GitHub OAuth scopes are usually "read:user user:email".
           // We additionally need repo contents access for reading/writing redirects config.
           // Use the narrowest scope possible for your use case.
-          scope: appConfig.webui.githubOAuthScope
+          scope: bootstrapConfig.webui.githubOAuthScope
         }
       }
     })
@@ -42,7 +42,7 @@ export const authOptions = {
     async signIn({ account }) {
       if (
         account?.provider !== "github" ||
-        !canGitHubUserSignIn(account.providerAccountId)
+        !await canGitHubUserSignIn(account.providerAccountId)
       ) {
         return "/access-denied";
       }
@@ -58,14 +58,14 @@ export const authOptions = {
         }
       }
 
-      applyWebUiTokenAuthorization(token);
+      await applyWebUiTokenAuthorization(token);
 
       return token;
     },
     async session({ session, token }) {
       // IMPORTANT: Never expose OAuth access tokens to the browser.
       // Keep tokens only in the server-side JWT and read them in API routes via getToken().
-      const isAuthorized = isWebUiTokenAuthorized(token);
+      const isAuthorized = await isWebUiTokenAuthorized(token);
       session.hasAccessToken = isAuthorized;
       session.isAuthorized = isAuthorized;
       return session;

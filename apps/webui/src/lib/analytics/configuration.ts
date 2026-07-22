@@ -1,6 +1,6 @@
 import "server-only";
 
-import { appConfig } from "@i0c/config";
+import { getEffectiveDataConfig } from "@/lib/configuration/data-config";
 
 const hostnameLabelPattern = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 
@@ -16,8 +16,9 @@ function normalizeAnalyticsSourceId(value: string): string | null {
     : null;
 }
 
-export function readAnalyticsSourceId(): string | null {
-  return normalizeAnalyticsSourceId(appConfig.analytics.sourceId);
+export async function readAnalyticsSourceId(): Promise<string | null> {
+  const config = await getEffectiveDataConfig();
+  return normalizeAnalyticsSourceId(config.analytics.sourceId);
 }
 
 export function readAnalyticsIngestSecret(): string | null {

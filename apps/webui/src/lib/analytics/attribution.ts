@@ -41,7 +41,7 @@ export class AnalyticsAttributionError extends Error {
 }
 
 export async function createCampaignUrl(input: CreateCampaignUrlInput): Promise<string> {
-  const sourceId = readAnalyticsSourceId();
+  const sourceId = await readAnalyticsSourceId();
   const ingestSecret = readAnalyticsIngestSecret();
   if (!sourceId || !ingestSecret) {
     throw new AnalyticsAttributionError(

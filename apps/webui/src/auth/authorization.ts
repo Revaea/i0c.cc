@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth/next";
 import type { NextRequest } from "next/server";
 
 import {
+  hasWebUiAccessToken,
   isWebUiPublicReadOnly,
   isWebUiTokenAuthorized,
 } from "./access-policy";
@@ -65,7 +66,7 @@ export async function getWebUiReadSessionAuthorization(): Promise<WebUiReadSessi
   }
 
   if (
-    isWebUiPublicReadOnly() &&
+    await isWebUiPublicReadOnly() &&
     authorization.status === "forbidden"
   ) {
     return { status: "authorized", isReadOnly: true };
@@ -97,7 +98,7 @@ async function getAuthenticatedRequestAuthorization(
     return { status: "unauthenticated" };
   }
 
-  if (!isWebUiTokenAuthorized(token)) {
+  if (!await isWebUiTokenAuthorized(token) || !hasWebUiAccessToken(token)) {
     return { status: "forbidden" };
   }
 
@@ -120,7 +121,7 @@ export async function getWebUiReadRequestAuthorization(
   }
 
   if (
-    isWebUiPublicReadOnly() &&
+    await isWebUiPublicReadOnly() &&
     authorization.status === "forbidden"
   ) {
     return { status: "authorized", isReadOnly: true };

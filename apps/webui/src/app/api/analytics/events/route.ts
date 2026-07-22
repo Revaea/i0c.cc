@@ -101,7 +101,7 @@ function isEventTimestampValid(occurredAt: string, signedTimestamp: number): boo
 
 export async function POST(request: Request) {
   const ingestSecret = readAnalyticsIngestSecret();
-  const sourceId = readAnalyticsSourceId();
+  const sourceId = await readAnalyticsSourceId();
   if (!ingestSecret || !sourceId || !isDatabaseConfigured()) {
     return NextResponse.json({ error: "Analytics ingestion is not configured" }, { status: 503 });
   }

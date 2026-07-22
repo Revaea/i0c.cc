@@ -23,10 +23,10 @@ export interface ResolvedQueryScope {
 
 export const analyticsCacheSeconds = 15;
 
-export function resolveSourceId(): string {
-  const sourceId = readAnalyticsSourceId();
+export async function resolveSourceId(): Promise<string> {
+  const sourceId = await readAnalyticsSourceId();
   if (!sourceId) {
-    throw new Error("Analytics source ID in @i0c/config is invalid");
+    throw new Error("Analytics source ID in data/config.json is invalid");
   }
 
   return sourceId;

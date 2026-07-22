@@ -1,13 +1,9 @@
 import { Buffer } from "node:buffer";
 
-import { appConfig } from "@i0c/config";
+import { bootstrapConfig } from "@i0c/config";
+import type { VersionedDataRepository } from "@i0c/plugin-contracts";
 
-const {
-  owner,
-  repository: repo,
-  branch,
-  path: configPath,
-} = appConfig.redirects.github;
+const dataTarget = bootstrapConfig.data.github;
 
 const apiBase = "https://api.github.com";
 const publicConfigRevalidateSeconds = 60;
@@ -19,13 +15,17 @@ type RepoTarget = {
   path: string;
 };
 
-export interface RedirectConfigPayload {
+export type GitHubDataDocumentKind = "config" | "redirects";
+
+export interface GitHubDataDocumentPayload {
   content: string;
   sha: string;
   path: string;
   htmlUrl?: string;
   lastModified?: string;
 }
+
+export type RedirectConfigPayload = GitHubDataDocumentPayload;
 
 function requireAccessToken(token: string | undefined): string {
   if (!token) {
@@ -105,7 +105,7 @@ function parseGitHubSourceUrl(sourceUrl: string): RepoTarget {
     if (reposKeyword !== "repos" || contentsKeyword !== "contents" || !repoOwner || !repoName || rest.length === 0) {
       throw new Error("Unsupported GitHub config URL.");
     }
-    const ref = url.searchParams.get("ref") || branch;
+    const ref = url.searchParams.get("ref") || dataTarget.branch;
     return {
       owner: repoOwner,
       repo: repoName,
@@ -117,24 +117,30 @@ function parseGitHubSourceUrl(sourceUrl: string): RepoTarget {
   throw new Error("Only GitHub config URLs are supported.");
 }
 
-function resolveTarget(sourceUrl?: string | null): RepoTarget {
+function resolveTarget(
+  kind: GitHubDataDocumentKind,
+  sourceUrl?: string | null,
+): RepoTarget {
   if (sourceUrl) {
     return parseGitHubSourceUrl(sourceUrl);
   }
 
-  if (!owner || !repo) {
-    throw new Error("The configured GitHub redirect repository is missing an owner or name.");
+  if (!dataTarget.owner || !dataTarget.repository) {
+    throw new Error("The configured GitHub data repository is missing an owner or name.");
   }
 
-  if (!/\.json$/i.test(configPath)) {
-    throw new Error("The configured GitHub redirect path must point to a .json file.");
+  const path = kind === "config"
+    ? dataTarget.configPath
+    : dataTarget.redirectsPath;
+  if (!/\.json$/i.test(path)) {
+    throw new Error("The configured GitHub data path must point to a .json file.");
   }
 
   return {
-    owner,
-    repo,
-    branch,
-    path: configPath
+    owner: dataTarget.owner,
+    repo: dataTarget.repository,
+    branch: dataTarget.branch,
+    path,
   };
 }
 
@@ -163,11 +169,12 @@ function normalizeGitHubErrorBody(status: number, rawBody: string): string {
   }
 }
 
-export async function getRedirectConfig(
+export async function getGitHubDataDocument(
+  kind: GitHubDataDocumentKind,
   accessToken: string | undefined,
   options?: { sourceUrl?: string | null }
-): Promise<RedirectConfigPayload> {
-  const target = resolveTarget(options?.sourceUrl);
+): Promise<GitHubDataDocumentPayload> {
+  const target = resolveTarget(kind, options?.sourceUrl);
   const url = buildContentsUrl(target);
   const response = await fetch(`${url}?ref=${encodeURIComponent(target.branch)}`, {
     headers: buildHeaders(accessToken),
@@ -202,20 +209,49 @@ export async function getRedirectConfig(
   };
 }
 
-export interface UpdateRedirectConfigInput {
+export function getRedirectConfig(
+  accessToken: string | undefined,
+  options?: { sourceUrl?: string | null },
+): Promise<RedirectConfigPayload> {
+  return githubDataRepository.read("redirects", {
+    accessToken,
+    sourceUrl: options?.sourceUrl,
+  });
+}
+
+export function getAppDataConfig(
+  accessToken?: string,
+): Promise<GitHubDataDocumentPayload> {
+  return githubDataRepository.read("config", { accessToken });
+}
+
+export interface UpdateDataDocumentInput {
   content: string;
   sha: string;
   message?: string;
   sourceUrl?: string | null;
 }
 
-export interface UpdateRedirectConfigResult {
+export interface UpdateDataDocumentResult {
   sha: string;
   commitUrl: string;
 }
 
-export async function updateRedirectConfig(accessToken: string, input: UpdateRedirectConfigInput): Promise<UpdateRedirectConfigResult> {
-  const target = resolveTarget(input.sourceUrl);
+interface GitHubDataReadOptions {
+  accessToken?: string;
+  sourceUrl?: string | null;
+}
+
+interface GitHubDataWriteInput extends UpdateDataDocumentInput {
+  accessToken: string;
+}
+
+export async function updateGitHubDataDocument(
+  kind: GitHubDataDocumentKind,
+  accessToken: string,
+  input: UpdateDataDocumentInput,
+): Promise<UpdateDataDocumentResult> {
+  const target = resolveTarget(kind, input.sourceUrl);
   const url = buildContentsUrl(target);
   const token = requireAccessToken(accessToken);
   const { content, sha, message } = input;
@@ -223,7 +259,9 @@ export async function updateRedirectConfig(accessToken: string, input: UpdateRed
     method: "PUT",
     headers: buildHeaders(token),
     body: JSON.stringify({
-      message: message ?? "chore(redirects): update config",
+      message: message ?? (kind === "config"
+        ? "chore(config): update instance settings"
+        : "chore(redirects): update config"),
       content: Buffer.from(content, "utf-8").toString("base64"),
       sha,
       branch: target.branch
@@ -247,4 +285,36 @@ export async function updateRedirectConfig(accessToken: string, input: UpdateRed
     sha: json.content.sha,
     commitUrl: json.commit.html_url
   };
+}
+
+export const githubDataRepository = {
+  read(kind: GitHubDataDocumentKind, options: GitHubDataReadOptions) {
+    return getGitHubDataDocument(kind, options.accessToken, {
+      sourceUrl: options.sourceUrl,
+    });
+  },
+  write(kind: GitHubDataDocumentKind, input: GitHubDataWriteInput) {
+    const { accessToken, ...document } = input;
+    return updateGitHubDataDocument(kind, accessToken, document);
+  },
+} satisfies VersionedDataRepository<
+  GitHubDataDocumentKind,
+  GitHubDataReadOptions,
+  GitHubDataWriteInput,
+  GitHubDataDocumentPayload,
+  UpdateDataDocumentResult
+>;
+
+export function updateRedirectConfig(
+  accessToken: string,
+  input: UpdateDataDocumentInput,
+): Promise<UpdateDataDocumentResult> {
+  return githubDataRepository.write("redirects", { ...input, accessToken });
+}
+
+export function updateAppDataConfig(
+  accessToken: string,
+  input: UpdateDataDocumentInput,
+): Promise<UpdateDataDocumentResult> {
+  return githubDataRepository.write("config", { ...input, accessToken });
 }

@@ -4,6 +4,9 @@ import type { RedirectConfigPayload } from "@/lib/github";
 
 export type ApiConfigResponse = {
   config: RedirectConfigPayload;
+  runtime: {
+    canonicalOrigin: string;
+  };
 };
 
 export async function fetchRedirectsConfig(options?: {

@@ -52,7 +52,7 @@ export default async function AnalyticsAutomationPage({
   const basePath = `/${locale}/analytics`
   const automationPath = `${basePath}/automation`
 
-  if (!isAnalyticsConfigured()) {
+  if (!await isAnalyticsConfigured()) {
     return (
       <AnalyticsShell>
         <AnalyticsPageHeader

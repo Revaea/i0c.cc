@@ -11,6 +11,7 @@ export function useRedirectsConfigFile(options: {
   commitMessage: string;
 }) {
   const [sha, setSha] = useState<string>("");
+  const [canonicalOrigin, setCanonicalOrigin] = useState<string>("");
 
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const sourceUrlRef = useRef<string | null>(null);
@@ -39,6 +40,7 @@ export function useRedirectsConfigFile(options: {
     }
 
     setSha(data.config.sha);
+    setCanonicalOrigin(data.runtime.canonicalOrigin);
     return data.config.content;
   }, [options.fallbackLoadErrorText]);
 
@@ -78,6 +80,7 @@ export function useRedirectsConfigFile(options: {
 
   return {
     isPending,
+    canonicalOrigin,
     sourceUrl,
     load,
     save,

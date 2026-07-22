@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Range must be one of 1d, 7d, 30d, or 90d" }, { status: 400 });
   }
 
-  if (!isAnalyticsConfigured()) {
+  if (!await isAnalyticsConfigured()) {
     return NextResponse.json({ error: "Analytics is not configured" }, { status: 503 });
   }
 

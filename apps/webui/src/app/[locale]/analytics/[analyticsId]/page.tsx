@@ -60,7 +60,7 @@ export default async function AnalyticsDetailPage({
     range,
   })
 
-  if (!isAnalyticsConfigured()) {
+  if (!await isAnalyticsConfigured()) {
     return (
       <AnalyticsShell>
         <AnalyticsPageHeader

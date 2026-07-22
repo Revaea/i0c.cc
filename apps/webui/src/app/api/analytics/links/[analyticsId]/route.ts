@@ -34,7 +34,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Invalid analytics ID" }, { status: 400 });
   }
 
-  if (!isAnalyticsConfigured()) {
+  if (!await isAnalyticsConfigured()) {
     return NextResponse.json({ error: "Analytics is not configured" }, { status: 503 });
   }
 
