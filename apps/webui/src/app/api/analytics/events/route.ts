@@ -6,10 +6,9 @@ import {
   readAnalyticsIngestSecret,
   readAnalyticsSourceId,
 } from "@/lib/analytics/configuration";
-import { isDatabaseConfigured } from "@/lib/analytics/database";
 import { normalizeAnalyticsEvent } from "@/lib/analytics/event-normalization";
 import { analyticsEventSchema } from "@/lib/analytics/event-schema";
-import { ingestAnalyticsEvent } from "@/lib/analytics/ingest";
+import { getAnalyticsStore } from "@/lib/analytics/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -102,7 +101,8 @@ function isEventTimestampValid(occurredAt: string, signedTimestamp: number): boo
 export async function POST(request: Request) {
   const ingestSecret = readAnalyticsIngestSecret();
   const sourceId = await readAnalyticsSourceId();
-  if (!ingestSecret || !sourceId || !isDatabaseConfigured()) {
+  const store = await getAnalyticsStore();
+  if (!ingestSecret || !sourceId || !store?.configured) {
     return NextResponse.json({ error: "Analytics ingestion is not configured" }, { status: 503 });
   }
 
@@ -164,7 +164,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await ingestAnalyticsEvent(event);
+    const result = await store.ingest(event);
     return NextResponse.json(
       { accepted: true, duplicate: result.isDuplicate },
       { status: 202 },

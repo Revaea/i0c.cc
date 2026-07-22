@@ -1,0 +1,28 @@
+{
+  "title": "已安装插件",
+  "description": "查看静态插件注册、能力、配置、必需绑定与可用的健康检查。",
+  "refresh": "刷新状态",
+  "loading": "正在加载插件状态",
+  "loadError": "无法加载插件状态。",
+  "configuration": "版本",
+  "apiVersion": "插件 API",
+  "hosts": "宿主",
+  "health": "健康状态",
+  "capabilities": "能力",
+  "missingBindings": "缺少绑定",
+  "bindingsNotObservable": "绑定属于其他部署，无法在此处检查。",
+  "noMissingBindings": "没有缺失的必需绑定。",
+  "configurationStates": {
+    "compatibility": "兼容默认值",
+    "configured": "已配置",
+    "disabled": "已禁用"
+  },
+  "healthStates": {
+    "degraded": "降级",
+    "disabled": "已禁用",
+    "healthy": "正常",
+    "not-supported": "无健康检查",
+    "unavailable": "不可用",
+    "unhealthy": "异常"
+  }
+}

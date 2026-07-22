@@ -2,7 +2,6 @@ import "server-only";
 
 import {
   defaultDataConfig,
-  validateDataConfig,
 } from "@i0c/config";
 import type { DataConfig } from "@i0c/config";
 
@@ -10,6 +9,8 @@ import {
   getAppDataConfig,
   type GitHubDataDocumentPayload,
 } from "@/lib/github";
+import { validateInstanceDataConfig } from "@/lib/configuration/validation";
+import { resolveWebUiPlugins } from "@/lib/plugins/registry";
 
 interface DataConfigDocument {
   config: DataConfig;
@@ -72,8 +73,9 @@ export function parseDataConfig(content: string): DataConfig {
     throw new Error("Instance config must be valid JSON");
   }
 
-  const result = validateDataConfig(value);
+  const result = validateInstanceDataConfig(value);
   if (result.status === "valid") {
+    resolveWebUiPlugins(result.config);
     return result.config;
   }
 

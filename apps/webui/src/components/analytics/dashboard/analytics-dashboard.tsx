@@ -1,3 +1,5 @@
+import { WebUiPluginSlot } from "@/components/plugins/plugin-slot"
+
 import { BotBreakdownGrid, BreakdownGrid } from "./breakdown-grid"
 import { DataQualityPanel } from "./data-quality-panel"
 import { AutomationLinkRanking, LinkRanking } from "./link-ranking"
@@ -39,6 +41,7 @@ export function AnalyticsOverviewDashboard({
   return (
     <div className="space-y-6">
       <MetricCards metrics={data.metrics} locale={locale} />
+      <WebUiPluginSlot name="analytics.overview.cards" context={data} />
       <TrendChart
         points={data.trend}
         locale={locale}
@@ -69,6 +72,7 @@ export function AnalyticsDetailDashboard({ data, locale, range }: AnalyticsDetai
         chartId="analytics-detail-trend"
       />
       <BreakdownGrid breakdowns={data.breakdowns} locale={locale} />
+      <WebUiPluginSlot name="analytics.detail.sections" context={data} />
       <DataQualityPanel quality={data.quality} locale={locale} />
     </div>
   )

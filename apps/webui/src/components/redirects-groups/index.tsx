@@ -1,6 +1,5 @@
 'use client';
 
-import { validateDataConfig } from "@i0c/config";
 import { useCallback, useState } from "react";
 import { useTranslations } from "next-intl";
 
@@ -14,6 +13,8 @@ import { useRedirectsGroups } from "@/composables/redirects-groups";
 import { useDataConfigFile } from "@/composables/data-config/use-data-config-file";
 import { RouteEntriesCatalog } from "@/components/redirects-groups/manager-sidebar/manager-sidebar-catalog";
 import { RuntimeSettingsProvider } from "@/components/redirects-groups/runtime-settings-context";
+import { PluginStatusPanel } from "@/components/plugins/plugin-status-panel";
+import { validateInstanceDataConfig } from "@/lib/configuration/validation";
 
 import { ManagerSidebarBody } from "./manager-sidebar/manager-sidebar-body";
 import { ManagerSidebarFooter } from "./manager-sidebar/manager-sidebar-footer";
@@ -115,7 +116,7 @@ export function RedirectsGroupsManager({ isReadOnly = false }: RedirectsGroupsMa
     if (editorMode === "config") {
       try {
         const parsed = JSON.parse(configDraft) as unknown;
-        const validation = validateDataConfig(parsed);
+        const validation = validateInstanceDataConfig(parsed);
         if (validation.status === "invalid") {
           const details = validation.issues
             .slice(0, 5)
@@ -301,14 +302,17 @@ export function RedirectsGroupsManager({ isReadOnly = false }: RedirectsGroupsMa
                 isConfigLoading ? (
                   <p className="py-3 text-sm text-muted">{tConfig("loading")}</p>
                 ) : (
-                  <JsonEditor
-                    jsonDraft={configDraft}
-                    onJsonDraftChange={setConfigDraft}
-                    jsonError={configError}
-                    isReadOnly={isReadOnly}
-                    tipText={tConfig("tip")}
-                    validateJson={validateDataConfig}
-                  />
+                  <>
+                    <JsonEditor
+                      jsonDraft={configDraft}
+                      onJsonDraftChange={setConfigDraft}
+                      jsonError={configError}
+                      isReadOnly={isReadOnly}
+                      tipText={tConfig("tip")}
+                      validateJson={validateInstanceDataConfig}
+                    />
+                    <PluginStatusPanel />
+                  </>
                 )
               }
               rulesContent={

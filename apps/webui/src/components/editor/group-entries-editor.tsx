@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/controls/button";
+import { WebUiPluginSlot } from "@/components/plugins/plugin-slot";
 import { fieldLabelClassName, formControlClassName } from "@/components/ui/controls/form-control";
 import type { RedirectGroup } from "@/composables/redirects-groups/model";
 
@@ -122,6 +123,10 @@ export function GroupEntriesEditor({
                 value={entry.value}
                 isReadOnly={isReadOnly}
                 onChange={(next) => onUpdateEntryValue(group.id, entry.id, next)}
+              />
+              <WebUiPluginSlot
+                name="rule-editor.fields"
+                context={{ entry, group, isReadOnly }}
               />
             </div>
           </section>

@@ -4,6 +4,7 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { validateDataConfig } from "@i0c/config"
+import { validateInstalledPluginDeclarations } from "@i0c/plugin-catalog"
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(scriptDir, "../../..")
@@ -49,6 +50,15 @@ function main(): void {
   const input = readSource(source)
   const result = validateDataConfig(parseJson(input.content, input.label))
   if (result.status === "valid") {
+    const pluginIssues = validateInstalledPluginDeclarations(result.config.plugins)
+    if (pluginIssues.length > 0) {
+      console.error(`Plugin configuration validation failed: ${input.label}`)
+      for (const issue of pluginIssues.slice(0, 8)) {
+        console.error(`- ${issue.path} ${issue.message}`)
+      }
+      process.exitCode = 1
+      return
+    }
     console.log(`Instance config validation passed: ${input.label}`)
     return
   }

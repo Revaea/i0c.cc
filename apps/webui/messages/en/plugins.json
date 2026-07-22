@@ -1,0 +1,28 @@
+{
+  "title": "Installed plugins",
+  "description": "Inspect static plugin registration, capabilities, configuration, required bindings, and available health checks.",
+  "refresh": "Refresh status",
+  "loading": "Loading plugin status",
+  "loadError": "Plugin status could not be loaded.",
+  "configuration": "Version",
+  "apiVersion": "Plugin API",
+  "hosts": "Hosts",
+  "health": "Health",
+  "capabilities": "Capabilities",
+  "missingBindings": "Missing bindings",
+  "bindingsNotObservable": "Bindings belong to another deployment and cannot be inspected here.",
+  "noMissingBindings": "No required bindings are missing.",
+  "configurationStates": {
+    "compatibility": "Compatibility default",
+    "configured": "Configured",
+    "disabled": "Disabled"
+  },
+  "healthStates": {
+    "degraded": "Degraded",
+    "disabled": "Disabled",
+    "healthy": "Healthy",
+    "not-supported": "No health check",
+    "unavailable": "Unavailable",
+    "unhealthy": "Unhealthy"
+  }
+}

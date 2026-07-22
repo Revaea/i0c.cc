@@ -4,34 +4,16 @@ import { unstable_cache } from "next/cache";
 
 import { analyticsCacheTag } from "./cache";
 import { readAnalyticsSourceId } from "./configuration";
-import { isDatabaseConfigured } from "./database";
 import {
-  getAutomationDeliveryDimensions,
-  getAutomationLinks,
-  getAutomationSeries,
-  getAutomationTotals,
-  getLinkBotBreakdowns,
-  getRuntimeBotBreakdowns,
-} from "./queries/automation";
-import {
-  analyticsCacheSeconds,
-  normalizeAnalyticsQueryScope,
-  resolveScope,
-  resolveSourceId,
-} from "./queries/scope";
-import {
-  getDimensions,
-  getLink,
-  getLinkSummaries,
-  getSeries,
-  getTotals,
-} from "./queries/traffic";
+  getRequiredAnalyticsStore,
+  isAnalyticsStoreConfigured
+} from "./store";
 import type {
   AnalyticsAutomationOverview,
   AnalyticsDetail,
   AnalyticsOverview,
   AnalyticsQueryScope,
-  AnalyticsScope,
+  AnalyticsScope
 } from "./types";
 
 export type {
@@ -39,136 +21,119 @@ export type {
   AnalyticsDetail,
   AnalyticsOverview,
   AnalyticsQueryScope,
-  AnalyticsRange,
+  AnalyticsRange
 } from "./types";
 
+const analyticsCacheSeconds = 15;
+
 export async function isAnalyticsConfigured(): Promise<boolean> {
-  return isDatabaseConfigured() && await readAnalyticsSourceId() !== null;
+  return await isAnalyticsStoreConfigured()
+    && await readAnalyticsSourceId() !== null;
 }
 
 export async function getAnalyticsScope(input: AnalyticsQueryScope): Promise<AnalyticsScope> {
   const sourceId = await resolveSourceId();
-  const { publicScope } = await resolveScope(sourceId, input);
-
-  return publicScope;
+  const store = await getRequiredAnalyticsStore();
+  const availableEntryDomains = await store.getEntryDomains({ sourceId, query: input });
+  const entryDomain = resolveEntryDomain(input.entryDomain, availableEntryDomains);
+  return { entryDomain, availableEntryDomains: [...availableEntryDomains] };
 }
 
 async function queryAnalyticsOverview(
   sourceId: string,
-  input: AnalyticsQueryScope,
+  input: AnalyticsQueryScope
 ): Promise<AnalyticsOverview> {
-  const { publicScope, queryScope } = await resolveScope(sourceId, input);
-  const [totals, series, links, dimensions, botBreakdowns] = await Promise.all([
-    getTotals(sourceId, queryScope, null),
-    getSeries(sourceId, queryScope, null),
-    getLinkSummaries(sourceId, queryScope),
-    getDimensions(sourceId, queryScope, null),
-    getLinkBotBreakdowns(sourceId, queryScope, null),
-  ]);
-
-  return {
-    range: queryScope.range.publicRange,
-    scope: publicScope,
-    totals,
-    series,
-    links,
-    ...dimensions,
-    botBreakdowns,
-  };
+  const store = await getRequiredAnalyticsStore();
+  return store.getOverview({ sourceId, query: input });
 }
 
 const getCachedAnalyticsOverview = unstable_cache(
   queryAnalyticsOverview,
-  ["analytics-overview-v4"],
-  { revalidate: analyticsCacheSeconds, tags: [analyticsCacheTag] },
+  ["analytics-overview-v5"],
+  { revalidate: analyticsCacheSeconds, tags: [analyticsCacheTag] }
 );
 
 export async function getAnalyticsOverview(
-  input: AnalyticsQueryScope,
+  input: AnalyticsQueryScope
 ): Promise<AnalyticsOverview> {
   const sourceId = await resolveSourceId();
-  const normalizedInput = await normalizeAnalyticsQueryScope(sourceId, input);
+  const normalizedInput = await normalizeQueryScope(sourceId, input);
   return getCachedAnalyticsOverview(sourceId, normalizedInput);
 }
 
 async function queryAnalyticsDetail(
   sourceId: string,
   analyticsId: string,
-  input: AnalyticsQueryScope,
+  input: AnalyticsQueryScope
 ): Promise<AnalyticsDetail | null> {
-  const link = await getLink(sourceId, analyticsId);
-  if (!link) {
-    return null;
-  }
-
-  const { publicScope, queryScope } = await resolveScope(sourceId, input);
-  const [totals, series, dimensions, botBreakdowns] = await Promise.all([
-    getTotals(sourceId, queryScope, analyticsId),
-    getSeries(sourceId, queryScope, analyticsId),
-    getDimensions(sourceId, queryScope, analyticsId),
-    getLinkBotBreakdowns(sourceId, queryScope, analyticsId),
-  ]);
-
-  return {
-    range: queryScope.range.publicRange,
-    scope: publicScope,
-    link,
-    totals,
-    series,
-    ...dimensions,
-    botBreakdowns,
-  };
+  const store = await getRequiredAnalyticsStore();
+  return store.getDetail({ sourceId, analyticsId, query: input });
 }
 
 const getCachedAnalyticsDetail = unstable_cache(
   queryAnalyticsDetail,
-  ["analytics-detail-v4"],
-  { revalidate: analyticsCacheSeconds, tags: [analyticsCacheTag] },
+  ["analytics-detail-v5"],
+  { revalidate: analyticsCacheSeconds, tags: [analyticsCacheTag] }
 );
 
 export async function getAnalyticsDetail(
   analyticsId: string,
-  input: AnalyticsQueryScope,
+  input: AnalyticsQueryScope
 ): Promise<AnalyticsDetail | null> {
   const sourceId = await resolveSourceId();
-  const normalizedInput = await normalizeAnalyticsQueryScope(sourceId, input);
+  const normalizedInput = await normalizeQueryScope(sourceId, input);
   return getCachedAnalyticsDetail(sourceId, analyticsId, normalizedInput);
 }
 
 async function queryAnalyticsAutomationOverview(
   sourceId: string,
-  input: AnalyticsQueryScope,
+  input: AnalyticsQueryScope
 ): Promise<AnalyticsAutomationOverview> {
-  const { publicScope, queryScope } = await resolveScope(sourceId, input);
-  const [totals, series, links, delivery, botBreakdowns] = await Promise.all([
-    getAutomationTotals(sourceId, queryScope),
-    getAutomationSeries(sourceId, queryScope),
-    getAutomationLinks(sourceId, queryScope),
-    getAutomationDeliveryDimensions(sourceId, queryScope),
-    getRuntimeBotBreakdowns(sourceId, queryScope),
-  ]);
-
-  return {
-    range: queryScope.range.publicRange,
-    scope: publicScope,
-    totals,
-    series,
-    links,
-    ...delivery,
-    botBreakdowns,
-  };
+  const store = await getRequiredAnalyticsStore();
+  return store.getAutomation({ sourceId, query: input });
 }
 
 const getCachedAnalyticsAutomationOverview = unstable_cache(
   queryAnalyticsAutomationOverview,
-  ["analytics-automation-overview-v4"],
-  { revalidate: analyticsCacheSeconds, tags: [analyticsCacheTag] },
+  ["analytics-automation-overview-v5"],
+  { revalidate: analyticsCacheSeconds, tags: [analyticsCacheTag] }
 );
 
 export async function getAnalyticsAutomationOverview(
-  input: AnalyticsQueryScope,
+  input: AnalyticsQueryScope
 ): Promise<AnalyticsAutomationOverview> {
   const sourceId = await resolveSourceId();
-  const normalizedInput = await normalizeAnalyticsQueryScope(sourceId, input);
+  const normalizedInput = await normalizeQueryScope(sourceId, input);
   return getCachedAnalyticsAutomationOverview(sourceId, normalizedInput);
+}
+
+async function normalizeQueryScope(
+  sourceId: string,
+  input: AnalyticsQueryScope
+): Promise<AnalyticsQueryScope> {
+  const store = await getRequiredAnalyticsStore();
+  const availableEntryDomains = await store.getEntryDomains({ sourceId, query: input });
+  return {
+    range: input.range,
+    entryDomain: resolveEntryDomain(input.entryDomain, availableEntryDomains)
+  };
+}
+
+function resolveEntryDomain(
+  requestedValue: string,
+  availableEntryDomains: readonly { value: string }[]
+): string {
+  const requested = requestedValue.trim().toLowerCase() || "all";
+  return requested === "all"
+    || availableEntryDomains.some((option) => option.value === requested)
+    ? requested
+    : "all";
+}
+
+async function resolveSourceId(): Promise<string> {
+  const sourceId = await readAnalyticsSourceId();
+  if (!sourceId) {
+    throw new Error("Analytics source ID in data/config.json is invalid");
+  }
+  return sourceId;
 }
