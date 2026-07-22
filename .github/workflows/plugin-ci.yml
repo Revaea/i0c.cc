@@ -1,19 +1,16 @@
-name: WebUI CI
+name: Plugin CI
 
 on:
   pull_request:
     branches:
       - main
     paths:
-      - .github/workflows/webui-ci.yml
-      - apps/webui/**
-      - packages/config/**
+      - .github/workflows/plugin-ci.yml
       - packages/plugin-api/**
       - packages/plugin-catalog/**
+      - packages/plugin-testkit/**
       - packages/analytics-domain/**
-      - plugins/source/github/**
-      - plugins/store/**
-      - plugins/**/src/manifest.ts
+      - plugins/**
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
@@ -21,15 +18,12 @@ on:
     branches:
       - main
     paths:
-      - .github/workflows/webui-ci.yml
-      - apps/webui/**
-      - packages/config/**
+      - .github/workflows/plugin-ci.yml
       - packages/plugin-api/**
       - packages/plugin-catalog/**
+      - packages/plugin-testkit/**
       - packages/analytics-domain/**
-      - plugins/source/github/**
-      - plugins/store/**
-      - plugins/**/src/manifest.ts
+      - plugins/**
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
@@ -39,7 +33,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: webui-ci-${{ github.event.pull_request.number || github.ref }}
+  group: plugin-ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -48,10 +42,21 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
-      # Build-only placeholders; these are not valid credentials.
-      GITHUB_CLIENT_ID: ci-client-id
-      GITHUB_CLIENT_SECRET: ci-client-secret
-      NEXTAUTH_SECRET: ci-nextauth-secret-not-for-production
+      TEST_POSTGRES_URL: postgresql://postgres:postgres@localhost:5432/i0c_plugin_test
+    services:
+      postgres:
+        image: postgres:16.9-alpine
+        env:
+          POSTGRES_DB: i0c_plugin_test
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d i0c_plugin_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -69,11 +74,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Test WebUI
-        run: pnpm webui:test
-
-      - name: Lint WebUI
-        run: pnpm webui:lint
-
-      - name: Build WebUI
-        run: pnpm webui:build
+      - name: Check plugins
+        run: pnpm plugins:check
