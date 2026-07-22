@@ -140,6 +140,109 @@ function mapDimensions(rows: DimensionRow[]): DimensionGroups {
   return groups;
 }
 
+async function getOneDayDimensions(
+  sourceId: string,
+  scope: ResolvedQueryScope,
+  analyticsId: string | null,
+): Promise<DimensionGroups> {
+  const sql = getDatabase();
+  const rows = await sql<DimensionRow[]>`
+    WITH events AS (
+      SELECT *
+      FROM access_event
+      WHERE source_id = ${sourceId}
+        AND occurred_at >= ${scope.range.seriesStart}
+        AND occurred_at < ${scope.range.end}
+        AND (${scope.entryDomain === "all"} OR entry_domain = ${scope.entryDomain})
+        AND (${analyticsId}::TEXT IS NULL OR analytics_id = ${analyticsId})
+    ), dimensions AS (
+      SELECT
+        'countries'::TEXT AS dimension,
+        COALESCE(country_code, 'unknown')::TEXT AS key,
+        NULL::TEXT AS label,
+        COUNT(*) AS requests,
+        COUNT(*) FILTER (WHERE request_class = 'human') AS clicks
+      FROM events
+      GROUP BY COALESCE(country_code, 'unknown')
+
+      UNION ALL
+
+      SELECT
+        'referrers',
+        COALESCE(referrer_domain, 'direct'),
+        NULL::TEXT,
+        COUNT(*),
+        COUNT(*) FILTER (WHERE request_class = 'human')
+      FROM events
+      GROUP BY COALESCE(referrer_domain, 'direct')
+
+      UNION ALL
+
+      SELECT
+        'devices',
+        device_type,
+        NULL::TEXT,
+        COUNT(*),
+        COUNT(*) FILTER (WHERE request_class = 'human')
+      FROM events
+      GROUP BY device_type
+
+      UNION ALL
+
+      SELECT
+        'providers',
+        provider,
+        NULL::TEXT,
+        COUNT(*),
+        COUNT(*) FILTER (WHERE request_class = 'human')
+      FROM events
+      GROUP BY provider
+
+      UNION ALL
+
+      SELECT
+        'campaigns',
+        campaign_id,
+        NULL::TEXT,
+        COUNT(*),
+        COUNT(*) FILTER (WHERE request_class = 'human')
+      FROM events
+      WHERE campaign_id IS NOT NULL
+      GROUP BY campaign_id
+
+      UNION ALL
+
+      SELECT
+        'upstreamLinks',
+        events.upstream_analytics_id,
+        COALESCE(link.route_path, events.upstream_analytics_id),
+        COUNT(*),
+        COUNT(*) FILTER (WHERE events.request_class = 'human')
+      FROM events
+      LEFT JOIN analytics_link AS link
+        ON link.source_id = events.source_id
+       AND link.analytics_id = events.upstream_analytics_id
+      WHERE events.upstream_analytics_id IS NOT NULL
+      GROUP BY events.upstream_analytics_id, link.route_path
+    ), ranked AS (
+      SELECT
+        dimension,
+        key,
+        label,
+        requests,
+        clicks,
+        ROW_NUMBER() OVER (PARTITION BY dimension ORDER BY requests DESC, key ASC) AS rank
+      FROM dimensions
+    )
+    SELECT dimension, key, label, requests, clicks
+    FROM ranked
+    WHERE rank <= 10 OR (dimension = 'countries' AND key = 'unknown')
+    ORDER BY dimension ASC, requests DESC, key ASC
+  `;
+
+  return mapDimensions(rows);
+}
+
 export async function getTotals(
   sourceId: string,
   scope: ResolvedQueryScope,
@@ -178,8 +281,8 @@ export async function getSeries(
   const rows = await sql<SeriesRow[]>`
     WITH buckets AS (
       SELECT generate_series(
-        ${scope.range.start}::TIMESTAMPTZ,
-        date_trunc(${bucket.unit}, ${scope.range.end}::TIMESTAMPTZ AT TIME ZONE 'UTC') AT TIME ZONE 'UTC',
+        ${scope.range.seriesStart}::TIMESTAMPTZ,
+        ${scope.range.seriesEnd}::TIMESTAMPTZ,
         ${bucket.step}::INTERVAL
       ) AS bucket_time
     ), stats AS (
@@ -226,6 +329,10 @@ export async function getDimensions(
   scope: ResolvedQueryScope,
   analyticsId: string | null,
 ): Promise<DimensionGroups> {
+  if (scope.range.publicRange.key === "1d") {
+    return getOneDayDimensions(sourceId, scope, analyticsId);
+  }
+
   const sql = getDatabase();
   const rows = await sql<DimensionRow[]>`
     WITH dimensions AS (

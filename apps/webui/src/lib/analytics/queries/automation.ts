@@ -101,11 +101,214 @@ function toAutomationTotals(row: AutomationTotalsRow | undefined): AnalyticsAuto
   };
 }
 
+async function getOneDayLinkBotBreakdowns(
+  sourceId: string,
+  scope: ResolvedQueryScope,
+  analyticsId: string | null,
+): Promise<AnalyticsBotBreakdowns> {
+  const sql = getDatabase();
+  const rows = await sql<AutomationDimensionRow[]>`
+    WITH events AS (
+      SELECT *
+      FROM access_event
+      WHERE source_id = ${sourceId}
+        AND occurred_at >= ${scope.range.seriesStart}
+        AND occurred_at < ${scope.range.end}
+        AND (${scope.entryDomain === "all"} OR entry_domain = ${scope.entryDomain})
+        AND (${analyticsId}::TEXT IS NULL OR analytics_id = ${analyticsId})
+    ), dimensions AS (
+      SELECT 'trafficClasses'::TEXT AS dimension, traffic_class::TEXT AS key,
+        NULL::TEXT AS label, COUNT(*) AS observed_requests,
+        SUM(1 / sample_rate) AS estimated_requests
+      FROM events
+      GROUP BY traffic_class
+
+      UNION ALL
+      SELECT 'categories', bot_category, NULL::TEXT, COUNT(*), SUM(1 / sample_rate)
+      FROM events
+      GROUP BY bot_category
+
+      UNION ALL
+      SELECT 'confidences', bot_confidence, NULL::TEXT, COUNT(*), SUM(1 / sample_rate)
+      FROM events
+      GROUP BY bot_confidence
+
+      UNION ALL
+      SELECT 'classifierVersions', classifier_version::TEXT, NULL::TEXT,
+        COUNT(*), SUM(1 / sample_rate)
+      FROM events
+      GROUP BY classifier_version
+
+      UNION ALL
+      SELECT 'resourceClasses', resource_class, NULL::TEXT, COUNT(*), SUM(1 / sample_rate)
+      FROM events
+      GROUP BY resource_class
+
+      UNION ALL
+      SELECT 'matchKinds', match_kind, NULL::TEXT, COUNT(*), SUM(1 / sample_rate)
+      FROM events
+      GROUP BY match_kind
+
+      UNION ALL
+      SELECT 'probes', probe_category, NULL::TEXT, COUNT(*), SUM(1 / sample_rate)
+      FROM events
+      GROUP BY probe_category
+    ), ranked AS (
+      SELECT *, ROW_NUMBER() OVER (
+        PARTITION BY dimension ORDER BY observed_requests DESC, key ASC
+      ) AS rank
+      FROM dimensions
+    )
+    SELECT dimension, key, label, observed_requests, estimated_requests
+    FROM ranked
+    WHERE rank <= 10
+    ORDER BY dimension ASC, observed_requests DESC, key ASC
+  `;
+
+  return mapAutomationDimensions(rows);
+}
+
+async function getOneDayRuntimeBotBreakdowns(
+  sourceId: string,
+  scope: ResolvedQueryScope,
+): Promise<AnalyticsBotBreakdowns> {
+  const sql = getDatabase();
+  const rows = await sql<AutomationDimensionRow[]>`
+    WITH events AS (
+      SELECT
+        traffic_class,
+        bot_category,
+        bot_confidence,
+        classifier_version,
+        resource_class,
+        match_kind,
+        'matched'::TEXT AS match_outcome,
+        probe_category,
+        sample_rate
+      FROM access_event
+      WHERE source_id = ${sourceId}
+        AND occurred_at >= ${scope.range.seriesStart}
+        AND occurred_at < ${scope.range.end}
+        AND (${scope.entryDomain === "all"} OR entry_domain = ${scope.entryDomain})
+
+      UNION ALL
+
+      SELECT
+        traffic_class,
+        bot_category,
+        bot_confidence,
+        classifier_version,
+        resource_class,
+        match_kind,
+        match_outcome,
+        probe_category,
+        sample_rate
+      FROM runtime_event
+      WHERE source_id = ${sourceId}
+        AND occurred_at >= ${scope.range.seriesStart}
+        AND occurred_at < ${scope.range.end}
+        AND (${scope.entryDomain === "all"} OR entry_domain = ${scope.entryDomain})
+    ), dimensions AS (
+      SELECT 'trafficClasses'::TEXT AS dimension, traffic_class::TEXT AS key,
+        NULL::TEXT AS label, COUNT(*) AS observed_requests,
+        SUM(1 / sample_rate) AS estimated_requests
+      FROM events
+      GROUP BY traffic_class
+
+      UNION ALL
+      SELECT 'categories', bot_category, NULL::TEXT, COUNT(*), SUM(1 / sample_rate)
+      FROM events
+      GROUP BY bot_category
+
+      UNION ALL
+      SELECT 'confidences', bot_confidence, NULL::TEXT, COUNT(*), SUM(1 / sample_rate)
+      FROM events
+      GROUP BY bot_confidence
+
+      UNION ALL
+      SELECT 'classifierVersions', classifier_version::TEXT, NULL::TEXT,
+        COUNT(*), SUM(1 / sample_rate)
+      FROM events
+      GROUP BY classifier_version
+
+      UNION ALL
+      SELECT 'resourceClasses', resource_class, NULL::TEXT, COUNT(*), SUM(1 / sample_rate)
+      FROM events
+      GROUP BY resource_class
+
+      UNION ALL
+      SELECT 'matchKinds', match_kind, NULL::TEXT, COUNT(*), SUM(1 / sample_rate)
+      FROM events
+      GROUP BY match_kind
+
+      UNION ALL
+      SELECT 'outcomes', match_outcome, NULL::TEXT, COUNT(*), SUM(1 / sample_rate)
+      FROM events
+      GROUP BY match_outcome
+
+      UNION ALL
+      SELECT 'probes', probe_category, NULL::TEXT, COUNT(*), SUM(1 / sample_rate)
+      FROM events
+      GROUP BY probe_category
+    ), ranked AS (
+      SELECT *, ROW_NUMBER() OVER (
+        PARTITION BY dimension ORDER BY observed_requests DESC, key ASC
+      ) AS rank
+      FROM dimensions
+    )
+    SELECT dimension, key, label, observed_requests, estimated_requests
+    FROM ranked
+    WHERE rank <= 10
+    ORDER BY dimension ASC, observed_requests DESC, key ASC
+  `;
+
+  return mapAutomationDimensions(rows);
+}
+
+async function getOneDayAutomationLinks(
+  sourceId: string,
+  scope: ResolvedQueryScope,
+): Promise<AnalyticsAutomationLinkSummary[]> {
+  const sql = getDatabase();
+  const rows = await sql<AutomationLinkRow[]>`
+    SELECT
+      link.analytics_id,
+      link.route_path,
+      link.link_type,
+      COUNT(*) AS observed_requests,
+      SUM(1 / event.sample_rate) AS estimated_requests
+    FROM access_event AS event
+    INNER JOIN analytics_link AS link
+      ON link.source_id = event.source_id
+     AND link.analytics_id = event.analytics_id
+    WHERE event.source_id = ${sourceId}
+      AND event.occurred_at >= ${scope.range.seriesStart}
+      AND event.occurred_at < ${scope.range.end}
+      AND (${scope.entryDomain === "all"} OR event.entry_domain = ${scope.entryDomain})
+      AND event.traffic_class IN ('declared_bot', 'suspected_automation')
+    GROUP BY link.analytics_id, link.route_path, link.link_type
+    ORDER BY COUNT(*) DESC, link.route_path ASC
+    LIMIT 20
+  `;
+
+  return rows.map((row) => ({
+    analyticsId: row.analytics_id,
+    path: row.route_path,
+    linkType: row.link_type,
+    observedRequests: toNumber(row.observed_requests),
+    estimatedRequests: toNumber(row.estimated_requests),
+  }));
+}
+
 export async function getLinkBotBreakdowns(
   sourceId: string,
   scope: ResolvedQueryScope,
   analyticsId: string | null,
 ): Promise<AnalyticsBotBreakdowns> {
+  if (scope.range.publicRange.key === "1d") {
+    return getOneDayLinkBotBreakdowns(sourceId, scope, analyticsId);
+  }
+
   const sql = getDatabase();
   const rows = await sql<AutomationDimensionRow[]>`
     WITH dimensions AS (
@@ -225,8 +428,8 @@ export async function getAutomationSeries(
   const rows = await sql<AutomationSeriesRow[]>`
     WITH buckets AS (
       SELECT generate_series(
-        ${scope.range.start}::TIMESTAMPTZ,
-        date_trunc(${bucket.unit}, ${scope.range.end}::TIMESTAMPTZ AT TIME ZONE 'UTC') AT TIME ZONE 'UTC',
+        ${scope.range.seriesStart}::TIMESTAMPTZ,
+        ${scope.range.seriesEnd}::TIMESTAMPTZ,
         ${bucket.step}::INTERVAL
       ) AS bucket_time
     ), stats AS (
@@ -276,6 +479,10 @@ export async function getRuntimeBotBreakdowns(
   sourceId: string,
   scope: ResolvedQueryScope,
 ): Promise<AnalyticsBotBreakdowns> {
+  if (scope.range.publicRange.key === "1d") {
+    return getOneDayRuntimeBotBreakdowns(sourceId, scope);
+  }
+
   const sql = getDatabase();
   const rows = await sql<AutomationDimensionRow[]>`
     WITH dimensions AS (
@@ -415,6 +622,10 @@ export async function getAutomationLinks(
   sourceId: string,
   scope: ResolvedQueryScope,
 ): Promise<AnalyticsAutomationLinkSummary[]> {
+  if (scope.range.publicRange.key === "1d") {
+    return getOneDayAutomationLinks(sourceId, scope);
+  }
+
   const sql = getDatabase();
   const rows = await sql<AutomationLinkRow[]>`
     SELECT
