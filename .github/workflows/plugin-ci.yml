@@ -6,11 +6,15 @@ on:
       - main
     paths:
       - .github/workflows/plugin-ci.yml
+      - i0c.runtime.config.ts
       - packages/plugin-api/**
       - packages/plugin-catalog/**
       - packages/plugin-testkit/**
+      - packages/runtime-build/**
+      - packages/runtime-host/**
       - packages/analytics-domain/**
       - plugins/**
+      - fixtures/runtime-platform-*/**
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
@@ -19,11 +23,15 @@ on:
       - main
     paths:
       - .github/workflows/plugin-ci.yml
+      - i0c.runtime.config.ts
       - packages/plugin-api/**
       - packages/plugin-catalog/**
       - packages/plugin-testkit/**
+      - packages/runtime-build/**
+      - packages/runtime-host/**
       - packages/analytics-domain/**
       - plugins/**
+      - fixtures/runtime-platform-*/**
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml

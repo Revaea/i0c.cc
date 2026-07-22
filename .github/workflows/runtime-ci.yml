@@ -6,13 +6,17 @@ on:
       - main
     paths:
       - .github/workflows/runtime-ci.yml
+      - i0c.runtime.config.ts
       - apps/runtime/**
       - packages/config/**
       - packages/plugin-api/**
       - packages/plugin-catalog/**
+      - packages/runtime-build/**
+      - packages/runtime-host/**
       - packages/analytics-domain/**
       - plugins/feature/bot-classifier/**
       - plugins/runtime/**
+      - fixtures/runtime-platform-*/**
       - plugins/sink/http/**
       - plugins/source/github/**
       - package.json
@@ -23,13 +27,17 @@ on:
       - main
     paths:
       - .github/workflows/runtime-ci.yml
+      - i0c.runtime.config.ts
       - apps/runtime/**
       - packages/config/**
       - packages/plugin-api/**
       - packages/plugin-catalog/**
+      - packages/runtime-build/**
+      - packages/runtime-host/**
       - packages/analytics-domain/**
       - plugins/feature/bot-classifier/**
       - plugins/runtime/**
+      - fixtures/runtime-platform-*/**
       - plugins/sink/http/**
       - plugins/source/github/**
       - package.json
@@ -80,3 +88,6 @@ jobs:
 
       - name: Build Netlify Runtime
         run: pnpm runtime:build:nf
+
+      - name: Build external Runtime fixture
+        run: pnpm --filter i0c-redirect-worker build:external-fixture

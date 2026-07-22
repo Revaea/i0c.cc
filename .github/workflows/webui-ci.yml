@@ -6,14 +6,18 @@ on:
       - main
     paths:
       - .github/workflows/webui-ci.yml
+      - i0c.runtime.config.ts
       - apps/webui/**
       - packages/config/**
       - packages/plugin-api/**
       - packages/plugin-catalog/**
+      - packages/runtime-build/src/config.ts
       - packages/analytics-domain/**
       - plugins/source/github/**
       - plugins/store/**
       - plugins/**/src/manifest.ts
+      - plugins/runtime/**/src/installation.ts
+      - fixtures/runtime-platform-*/**
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
@@ -22,14 +26,18 @@ on:
       - main
     paths:
       - .github/workflows/webui-ci.yml
+      - i0c.runtime.config.ts
       - apps/webui/**
       - packages/config/**
       - packages/plugin-api/**
       - packages/plugin-catalog/**
+      - packages/runtime-build/src/config.ts
       - packages/analytics-domain/**
       - plugins/source/github/**
       - plugins/store/**
       - plugins/**/src/manifest.ts
+      - plugins/runtime/**/src/installation.ts
+      - fixtures/runtime-platform-*/**
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
