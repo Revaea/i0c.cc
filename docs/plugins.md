@@ -116,7 +116,7 @@ pnpm webui:lint
 pnpm webui:build
 ```
 
-Plugin CI checks types, manifests, contracts, independent plugin packages, PostgreSQL integration behavior, and import or bundle boundaries. Runtime CI tests shared semantics, builds each official provider separately, and builds an external-style fixture without platform-specific Runtime source. WebUI CI covers its tests, lint, and build. Config CI validates the core and installed manifests. Each workflow is path-filtered to its real owners and its own workflow file.
+Plugin CI checks types, manifests, contracts, independent plugin packages, PostgreSQL integration behavior, and import or bundle boundaries. Runtime CI tests shared semantics, builds each official provider separately, and builds a test-only external adapter from `plugins/fixtures`. WebUI CI covers its tests, lint, and build. Config CI validates the core and installed manifests. Each workflow is path-filtered to its real owners and its own workflow file.
 
 ## Adding an official plugin
 

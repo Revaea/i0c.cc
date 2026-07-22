@@ -52,7 +52,7 @@ importers:
         version: link:packages/runtime-build
       '@i0c/runtime-fixture-external':
         specifier: workspace:*
-        version: link:fixtures/runtime-platform-external
+        version: link:plugins/fixtures/runtime-external
 
   apps/runtime:
     dependencies:
@@ -206,28 +206,6 @@ importers:
         specifier: ^5
         version: 5.9.3
 
-  fixtures/runtime-platform-external:
-    dependencies:
-      '@i0c/plugin-api':
-        specifier: workspace:*
-        version: link:../../packages/plugin-api
-      '@i0c/runtime-build':
-        specifier: workspace:*
-        version: link:../../packages/runtime-build
-    devDependencies:
-      '@i0c/plugin-testkit':
-        specifier: workspace:*
-        version: link:../../packages/plugin-testkit
-      '@types/node':
-        specifier: ^25.5.0
-        version: 25.5.0
-      tsx:
-        specifier: ^4.21.0
-        version: 4.21.0
-      typescript:
-        specifier: ^6.0.2
-        version: 6.0.2
-
   packages/analytics-domain:
     dependencies:
       zod:
@@ -361,6 +339,28 @@ importers:
       '@i0c/plugin-api':
         specifier: workspace:*
         version: link:../../../packages/plugin-api
+    devDependencies:
+      '@i0c/plugin-testkit':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-testkit
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.5.0
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+
+  plugins/fixtures/runtime-external:
+    dependencies:
+      '@i0c/plugin-api':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-api
+      '@i0c/runtime-build':
+        specifier: workspace:*
+        version: link:../../../packages/runtime-build
     devDependencies:
       '@i0c/plugin-testkit':
         specifier: workspace:*

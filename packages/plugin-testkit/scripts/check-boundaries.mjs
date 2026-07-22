@@ -5,7 +5,6 @@ import process from "node:process"
 const repositoryRoot = path.resolve(process.argv[2] ?? process.cwd())
 const pluginApiRoot = path.join(repositoryRoot, "packages", "plugin-api")
 const pluginsRoot = path.join(repositoryRoot, "plugins")
-const fixturesRoot = path.join(repositoryRoot, "fixtures")
 const sourceExtensions = new Set([".js", ".jsx", ".mjs", ".mts", ".ts", ".tsx"])
 const issues = []
 
@@ -151,10 +150,7 @@ for (const filePath of collectFiles(path.join(pluginApiRoot, "src"))) {
   }
 }
 
-for (const packageRoot of [
-  ...collectPackageRoots(pluginsRoot),
-  ...collectPackageRoots(fixturesRoot),
-]) {
+for (const packageRoot of collectPackageRoots(pluginsRoot)) {
   const packageJsonPath = path.join(packageRoot, "package.json")
   const packageJson = readJson(packageJsonPath)
   const dependencies = packageJson.dependencies ?? {}

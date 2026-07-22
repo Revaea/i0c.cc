@@ -17,7 +17,6 @@ on:
       - plugins/store/**
       - plugins/**/src/manifest.ts
       - plugins/runtime/**/src/installation.ts
-      - fixtures/runtime-platform-*/**
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
@@ -37,7 +36,6 @@ on:
       - plugins/store/**
       - plugins/**/src/manifest.ts
       - plugins/runtime/**/src/installation.ts
-      - fixtures/runtime-platform-*/**
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml

@@ -116,7 +116,7 @@ pnpm webui:lint
 pnpm webui:build
 ```
 
-Plugin CI 检查类型、Manifest、契约、独立插件包、PostgreSQL 集成行为和导入或 Bundle 边界。Runtime CI 测试共享语义、分别构建三个官方平台，并使用不含 Runtime 平台专属源码的外部式夹具完成构建。WebUI CI 覆盖测试、Lint 与构建。Config CI 校验核心配置和已安装 Manifest。每个工作流都按真实所有者路径和工作流自身文件触发。
+Plugin CI 检查类型、Manifest、契约、独立插件包、PostgreSQL 集成行为和导入或 Bundle 边界。Runtime CI 测试共享语义、分别构建三个官方平台，并构建位于 `plugins/fixtures` 的仅测试外部适配器。WebUI CI 覆盖测试、Lint 与构建。Config CI 校验核心配置和已安装 Manifest。每个工作流都按真实所有者路径和工作流自身文件触发。
 
 ## 新增官方插件
 

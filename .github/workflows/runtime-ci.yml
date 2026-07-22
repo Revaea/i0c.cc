@@ -15,8 +15,8 @@ on:
       - packages/runtime-host/**
       - packages/analytics-domain/**
       - plugins/feature/bot-classifier/**
+      - plugins/fixtures/runtime-external/**
       - plugins/runtime/**
-      - fixtures/runtime-platform-*/**
       - plugins/sink/http/**
       - plugins/source/github/**
       - package.json
@@ -36,8 +36,8 @@ on:
       - packages/runtime-host/**
       - packages/analytics-domain/**
       - plugins/feature/bot-classifier/**
+      - plugins/fixtures/runtime-external/**
       - plugins/runtime/**
-      - fixtures/runtime-platform-*/**
       - plugins/sink/http/**
       - plugins/source/github/**
       - package.json

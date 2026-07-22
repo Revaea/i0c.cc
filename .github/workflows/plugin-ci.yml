@@ -14,7 +14,6 @@ on:
       - packages/runtime-host/**
       - packages/analytics-domain/**
       - plugins/**
-      - fixtures/runtime-platform-*/**
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
@@ -31,7 +30,6 @@ on:
       - packages/runtime-host/**
       - packages/analytics-domain/**
       - plugins/**
-      - fixtures/runtime-platform-*/**
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
