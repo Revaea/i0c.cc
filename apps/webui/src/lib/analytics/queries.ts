@@ -79,7 +79,7 @@ async function queryAnalyticsOverview(
 
 const getCachedAnalyticsOverview = unstable_cache(
   queryAnalyticsOverview,
-  ["analytics-overview-v3"],
+  ["analytics-overview-v4"],
   { revalidate: analyticsCacheSeconds, tags: [analyticsCacheTag] },
 );
 
@@ -122,7 +122,7 @@ async function queryAnalyticsDetail(
 
 const getCachedAnalyticsDetail = unstable_cache(
   queryAnalyticsDetail,
-  ["analytics-detail-v3"],
+  ["analytics-detail-v4"],
   { revalidate: analyticsCacheSeconds, tags: [analyticsCacheTag] },
 );
 
@@ -161,7 +161,7 @@ async function queryAnalyticsAutomationOverview(
 
 const getCachedAnalyticsAutomationOverview = unstable_cache(
   queryAnalyticsAutomationOverview,
-  ["analytics-automation-overview-v3"],
+  ["analytics-automation-overview-v4"],
   { revalidate: analyticsCacheSeconds, tags: [analyticsCacheTag] },
 );
 
