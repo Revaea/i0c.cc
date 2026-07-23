@@ -6,8 +6,20 @@ on:
       - main
     paths:
       - .github/workflows/runtime-ci.yml
+      - i0c.runtime.config.ts
+      - i0c.runtime.manifests.ts
       - apps/runtime/**
       - packages/config/**
+      - packages/plugin-api/**
+      - packages/plugin-catalog/**
+      - packages/runtime-build/**
+      - packages/runtime-host/**
+      - packages/analytics-domain/**
+      - plugins/feature/bot-classifier/**
+      - plugins/fixtures/runtime-external/**
+      - plugins/runtime/**
+      - plugins/sink/http/**
+      - plugins/source/github/**
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
@@ -16,8 +28,20 @@ on:
       - main
     paths:
       - .github/workflows/runtime-ci.yml
+      - i0c.runtime.config.ts
+      - i0c.runtime.manifests.ts
       - apps/runtime/**
       - packages/config/**
+      - packages/plugin-api/**
+      - packages/plugin-catalog/**
+      - packages/runtime-build/**
+      - packages/runtime-host/**
+      - packages/analytics-domain/**
+      - plugins/feature/bot-classifier/**
+      - plugins/fixtures/runtime-external/**
+      - plugins/runtime/**
+      - plugins/sink/http/**
+      - plugins/source/github/**
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
@@ -52,8 +76,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check Runtime types
+        run: pnpm runtime:check
+
       - name: Test Runtime
         run: pnpm runtime:test
 
-      - name: Build Runtime
-        run: pnpm runtime:build
+      - name: Build Cloudflare Runtime
+        run: pnpm runtime:build:cf
+
+      - name: Build Vercel Runtime
+        run: pnpm runtime:build:vc
+
+      - name: Build Netlify Runtime
+        run: pnpm runtime:build:nf
+
+      - name: Build external Runtime fixture
+        run: pnpm --filter i0c-redirect-worker build:external-fixture

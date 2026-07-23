@@ -2,7 +2,9 @@ import "server-only";
 
 import type { JWT } from "next-auth/jwt";
 
-import { appConfig, type WebUiAccessMode } from "@i0c/config";
+import type { WebUiAccessMode } from "@i0c/config";
+
+import { getAuthoritativeDataConfig } from "@/lib/configuration/data-config";
 
 import {
   applyWebUiTokenAuthorization as applyTokenAuthorization,
@@ -36,21 +38,18 @@ type WebUiAccessPolicy =
 function parseAllowedGitHubUserIds(values: readonly string[]): ReadonlySet<string> {
   if (values.some((value) => !isValidGitHubUserId(value))) {
     throw new Error(
-      "appConfig.webui.access.managerGitHubUserIds must contain GitHub numeric user IDs",
+      "config.json webui.access.managerGitHubUserIds must contain GitHub numeric user IDs",
     );
   }
 
   return new Set(values);
 }
 
-function readConfiguredAccessMode(): WebUiAccessMode {
-  return appConfig.webui.access.mode;
-}
-
-function readWebUiAccessPolicy(): WebUiAccessPolicy {
-  const mode = readConfiguredAccessMode();
+async function readWebUiAccessPolicy(): Promise<WebUiAccessPolicy> {
+  const config = await getAuthoritativeDataConfig();
+  const mode: WebUiAccessMode = config.webui.access.mode;
   const allowedGitHubUserIds = parseAllowedGitHubUserIds(
-    appConfig.webui.access.managerGitHubUserIds,
+    config.webui.access.managerGitHubUserIds,
   );
 
   if (mode === "authenticated") {
@@ -60,7 +59,7 @@ function readWebUiAccessPolicy(): WebUiAccessPolicy {
   if (mode === "allowlist" || mode === "public-readonly") {
     if (mode === "allowlist" && allowedGitHubUserIds.size === 0) {
       throw new Error(
-        "appConfig.webui.access.managerGitHubUserIds is required in allowlist mode",
+        "config.json webui.access.managerGitHubUserIds is required in allowlist mode",
       );
     }
 
@@ -71,57 +70,61 @@ function readWebUiAccessPolicy(): WebUiAccessPolicy {
   }
 
   throw new Error(
-    "appConfig.webui.access.mode must be authenticated, allowlist, or public-readonly",
+    "config.json webui.access.mode must be authenticated, allowlist, or public-readonly",
   );
 }
 
-const accessPolicy = readWebUiAccessPolicy();
 const emptyGitHubUserIds = new Set<string>();
 
-function getManagerGitHubUserIds(): ReadonlySet<string> {
+function getManagerGitHubUserIds(accessPolicy: WebUiAccessPolicy): ReadonlySet<string> {
   return accessPolicy.mode === "authenticated"
     ? emptyGitHubUserIds
     : accessPolicy.allowedGitHubUserIds;
 }
 
-export function isWebUiPublicReadOnly(): boolean {
+export async function isWebUiPublicReadOnly(): Promise<boolean> {
+  const accessPolicy = await readWebUiAccessPolicy();
   return accessPolicy.mode === "public-readonly";
 }
 
-export function canGitHubUserSignIn(
+export async function canGitHubUserSignIn(
   githubUserId: string | null | undefined,
-): boolean {
+): Promise<boolean> {
+  const accessPolicy = await readWebUiAccessPolicy();
   return canGitHubUserSignInForAccessMode(
     githubUserId,
     accessPolicy.mode,
-    getManagerGitHubUserIds(),
+    getManagerGitHubUserIds(accessPolicy),
   );
 }
 
-export function isGitHubUserManager(
+export async function isGitHubUserManager(
   githubUserId: string | null | undefined,
-): boolean {
+): Promise<boolean> {
+  const accessPolicy = await readWebUiAccessPolicy();
   return isGitHubUserManagerForAccessMode(
     githubUserId,
     accessPolicy.mode,
-    getManagerGitHubUserIds(),
+    getManagerGitHubUserIds(accessPolicy),
   );
 }
 
-export function isWebUiTokenAuthorized(
+export async function isWebUiTokenAuthorized(
   token: JWT | null,
-): token is JWT & { accessToken: string } {
+): Promise<boolean> {
+  const accessPolicy = await readWebUiAccessPolicy();
   return isTokenAuthorizedForAccessMode(
     token,
     accessPolicy.mode,
-    getManagerGitHubUserIds(),
+    getManagerGitHubUserIds(accessPolicy),
   );
 }
 
-export function applyWebUiTokenAuthorization(token: JWT): boolean {
+export async function applyWebUiTokenAuthorization(token: JWT): Promise<boolean> {
+  const accessPolicy = await readWebUiAccessPolicy();
   return applyTokenAuthorization(
     token,
     accessPolicy.mode,
-    getManagerGitHubUserIds(),
+    getManagerGitHubUserIds(accessPolicy),
   );
 }

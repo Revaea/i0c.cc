@@ -56,6 +56,8 @@
     "entries": "条目目录",
     "rules": "规则编辑",
     "json": "JSON 编辑",
+    "config": "实例配置",
+    "configPreferred": "保存将更新 config.json",
     "jsonPreferred": "保存将以此 JSON 为准",
     "editAndSave": "编辑规则并保存",
     "readOnlyHint": "只读预览",
@@ -67,6 +69,14 @@
     "schemaValidateFailUnknown": "Schema 校验失败：未知错误",
     "schemaValidateFail": "Schema 校验失败：\n{lines}{more}",
     "schemaValidateMore": "\n… 还有 {count} 条"
+  },
+  "instanceConfig": {
+    "loading": "正在加载实例配置…",
+    "loadFail": "实例配置加载失败",
+    "saveFail": "实例配置保存失败",
+    "saveOk": "实例配置已保存",
+    "tip": "公开配置会在保存前校验；密钥值继续保留在环境变量中。",
+    "validationFail": "实例配置校验失败：{details}"
   },
   "routeEntry": {
     "ruleType": "规则类型",

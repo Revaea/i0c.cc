@@ -2,8 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
-import { isDatabaseConfigured } from "@/lib/analytics/database";
-import { pruneExpiredAnalyticsRows } from "@/lib/analytics/retention";
+import { getAnalyticsStore } from "@/lib/analytics/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,12 +25,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!isDatabaseConfigured()) {
+  const store = await getAnalyticsStore();
+  if (!store?.configured) {
     return NextResponse.json({ error: "Analytics is not configured" }, { status: 503 });
   }
 
   try {
-    return NextResponse.json(await pruneExpiredAnalyticsRows(), {
+    return NextResponse.json(await store.runRetention({}), {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {

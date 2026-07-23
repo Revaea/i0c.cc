@@ -1,0 +1,30 @@
+{
+  "name": "@i0c/plugin-runtime-vercel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    "./manifest": "./src/manifest.ts",
+    "./config": "./src/config.ts",
+    "./installation": "./src/installation.ts",
+    "./runtime": "./src/runtime.ts"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc --noEmit",
+    "check": "tsc --noEmit",
+    "test": "tsx --test tests/**/*.test.ts"
+  },
+  "dependencies": {
+    "@i0c/plugin-api": "workspace:*",
+    "@i0c/runtime-build": "workspace:*",
+    "@vercel/functions": "^3.7.5"
+  },
+  "devDependencies": {
+    "@i0c/plugin-testkit": "workspace:*",
+    "@types/node": "^25.5.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2"
+  }
+}

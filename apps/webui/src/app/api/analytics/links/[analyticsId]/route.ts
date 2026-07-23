@@ -4,6 +4,7 @@ import {
   createWebUiAuthorizationErrorResponse,
   getWebUiReadRequestAuthorization,
 } from "@/auth/authorization";
+import { createPrivateAnalyticsJsonResponse } from "@/lib/analytics/api-response";
 import { parseAnalyticsQueryScope } from "@/lib/analytics/query-input";
 import { getAnalyticsDetail, isAnalyticsConfigured } from "@/lib/analytics/queries";
 
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Invalid analytics ID" }, { status: 400 });
   }
 
-  if (!isAnalyticsConfigured()) {
+  if (!await isAnalyticsConfigured()) {
     return NextResponse.json({ error: "Analytics is not configured" }, { status: 503 });
   }
 
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Analytics link was not found" }, { status: 404 });
     }
 
-    return NextResponse.json(detail);
+    return createPrivateAnalyticsJsonResponse(detail);
   } catch (error) {
     console.error("Failed to query analytics detail", error);
     return NextResponse.json({ error: "Analytics detail could not be loaded" }, { status: 500 });

@@ -15,12 +15,14 @@ The Runtime never connects to PostgreSQL. Collector delivery is best effort and 
 
 ## Configuration
 
-The collector endpoint and source namespace are versioned in `packages/config/src/index.ts`:
+The collector endpoint and source namespace are versioned in `data/config.json`:
 
-```ts
-analytics: {
-  ingestEndpoint: "https://u.i0c.cc/api/analytics/events",
-  sourceId: "i0c.cc",
+```json
+{
+  "analytics": {
+    "ingestEndpoint": "https://u.i0c.cc/api/analytics/events",
+    "sourceId": "i0c.cc"
+  }
 }
 ```
 
@@ -38,7 +40,7 @@ ANALYTICS_INGEST_SECRET="replace-with-a-32-byte-random-secret"
 CRON_SECRET="replace-with-a-32-byte-random-secret"
 ```
 
-The Runtime and WebUI do not read the former non-sensitive analytics environment variables. Values left in provider dashboards are ignored; edit `@i0c/config`, rebuild, and redeploy to change them.
+The Runtime and WebUI do not read the former non-sensitive analytics environment variables. Values left in provider dashboards are ignored; edit the validated remote `config.json` to change them without rebuilding the applications.
 
 `ANALYTICS_WRITE_KEY` and `ANALYTICS_INGEST_SECRET` must contain exactly the same secret. Do not reuse the GitHub OAuth, NextAuth, or database credentials.
 

@@ -13,12 +13,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { defaultDataConfig } from "@i0c/config";
+import { HTTP_ANALYTICS_SINK_PLUGIN_ID } from "@i0c/plugin-analytics-sink-http/manifest";
+
 import {
   finalizeMatchedAnalytics,
   finalizeRuntimeAnalytics,
   prepareAnalyticsRequest
 } from "../../src/lib/handlers/analytics";
 import type { AnalyticsRequestContext } from "../../src/lib/handlers/analytics";
+import { resolveRuntimeOptions } from "../../src/lib/handlers/configuration/loader";
 import type { NormalizedRule, ResolvedRuntime } from "../../src/lib/handlers/core/types";
 
 const analyticsEndpoint = "https://u.i0c.cc/api/analytics/events";
@@ -54,12 +58,13 @@ function createRequest(path = "/r"): Request {
 
 function createRuntime(overrides: Partial<ResolvedRuntime> = {}): ResolvedRuntime {
   return {
-    configUrl: "https://example.com/redirects.json",
-    cacheTtlSeconds: 60,
-    fetchImpl: fetch,
-    provider: "cloudflare",
-    now: () => completedAt,
-    random: () => 0,
+    ...resolveRuntimeOptions({
+      configUrl: "https://example.com/redirects.json",
+      dataConfigUrl: null,
+      provider: "cloudflare",
+      now: () => completedAt,
+      random: () => 0
+    }),
     ...overrides
   };
 }
@@ -72,6 +77,7 @@ function createAnalyticsContext(writeKey = analyticsWriteKey): AnalyticsRequestC
     settings: {
       delivery: {
         endpoint: analyticsEndpoint,
+        pluginId: HTTP_ANALYTICS_SINK_PLUGIN_ID,
         sourceId: "i0c.cc",
         writeKey
       },
@@ -125,6 +131,11 @@ test("uses versioned analytics settings and reads only the Runtime write key bin
 
   assert.deepEqual(analytics.settings.delivery, {
     endpoint: analyticsEndpoint,
+    pluginConfig: {
+      maximumDeliveryAttempts: 2,
+      requestTimeoutMs: 5_000
+    },
+    pluginId: HTTP_ANALYTICS_SINK_PLUGIN_ID,
     sourceId: "i0c.cc",
     writeKey: analyticsWriteKey
   });
@@ -132,6 +143,96 @@ test("uses versioned analytics settings and reads only the Runtime write key bin
   assert.equal(analytics.settings.sourceHostname, "i0c.cc");
   assert.equal(analytics.settings.runtimeSampleRate, 0.1);
   assert.ok(analytics.settings.attributionKey instanceof ArrayBuffer);
+});
+
+test("uses the HTTP sink plugin declaration for enablement, config, and secret mapping", async () => {
+  const request = createRequest();
+  const runtime = createRuntime({
+    dataConfig: {
+      ...defaultDataConfig,
+      plugins: {
+        [HTTP_ANALYTICS_SINK_PLUGIN_ID]: {
+          enabled: true,
+          config: {
+            maximumDeliveryAttempts: 1
+          },
+          secrets: {
+            writeKey: "CUSTOM_ANALYTICS_WRITE_KEY"
+          }
+        }
+      }
+    },
+    envBindings: {
+      CUSTOM_ANALYTICS_WRITE_KEY: analyticsWriteKey
+    }
+  });
+
+  const analytics = await prepareAnalyticsRequest(request, runtime);
+
+  assert.deepEqual(analytics.settings.delivery?.pluginConfig, {
+    maximumDeliveryAttempts: 1
+  });
+  assert.equal(
+    analytics.settings.delivery?.pluginId,
+    HTTP_ANALYTICS_SINK_PLUGIN_ID
+  );
+  assert.equal(analytics.settings.delivery?.writeKey, analyticsWriteKey);
+
+  runtime.dataConfig = {
+    ...runtime.dataConfig,
+    plugins: {
+      [HTTP_ANALYTICS_SINK_PLUGIN_ID]: {
+        enabled: false
+      }
+    }
+  };
+
+  const disabledAnalytics = await prepareAnalyticsRequest(request, runtime);
+  assert.equal(disabledAnalytics.settings.delivery, null);
+});
+
+test("delivers events through an injected analytics sink without the default write key", async () => {
+  let capturedEventKind: string | undefined;
+  let capturedEndpoint: string | undefined;
+  let capturedPluginSecret: string | undefined;
+  let capturedWriteKey: string | undefined;
+  let deliveryPromise: Promise<unknown> | undefined;
+  const runtime = createRuntime({
+    analyticsSink: {
+      async emit(event, context) {
+        capturedEventKind = event.eventKind;
+        capturedEndpoint = context.endpoint;
+        capturedPluginSecret = context.readSecret("PLUGIN_TOKEN");
+        capturedWriteKey = context.writeKey;
+      }
+    },
+    envBindings: {
+      PLUGIN_TOKEN: "plugin-secret"
+    },
+    waitUntil: (promise) => {
+      deliveryPromise = promise;
+    }
+  });
+
+  const analytics = createAnalyticsContext();
+  analytics.settings.delivery = null;
+
+  await finalizeRuntimeAnalytics({
+    request: createRequest("/missing"),
+    response: new Response("missing", { status: 404 }),
+    outcome: "not_found",
+    effectivePath: "/missing",
+    startedAt: completedAt - 10,
+    runtime,
+    analytics
+  });
+
+  assert.ok(deliveryPromise);
+  await deliveryPromise;
+  assert.equal(capturedEventKind, "runtime");
+  assert.equal(capturedEndpoint, analyticsEndpoint);
+  assert.equal(capturedPluginSecret, "plugin-secret");
+  assert.equal(capturedWriteKey, undefined);
 });
 
 test("delivers the Analytics V2 link event contract", async () => {
@@ -195,7 +296,7 @@ test("delivers the sampled Analytics V2 runtime event contract", async () => {
   const response = new Response("Not Found", { status: 404 });
   const { runtime, getDelivery, getDeliveryPromise } = createDeliveryRuntime();
 
-  const result = finalizeRuntimeAnalytics({
+  const result = await finalizeRuntimeAnalytics({
     request,
     response,
     outcome: "not_found",

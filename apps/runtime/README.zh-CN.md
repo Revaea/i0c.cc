@@ -1,6 +1,6 @@
 # i0c.cc Runtime
 
-面向 Cloudflare Workers、Vercel Edge Functions、Netlify Edge Functions 等 fetch 兼容边缘平台的可选式重定向运行时。它会强制 HTTPS、返回 favicon，并根据远程 `redirects.json` 中的规则执行重定向或代理。部署时选择适合的平台适配器即可，三个平台不要求同时运行。
+面向 Cloudflare Workers、Vercel Edge Functions、Netlify Edge Functions 等 fetch 兼容边缘平台的可选式重定向运行时。它会强制 HTTPS、返回 favicon，从远程 `config.json` 加载非敏感实例配置，并根据远程 `redirects.json` 中的规则执行重定向或代理。部署时选择适合的平台适配器即可，三个平台不要求同时运行。
 
 在线预览：
 
@@ -22,41 +22,45 @@
 
 | 平台 | 项目根目录 | 构建命令 | 输出 |
 |------|------------|----------|------|
-| Cloudflare Workers | `apps/runtime` | `pnpm build` | 由 `wrangler.toml` 决定 |
+| Cloudflare Workers | `apps/runtime` | `pnpm build:cf` | `dist/platforms/cloudflare.js` |
 | Vercel | `apps/runtime` | `pnpm build:vc` | `.vercel/output` |
 | Netlify | `apps/runtime` | `pnpm build:nf` | `dist` |
 
-构建时必须使用完整的 monorepo 检出。Vercel 需要保持开启 **Include source files outside of the Root Directory in the Build Step**，让构建能够包含 `@i0c/config`。
+构建时必须使用完整的 monorepo 检出。Vercel 需要保持开启 **Include source files outside of the Root Directory in the Build Step**，让构建能够包含共享 workspace 包。
 
 部署完成后：
 
-- 需要修改重定向数据源或其他 Runtime 非敏感配置时，编辑 [../../packages/config/src/index.ts](../../packages/config/src/index.ts)，然后重新构建并部署。
+- 非敏感配置或规则变化时，编辑 `data` 分支的 `config.json` 或 `redirects.json`。内置适配器会在对应缓存时间结束后获取有效更新，不需要重新构建。
 - 在需要投递统计事件的每个平台设置 `ANALYTICS_WRITE_KEY`。
 - 更新公共重定向逻辑后重新执行包构建，然后再部署。
 
 ## 选择适配器
 
-- Cloudflare Workers：[src/platforms/cloudflare.ts](src/platforms/cloudflare.ts)
-- Vercel Edge Functions：[src/platforms/vercel-edge.ts](src/platforms/vercel-edge.ts)
-- Netlify Edge Functions：[src/platforms/netlify-edge.ts](src/platforms/netlify-edge.ts)
+- Runtime 宿主：[src/entry.ts](src/entry.ts)
+- 已安装 Runtime 插件与平台：[../../i0c.runtime.config.ts](../../i0c.runtime.config.ts)
+- 构建装配：[../../packages/runtime-build](../../packages/runtime-build)
 
-需要自定义运行时？可以从 [src/lib/handler.ts](src/lib/handler.ts) 引入 `handleRedirectRequest`，再配合自己的 `Request` 对象和可选的 `HandlerOptions` 使用，例如覆盖配置地址或注入自定义缓存实现。
+需要自定义平台或 Runtime Feature？在 workspace 中新增提供 Manifest 与类型化工厂或 `./installation` 入口的包，再把它加入 `i0c.runtime.config.ts` 即可。Runtime 宿主源码和官方 Catalog 不需要增加插件专属改动。外部 fixture 会构建自定义平台与 Feature，并在生成产物中验证 Feature 标记。当前契约证明的是源码 workspace 内的接入能力；共享插件包尚未作为公共 npm SDK 发布。程序化消费者仍可从 [src/lib/handler.ts](src/lib/handler.ts) 引入 `handleRedirectRequest`。稳定的插件 Manifest 与适配器契约位于 [../../packages/plugin-api](../../packages/plugin-api)。
+
+每次构建只注入所选 Runtime 适配器，并通过同一份根安装配置装配 Data Source、Analytics Sink 与 Feature。远程声明会控制可选插件的启停、配置和 Secret 绑定名称。已安装包与初始 Git 数据位置必须在读取 `config.json` 前可用，因此仍属于启动配置。包结构与故障边界详见 [../../docs/plugins.zh-CN.md](../../docs/plugins.zh-CN.md)。
 
 ## 环境变量与配置
 
-非敏感配置统一维护在 [../../packages/config/src/index.ts](../../packages/config/src/index.ts)。Runtime 不会再把旧环境变量作为覆盖值或回退值读取，平台后台遗留的旧值会被忽略。
+非敏感实例配置统一维护在 `data/config.json`。[../../packages/config](../../packages/config) 负责 schema、校验、启动地址和安全回退值。Runtime 不会再把旧环境变量作为覆盖值或回退值读取，平台后台遗留的旧值会被忽略。
 
-### 版本化 Runtime 配置
+### 远程 Runtime 配置
 
-共享配置负责：
+`config.json` 负责：
 
-- `redirects.github`：用于构建 Raw 重定向数据地址的 GitHub 所有者、仓库、分支和 JSON 路径。
 - `runtime.canonicalOrigin`：WebUI 二维码等共享消费者使用的 Runtime 规范公开地址。
 - `runtime.robotsPolicy`：设为 `allow` 时开放 `robots.txt` 并提供 sitemap；设为 `disallow` 时阻止抓取并关闭 sitemap。
+- `runtime.configCacheTtlSeconds`：`config.json` 的缓存时间。
+- `runtime.redirectsCacheTtlSeconds`：`redirects.json` 的缓存时间。
 - `analytics.ingestEndpoint`：WebUI 统计收集端的 HTTPS 地址。
 - `analytics.sourceId`：所有平台共用的小写基础域名和稳定统计命名空间。
+- `plugins`：按命名空间隔离的非敏感插件设置，以及环境变量密钥绑定名称。
 
-自定义适配器仍可通过 `HandlerOptions.configUrl` 显式传入地址；内置 Cloudflare、Vercel、Netlify 适配器始终使用版本化重定向数据源。
+Runtime 会分别缓存两份文档，合并进行中的重复加载，在可用时使用 ETag，并在刷新失败时保留最后一次有效的内存或平台缓存值。无效的远程实例配置不会替换当前配置。程序化消费者仍可通过 `HandlerOptions` 传入明确地址或注入完整数据源。
 
 ### 配置统计密钥
 
@@ -76,11 +80,15 @@
 
 自定义适配器启用统计后，还应通过 `HandlerOptions` 传入 `provider`、可选的 `country` 和平台提供的 `waitUntil`。
 
-在仓库根目录运行契约测试和平台构建：
+在仓库根目录运行插件契约、Runtime 测试与独立平台构建：
 
 ```bash
+pnpm plugins:check
+pnpm runtime:check
 pnpm runtime:test
-pnpm runtime:build
+pnpm runtime:build:cf
+pnpm runtime:build:vc
+pnpm runtime:build:nf
 ```
 
 ### `redirects.json` 配置速查
@@ -108,7 +116,7 @@ pnpm runtime:build
 
 ```jsonc
 {
-  "$schema": "https://raw.githubusercontent.com/Revaea/i0c.cc/main/apps/runtime/redirects.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Revaea/i0c.cc/main/packages/config/redirects.schema.json",
   "Slots": {
     // ...
   }

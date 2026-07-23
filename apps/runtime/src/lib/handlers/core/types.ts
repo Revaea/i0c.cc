@@ -12,8 +12,28 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
+import type { AnalyticsProvider as AnalyticsProviderType } from "@i0c/analytics-domain";
+import type {
+  AnalyticsClassificationHookContext
+} from "@i0c/analytics-domain/classification";
+import type {
+  DataConfig,
+  RedirectsConfig as SharedRedirectsConfig,
+  SlotBranch as SharedSlotBranch
+} from "@i0c/config";
+import type {
+  AnalyticsSink,
+  RuntimeCache,
+  RuntimeDataSource as RuntimeDataSourceContract,
+  RuntimeFeaturePipeline,
+  RuntimeFeatureRegistration,
+  RuntimePlatformManifest
+} from "@i0c/plugin-api";
+
+import type { RuntimePluginInstallations } from "@i0c/runtime-host/installations";
+
 export type RouteType = "prefix" | "exact" | "proxy";
-export type AnalyticsProvider = "cloudflare" | "vercel" | "netlify" | "unknown";
+export type AnalyticsProvider = AnalyticsProviderType;
 export type AnalyticsRequestClass = "human" | "link_preview" | "crawler" | "monitor" | "asset" | "unknown";
 export type AnalyticsEventKind = "link" | "runtime";
 export type AnalyticsTrafficClass = "browser_like" | "declared_bot" | "suspected_automation" | "unknown";
@@ -71,33 +91,54 @@ export interface CompiledEntry {
   order: number;
 }
 
-export type SlotBranch = Record<string, unknown>;
+export type SlotBranch = SharedSlotBranch;
+export type RedirectsConfig = SharedRedirectsConfig;
+export type CacheLike = RuntimeCache;
 
-export interface RedirectsConfig {
-  Slots?: SlotBranch;
-  slots?: SlotBranch;
-  SLOT?: SlotBranch;
-  [key: string]: unknown;
+export type RuntimeDataSource = RuntimeDataSourceContract<DataConfig, RedirectsConfig>;
+
+export interface AnalyticsSinkEvent {
+  eventKind: AnalyticsEventKind;
 }
 
-export interface MemoryCacheEntry {
-  config: RedirectsConfig;
-  expiresAt: number;
+export interface AnalyticsSinkContext {
+  completedAt: number;
+  dataConfig: DataConfig;
+  endpoint: string;
+  fetchImpl: typeof fetch;
+  provider: AnalyticsProvider;
+  readSecret(bindingName: string): string | undefined;
+  sourceId: string;
+  writeKey?: string;
 }
 
-export interface CacheLike {
-  match(request: Request): Promise<Response | undefined | null>;
-  put(request: Request, response: Response): Promise<void>;
-}
+export type RuntimeAnalyticsSink = AnalyticsSink<AnalyticsSinkEvent, AnalyticsSinkContext>;
+export type RuntimeAnalyticsFeaturePipeline = RuntimeFeaturePipeline<
+  AnalyticsClassificationHookContext
+>;
+export type RuntimeFeatureRegistrationInput = RuntimeFeatureRegistration<
+  AnalyticsClassificationHookContext
+>;
 
 export interface HandlerOptions {
   configUrl?: string;
+  dataConfigUrl?: string | null;
+  redirectsConfigUrl?: string;
+  dataConfigCacheTtlSeconds?: number;
+  redirectsCacheTtlSeconds?: number;
+  dataSource?: RuntimeDataSource;
+  analyticsSink?: RuntimeAnalyticsSink;
+  runtimeFeatures?: readonly RuntimeFeatureRegistrationInput[];
   cache?: CacheLike;
   cacheTtlSeconds?: number;
   fetchImpl?: typeof fetch;
   fetchInit?: RequestInit;
   envBindings?: Record<string, unknown>;
+  readEnvironment?(name: string): unknown;
   provider?: AnalyticsProvider;
+  platformPluginId?: string;
+  pluginInstallations?: RuntimePluginInstallations;
+  runtimePlatformManifests?: readonly RuntimePlatformManifest[];
   country?: string;
   waitUntil?(promise: Promise<unknown>): void;
   now?: () => number;
@@ -106,12 +147,23 @@ export interface HandlerOptions {
 
 export interface ResolvedRuntime {
   configUrl: string;
+  dataConfig: DataConfig;
+  dataConfigUrl?: string;
+  redirectsConfigUrl: string;
+  dataSource: RuntimeDataSource;
+  analyticsSink?: RuntimeAnalyticsSink;
+  featurePipeline: RuntimeAnalyticsFeaturePipeline;
+  runtimeFeatures: readonly RuntimeFeatureRegistrationInput[];
   cache?: CacheLike;
   cacheTtlSeconds: number;
   fetchImpl: typeof fetch;
   fetchInit?: RequestInit;
   envBindings?: Record<string, unknown>;
+  readEnvironment?: (name: string) => unknown;
   provider: AnalyticsProvider;
+  platformPluginId?: string;
+  pluginInstallations: RuntimePluginInstallations;
+  runtimePlatformManifests: readonly RuntimePlatformManifest[];
   country?: string;
   waitUntil?: (promise: Promise<unknown>) => void;
   now: () => number;

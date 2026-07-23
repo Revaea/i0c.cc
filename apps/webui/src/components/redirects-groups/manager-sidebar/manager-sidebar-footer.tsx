@@ -17,6 +17,7 @@ export type ManagerSidebarFooterProps = {
   onLoadConfigUrl?: (url: string) => void;
   resultMessage?: string | null;
   lastCommitUrl?: string | null;
+  showRedirectTools?: boolean;
 };
 
 export function ManagerSidebarFooter({
@@ -30,6 +31,7 @@ export function ManagerSidebarFooter({
   onLoadConfigUrl,
   resultMessage,
   lastCommitUrl,
+  showRedirectTools = true,
 }: ManagerSidebarFooterProps) {
   const tGroups = useTranslations("groups");
 
@@ -69,7 +71,7 @@ export function ManagerSidebarFooter({
 
   return (
     <div className="space-y-3">
-      <div className="space-y-2">
+      {showRedirectTools ? <div className="space-y-2">
         <div className={fieldLabelClassName}>{tGroups("configUrl")}</div>
         <div className="flex items-center gap-2">
           <input
@@ -115,9 +117,9 @@ export function ManagerSidebarFooter({
         {configUrlHint ? (
           <div className="text-xs text-rose-600">{configUrlHint}</div>
         ) : null}
-      </div>
+      </div> : null}
 
-      <div className="grid grid-cols-2 gap-2">
+      {showRedirectTools ? <div className="grid grid-cols-2 gap-2">
         <Button
           onClick={onUndo}
           disabled={!canUndo || isPending}
@@ -149,7 +151,7 @@ export function ManagerSidebarFooter({
           </svg>
           {tGroups("redo")}
         </Button>
-      </div>
+      </div> : null}
 
       <Button
         onClick={onSave}

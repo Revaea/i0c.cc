@@ -56,6 +56,8 @@
     "entries": "Entries",
     "rules": "Rules",
     "json": "JSON",
+    "config": "Config",
+    "configPreferred": "Saving will update config.json",
     "jsonPreferred": "Saving will use this JSON",
     "editAndSave": "Edit rules and save",
     "readOnlyHint": "Read-only preview",
@@ -67,6 +69,14 @@
     "schemaValidateFailUnknown": "Schema validation failed: unknown error",
     "schemaValidateFail": "Schema validation failed:\n{lines}{more}",
     "schemaValidateMore": "\n… and {count} more"
+  },
+  "instanceConfig": {
+    "loading": "Loading instance config…",
+    "loadFail": "Failed to load instance config",
+    "saveFail": "Failed to save instance config",
+    "saveOk": "Instance config saved",
+    "tip": "Public settings are validated before they are saved. Secret values stay in environment variables.",
+    "validationFail": "Instance config validation failed: {details}"
   },
   "routeEntry": {
     "ruleType": "Rule type",

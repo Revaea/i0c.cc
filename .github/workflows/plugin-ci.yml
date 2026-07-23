@@ -1,0 +1,84 @@
+name: Plugin CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/plugin-ci.yml
+      - i0c.runtime.config.ts
+      - packages/plugin-api/**
+      - packages/plugin-catalog/**
+      - packages/plugin-testkit/**
+      - packages/runtime-build/**
+      - packages/runtime-host/**
+      - packages/analytics-domain/**
+      - plugins/**
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/plugin-ci.yml
+      - i0c.runtime.config.ts
+      - packages/plugin-api/**
+      - packages/plugin-catalog/**
+      - packages/plugin-testkit/**
+      - packages/runtime-build/**
+      - packages/runtime-host/**
+      - packages/analytics-domain/**
+      - plugins/**
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plugin-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      TEST_POSTGRES_URL: postgresql://postgres:postgres@localhost:5432/i0c_plugin_test
+    services:
+      postgres:
+        image: postgres:16.9-alpine
+        env:
+          POSTGRES_DB: i0c_plugin_test
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d i0c_plugin_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check plugins
+        run: pnpm plugins:check

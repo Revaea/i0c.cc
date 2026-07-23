@@ -158,8 +158,8 @@ export function classifyProxyFailure(response: Response): ProxyFailureReason | n
   return null;
 }
 
-export async function respondUsingRule<CfHostMetadata, Cf>(
-  request: Request<CfHostMetadata, Cf>,
+export async function respondUsingRule(
+  request: Request,
   rule: NormalizedRule, 
   targetUrl: string, 
   runtime: ResolvedRuntime,
@@ -173,8 +173,8 @@ export async function respondUsingRule<CfHostMetadata, Cf>(
   return redirectResponse(targetUrl, rule.status);
 }
 
-async function proxyRequest<CfHostMetadata, Cf>(
-  request: Request<CfHostMetadata, Cf>,
+async function proxyRequest(
+  request: Request,
   targetUrl: string,
   runtime: ResolvedRuntime,
   basePath: string = "",

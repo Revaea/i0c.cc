@@ -6,6 +6,7 @@ import {
   getWebUiManagementRequestAuthorization,
   getWebUiReadRequestAuthorization,
 } from "@/auth/authorization";
+import { getEffectiveDataConfig } from "@/lib/configuration/data-config";
 import { getRedirectConfig, updateRedirectConfig } from "@/lib/github";
 import { validateRedirectConfig } from "@/lib/redirects/config-validation";
 
@@ -29,7 +30,13 @@ export async function GET(request: NextRequest) {
 
   try {
     const config = await getRedirectConfig(accessToken, { sourceUrl });
-    return NextResponse.json({ config });
+    const dataConfig = await getEffectiveDataConfig();
+    return NextResponse.json({
+      config,
+      runtime: {
+        canonicalOrigin: dataConfig.runtime.canonicalOrigin,
+      },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });

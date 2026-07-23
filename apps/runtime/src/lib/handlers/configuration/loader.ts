@@ -1,24 +1,35 @@
 /**
  * @file loader.ts
  * @description
- * [EN] Config Loader & Cache.
- * Handles fetching the remote configuration JSON via HTTP and managing in-memory caching
- * strategies to optimize performance and reduce latency.
+ * [EN] Runtime data-source orchestration.
+ * Resolves host options and delegates remote configuration loading to the selected source plugin.
  *
- * [CN] 配置加载器与缓存。
- * 处理通过 HTTP 获取远程配置 JSON 的请求，并管理内存缓存策略，
- * 以优化性能并降低延迟。
+ * [CN] Runtime 数据源编排。
+ * 解析宿主选项，并将远程配置加载委托给选中的数据源插件。
  *
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
-import { DEFAULT_CONFIG_URL } from "./config";
-import { safeParseJson } from "../core/utils";
-import { DEFAULT_CACHE_TTL_SECONDS } from "../core/constants";
-import { HandlerOptions, MemoryCacheEntry, RedirectsConfig, ResolvedRuntime } from "../core/types";
+import { defaultDataConfig } from "@i0c/config";
+import type { DataConfig } from "@i0c/config";
+import {
+  runtimePluginInstallations as defaultRuntimePluginInstallations
+} from "@i0c/runtime-config";
 
-const memoryCache = new Map<string, MemoryCacheEntry>();
-const inFlightLoads = new Map<string, Promise<RedirectsConfig | null>>();
+import { runtimePluginLogger } from "@/plugins/logger";
+import { createRuntimeFeaturePipeline } from "@/plugins/features";
+import { resolveRuntimePlugins } from "@/plugins/registry";
+
+import {
+  DEFAULT_DATA_CONFIG_URL,
+  DEFAULT_REDIRECTS_CONFIG_URL
+} from "./config";
+import { DEFAULT_CACHE_TTL_SECONDS } from "../core/constants";
+import type {
+  HandlerOptions,
+  RedirectsConfig,
+  ResolvedRuntime
+} from "../core/types";
 
 export function resolveRuntimeOptions(options: HandlerOptions): ResolvedRuntime {
   const fetchImpl: typeof fetch =
@@ -28,18 +39,84 @@ export function resolveRuntimeOptions(options: HandlerOptions): ResolvedRuntime 
       : ((() => {
           throw new Error("fetch is not available in this environment");
         }) as unknown as typeof fetch));
-  const cacheTtlSeconds = options.cacheTtlSeconds ?? DEFAULT_CACHE_TTL_SECONDS;
   const now = options.now ?? (() => Date.now());
   const random = options.random ?? (() => Math.random());
+  const redirectsConfigUrl = options.redirectsConfigUrl
+    ?? options.configUrl
+    ?? DEFAULT_REDIRECTS_CONFIG_URL;
+  const dataConfigUrl = options.dataConfigUrl === null
+    ? undefined
+    : options.dataConfigUrl
+      ?? (options.configUrl ? undefined : DEFAULT_DATA_CONFIG_URL);
+  const dataConfigCacheTtlSeconds = options.dataConfigCacheTtlSeconds
+    ?? defaultDataConfig.runtime.configCacheTtlSeconds;
+  const redirectsCacheTtlSeconds = options.redirectsCacheTtlSeconds
+    ?? options.cacheTtlSeconds
+    ?? defaultDataConfig.runtime.redirectsCacheTtlSeconds
+    ?? DEFAULT_CACHE_TTL_SECONDS;
+  let currentDataConfig: DataConfig = defaultDataConfig;
+  const provider = options.provider ?? "unknown";
+  const runtimeFeatures = options.runtimeFeatures ?? [];
+  const pluginInstallations = options.pluginInstallations
+    ?? defaultRuntimePluginInstallations;
+
+  const dataSource = options.dataSource ?? pluginInstallations.dataSource.create(
+    {
+      ...(dataConfigUrl ? { dataConfigUrl } : {}),
+      redirectsConfigUrl,
+      dataConfigCacheTtlSeconds,
+      redirectsCacheTtlSeconds,
+      configFailureBackoffSeconds: 30,
+      redirectsFailureBackoffSeconds: 10
+    },
+    {
+      cache: options.cache,
+      fetchImpl,
+      fetchInit: options.fetchInit,
+      getCurrentDataConfig: () => currentDataConfig,
+      logger: runtimePluginLogger,
+      now,
+      setCurrentDataConfig: (config) => {
+        currentDataConfig = config;
+      },
+      validateDataConfig: (config) => {
+        resolveRuntimePlugins(config, {
+          platformPluginId: options.platformPluginId,
+          pluginInstallations,
+          runtimePlatformManifests: options.runtimePlatformManifests ?? []
+        });
+      },
+      waitUntil: options.waitUntil
+    }
+  );
 
   return {
-    configUrl: options.configUrl ?? DEFAULT_CONFIG_URL,
+    configUrl: redirectsConfigUrl,
+    dataConfig: currentDataConfig,
+    ...(dataConfigUrl ? { dataConfigUrl } : {}),
+    redirectsConfigUrl,
+    dataSource,
+    ...(options.analyticsSink ? { analyticsSink: options.analyticsSink } : {}),
+    featurePipeline: createRuntimeFeaturePipeline(
+      currentDataConfig,
+      {
+        platformPluginId: options.platformPluginId,
+        pluginInstallations,
+        runtimePlatformManifests: options.runtimePlatformManifests ?? []
+      },
+      runtimeFeatures
+    ),
+    runtimeFeatures,
     cache: options.cache,
-    cacheTtlSeconds,
+    cacheTtlSeconds: redirectsCacheTtlSeconds,
     fetchImpl,
     fetchInit: options.fetchInit,
     envBindings: options.envBindings,
-    provider: options.provider ?? "unknown",
+    readEnvironment: options.readEnvironment,
+    provider,
+    platformPluginId: options.platformPluginId,
+    pluginInstallations,
+    runtimePlatformManifests: options.runtimePlatformManifests ?? [],
     country: options.country,
     waitUntil: options.waitUntil,
     now,
@@ -47,96 +124,21 @@ export function resolveRuntimeOptions(options: HandlerOptions): ResolvedRuntime 
   };
 }
 
-export async function loadConfig(runtime: ResolvedRuntime): Promise<RedirectsConfig | null> {
-  const { configUrl, now } = runtime;
-
-  const memo = memoryCache.get(configUrl);
-  if (memo && memo.expiresAt > now()) {
-    return memo.config;
-  }
-
-  const inFlight = inFlightLoads.get(configUrl);
-  if (inFlight) {
-    return inFlight;
-  }
-
-  const load = loadConfigFresh(runtime);
-  inFlightLoads.set(configUrl, load);
-  try {
-    return await load;
-  } finally {
-    if (inFlightLoads.get(configUrl) === load) {
-      inFlightLoads.delete(configUrl);
-    }
-  }
+export async function loadDataConfig(runtime: ResolvedRuntime): Promise<DataConfig> {
+  const config = await runtime.dataSource.loadConfig();
+  const resolved = config ?? runtime.dataConfig;
+  resolveRuntimePlugins(resolved, {
+    platformPluginId: runtime.platformPluginId,
+    pluginInstallations: runtime.pluginInstallations,
+    runtimePlatformManifests: runtime.runtimePlatformManifests
+  });
+  return resolved;
 }
 
-async function loadConfigFresh(runtime: ResolvedRuntime): Promise<RedirectsConfig | null> {
-  const { configUrl, cache, cacheTtlSeconds, fetchImpl, fetchInit, now, waitUntil } = runtime;
+export async function loadRedirects(runtime: ResolvedRuntime): Promise<RedirectsConfig | null> {
+  return runtime.dataSource.loadRules();
+}
 
-  if (cache) {
-    try {
-      const cacheRequest = new Request(configUrl);
-      const cached = await cache.match(cacheRequest);
-      if (cached) {
-        const text = await cached.text();
-        const parsed = safeParseJson<RedirectsConfig>(text, "cached parse");
-        if (parsed) {
-          memoryCache.set(configUrl, {
-            config: parsed,
-            expiresAt: now() + cacheTtlSeconds * 1000
-          });
-          return parsed;
-        }
-      }
-    } catch (error) {
-      console.error("cache match err", error);
-    }
-  }
-
-  try {
-    const response = await fetchImpl(configUrl, fetchInit);
-    if (response && response.ok) {
-      const text = await response.text();
-      const parsed = safeParseJson<RedirectsConfig>(text, "config parse");
-      if (parsed) {
-        memoryCache.set(configUrl, {
-          config: parsed,
-          expiresAt: now() + cacheTtlSeconds * 1000
-        });
-        if (cache) {
-          const cacheResponse = new Response(text, {
-            headers: {
-              "Content-Type": "application/json",
-              "Cache-Control": `public, max-age=${cacheTtlSeconds}, s-maxage=${cacheTtlSeconds}`
-            }
-          });
-
-          const cacheRequest = new Request(configUrl);
-          const putPromise = cache.put(cacheRequest, cacheResponse);
-          if (waitUntil) {
-            waitUntil(putPromise.catch((error) => console.error("cache put err", error)));
-          } else {
-            await putPromise;
-          }
-        }
-        return parsed;
-      }
-    } else {
-      try {
-        await response?.body?.cancel();
-      } catch {
-      }
-      console.error("failed fetch config", response ? response.status : "no response");
-    }
-  } catch (error) {
-    console.error("load config err", error);
-  }
-
-  const fallback = memoryCache.get(configUrl);
-  if (fallback) {
-    return fallback.config;
-  }
-
-  return null;
+export async function loadConfig(runtime: ResolvedRuntime): Promise<RedirectsConfig | null> {
+  return loadRedirects(runtime);
 }

@@ -1,6 +1,6 @@
 # i0c.cc Runtime
 
-Provider-selectable redirect runtime for fetch-compatible edge platforms: Cloudflare Workers, Vercel Edge Functions, and Netlify Edge Functions. It enforces HTTPS, serves a favicon, and applies redirect or proxy rules defined in a remote `redirects.json` file. Choose the adapter that fits the deployment; the three providers do not need to run together.
+Provider-selectable redirect runtime for fetch-compatible edge platforms: Cloudflare Workers, Vercel Edge Functions, and Netlify Edge Functions. It enforces HTTPS, serves a favicon, and loads non-sensitive instance settings from remote `config.json` plus rules from remote `redirects.json`. Choose the adapter that fits the deployment; the three providers do not need to run together.
 
 Live previews:
 
@@ -22,41 +22,45 @@ Use these settings when the platform asks for project or build configuration:
 
 | Platform | Project root | Build command | Output |
 |----------|--------------|---------------|--------|
-| Cloudflare Workers | `apps/runtime` | `pnpm build` | From `wrangler.toml` |
+| Cloudflare Workers | `apps/runtime` | `pnpm build:cf` | `dist/platforms/cloudflare.js` |
 | Vercel | `apps/runtime` | `pnpm build:vc` | `.vercel/output` |
 | Netlify | `apps/runtime` | `pnpm build:nf` | `dist` |
 
-Build from a full monorepo checkout. On Vercel, keep **Include source files outside of the Root Directory in the Build Step** enabled so the build can include `@i0c/config`.
+Build from a full monorepo checkout. On Vercel, keep **Include source files outside of the Root Directory in the Build Step** enabled so the build can include the shared workspace packages.
 
 After deploying:
 
-- Edit [../../packages/config/src/index.ts](../../packages/config/src/index.ts) when the redirect source or other non-sensitive Runtime settings need to change, then rebuild and redeploy.
+- Edit `config.json` or `redirects.json` on the `data` branch when non-sensitive settings or rules change. Built-in adapters pick up valid updates after their configured cache TTL without a rebuild.
 - Set `ANALYTICS_WRITE_KEY` on every provider that should deliver analytics events.
 - Re-run the package build after updating shared redirect logic, then redeploy.
 
 ## Choose an adapter
 
-- Cloudflare Workers: [src/platforms/cloudflare.ts](src/platforms/cloudflare.ts)
-- Vercel Edge Functions: [src/platforms/vercel-edge.ts](src/platforms/vercel-edge.ts)
-- Netlify Edge Functions: [src/platforms/netlify-edge.ts](src/platforms/netlify-edge.ts)
+- Runtime host: [src/entry.ts](src/entry.ts)
+- Installed Runtime plugins and platforms: [../../i0c.runtime.config.ts](../../i0c.runtime.config.ts)
+- Build assembly: [../../packages/runtime-build](../../packages/runtime-build)
 
-Need a custom runtime? Import `handleRedirectRequest` from [src/lib/handler.ts](src/lib/handler.ts) and call it with your own `Request` object plus optional `HandlerOptions`, for example to override the config URL or provide a custom cache implementation.
+Need a custom platform or Runtime feature? Add a workspace package with its Manifest and typed factory or `./installation` entry, then add it to `i0c.runtime.config.ts`. The Runtime host source and official catalog do not need plugin-specific changes. The external fixture builds a custom platform and Feature and verifies the Feature marker in the emitted artifact. The current contract proves source-workspace integration; the shared plugin packages are not yet published as a public npm SDK. Programmatic consumers can still import `handleRedirectRequest` from [src/lib/handler.ts](src/lib/handler.ts). Stable plugin manifests and adapter contracts live in [../../packages/plugin-api](../../packages/plugin-api).
+
+Each build injects only the selected Runtime adapter and uses the same root installation configuration to assemble its Data Source, Analytics Sink, and Features. Remote declarations control optional enablement, configuration, and Secret binding names. Installed packages and the initial Git data location remain bootstrap settings because they are required before `config.json` can be read. See [../../docs/plugins.md](../../docs/plugins.md) for the package and failure boundaries.
 
 ## Environment variables and configuration
 
-Non-sensitive settings are versioned in [../../packages/config/src/index.ts](../../packages/config/src/index.ts). The Runtime does not read legacy environment variables as overrides or fallbacks; values left in provider dashboards are ignored.
+Non-sensitive instance settings are versioned in `data/config.json`. [../../packages/config](../../packages/config) owns its schema, validation, bootstrap location, and safe fallback. The Runtime does not read legacy environment variables as overrides or fallbacks; values left in provider dashboards are ignored.
 
-### Versioned Runtime configuration
+### Remote Runtime configuration
 
-The shared configuration owns:
+`config.json` owns:
 
-- `redirects.github`: GitHub owner, repository, branch, and JSON path used to construct the raw redirect source URL.
 - `runtime.canonicalOrigin`: Canonical public Runtime origin used by shared consumers such as the WebUI QR code.
 - `runtime.robotsPolicy`: Set to `allow` to publish an open `robots.txt` and sitemap; set to `disallow` to block crawling and omit the sitemap.
+- `runtime.configCacheTtlSeconds`: Cache lifetime for `config.json`.
+- `runtime.redirectsCacheTtlSeconds`: Cache lifetime for `redirects.json`.
 - `analytics.ingestEndpoint`: HTTPS WebUI collector endpoint.
 - `analytics.sourceId`: Lowercase base hostname and stable statistics namespace shared by all providers.
+- `plugins`: Namespaced, non-sensitive plugin settings and references to environment-variable secret bindings.
 
-Programmatic consumers can still pass `HandlerOptions.configUrl` for an explicitly constructed custom adapter. The built-in Cloudflare, Vercel, and Netlify adapters always use the versioned redirect source.
+The Runtime caches each document independently, deduplicates in-flight loads, uses ETags where available, and retains the last valid in-memory or platform-cached value when a refresh fails. Invalid remote instance settings never replace the active configuration. Programmatic consumers can still pass explicit URLs or inject a complete data source through `HandlerOptions`.
 
 ### Configure the analytics secret
 
@@ -76,11 +80,15 @@ See [../../docs/analytics.md](../../docs/analytics.md) for counting semantics, a
 
 Custom adapters that enable analytics should also pass `provider`, optional `country`, and the platform's `waitUntil` through `HandlerOptions`.
 
-Run the contract tests and provider build from the repository root:
+Run the plugin contracts, Runtime tests, and independent provider builds from the repository root:
 
 ```bash
+pnpm plugins:check
+pnpm runtime:check
 pnpm runtime:test
-pnpm runtime:build
+pnpm runtime:build:cf
+pnpm runtime:build:vc
+pnpm runtime:build:nf
 ```
 
 ### `redirects.json` quick reference
@@ -108,7 +116,7 @@ Add the schema reference below to unlock autocomplete and validation in supporti
 
 ```jsonc
 {
-  "$schema": "https://raw.githubusercontent.com/Revaea/i0c.cc/main/apps/runtime/redirects.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Revaea/i0c.cc/main/packages/config/redirects.schema.json",
   "Slots": {
     // ...
   }

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { validateRedirectsConfig } from "@i0c/config";
+
 import { validateRedirectConfig } from "../src/lib/redirects/config-validation";
 
 test("accepts a schema-compatible redirect configuration", () => {
@@ -45,6 +47,59 @@ test("rejects route objects without a destination", () => {
   });
 
   assert.equal(result.status, "invalid");
+});
+
+test("rejects proxy targets that cannot be forwarded safely", () => {
+  for (const target of [
+    "/internal",
+    "http:example.com",
+    "https://user:secret@example.com/",
+  ]) {
+    const result = validateRedirectConfig({
+      Slots: {
+        Main: {
+          "/proxy": {
+            type: "proxy",
+            target,
+          },
+        },
+      },
+    });
+
+    assert.equal(result.status, "invalid");
+  }
+});
+
+test("keeps Runtime proxy validation aligned with the explicit URL schema", () => {
+  const result = validateRedirectsConfig({
+    Slots: {
+      Main: {
+        "/proxy": {
+          type: "proxy",
+          target: "http:example.com",
+        },
+      },
+    },
+  });
+
+  assert.equal(result.status, "invalid");
+});
+
+test("rejects priorities outside the JavaScript safe integer range", () => {
+  for (const priority of [Number.MAX_SAFE_INTEGER + 1, "9007199254740992"]) {
+    const result = validateRedirectConfig({
+      Slots: {
+        Main: {
+          "/docs": {
+            priority,
+            target: "https://example.com/docs",
+          },
+        },
+      },
+    });
+
+    assert.equal(result.status, "invalid");
+  }
 });
 
 test("rejects route entries whose keys do not start with a slash", () => {

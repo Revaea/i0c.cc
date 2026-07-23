@@ -7,9 +7,14 @@ import { AppShell } from "@/components/ui/layout/app-shell";
 import { AppSectionNavigationHeader } from "@/components/ui/layout/app-section-navigation";
 import { ContentSkeleton, SidebarSkeletonBody, SidebarSkeletonCatalog, SidebarSkeletonFooter } from "@/components/ui/feedback/skeletons";
 import { GroupEntriesEditor } from "@/components/editor/group-entries-editor";
-import { RightPanel } from "@/components/editor/right-panel";
+import { JsonEditor } from "@/components/editor/json-editor";
+import { RightPanel, type EditorMode } from "@/components/editor/right-panel";
 import { useRedirectsGroups } from "@/composables/redirects-groups";
+import { useDataConfigFile } from "@/composables/data-config/use-data-config-file";
 import { RouteEntriesCatalog } from "@/components/redirects-groups/manager-sidebar/manager-sidebar-catalog";
+import { RuntimeSettingsProvider } from "@/components/redirects-groups/runtime-settings-context";
+import { PluginStatusPanel } from "@/components/plugins/plugin-status-panel";
+import { validateInstanceDataConfig } from "@/lib/configuration/validation";
 
 import { ManagerSidebarBody } from "./manager-sidebar/manager-sidebar-body";
 import { ManagerSidebarFooter } from "./manager-sidebar/manager-sidebar-footer";
@@ -22,6 +27,7 @@ export function RedirectsGroupsManager({ isReadOnly = false }: RedirectsGroupsMa
   const tGroups = useTranslations("groups");
   const tEntries = useTranslations("entries");
   const tEditor = useTranslations("editor");
+  const tConfig = useTranslations("instanceConfig");
 
   const {
     isLoading,
@@ -50,6 +56,7 @@ export function RedirectsGroupsManager({ isReadOnly = false }: RedirectsGroupsMa
     undo,
     redo,
     isPending,
+    canonicalOrigin,
     save,
     applyJson,
     previewJson,
@@ -57,9 +64,17 @@ export function RedirectsGroupsManager({ isReadOnly = false }: RedirectsGroupsMa
     lastCommitUrl
   } = useRedirectsGroups();
 
-  const [editorMode, setEditorMode] = useState<"rules" | "json">("rules");
+  const [editorMode, setEditorMode] = useState<EditorMode>("rules");
   const [jsonDraft, setJsonDraft] = useState("");
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [configDraft, setConfigDraft] = useState("");
+  const [configError, setConfigError] = useState<string | null>(null);
+  const [isConfigLoading, setIsConfigLoading] = useState(false);
+  const dataConfigFile = useDataConfigFile({
+    fallbackLoadErrorText: tConfig("loadFail"),
+    fallbackSaveErrorText: tConfig("saveFail"),
+    saveOkText: tConfig("saveOk"),
+  });
 
   const enterRulesMode = useCallback(() => {
     setEditorMode("rules");
@@ -72,8 +87,50 @@ export function RedirectsGroupsManager({ isReadOnly = false }: RedirectsGroupsMa
     setJsonError(null);
   }, [previewJson]);
 
+  const enterConfigMode = useCallback(() => {
+    setEditorMode("config");
+    setJsonError(null);
+    if (configDraft || isConfigLoading) {
+      return;
+    }
+
+    setIsConfigLoading(true);
+    setConfigError(null);
+    void dataConfigFile.load()
+      .then((content) => {
+        setConfigDraft(content);
+      })
+      .catch((error: unknown) => {
+        setConfigError(error instanceof Error ? error.message : tConfig("loadFail"));
+      })
+      .finally(() => {
+        setIsConfigLoading(false);
+      });
+  }, [configDraft, dataConfigFile, isConfigLoading, tConfig]);
+
   const handleSave = useCallback(async () => {
     if (isReadOnly) {
+      return;
+    }
+
+    if (editorMode === "config") {
+      try {
+        const parsed = JSON.parse(configDraft) as unknown;
+        const validation = validateInstanceDataConfig(parsed);
+        if (validation.status === "invalid") {
+          const details = validation.issues
+            .slice(0, 5)
+            .map((issue) => `${issue.path}: ${issue.message}`)
+            .join("; ");
+          throw new Error(tConfig("validationFail", { details }));
+        }
+        const normalized = JSON.stringify(parsed, null, 2);
+        setConfigDraft(normalized);
+        setConfigError(null);
+        dataConfigFile.save(normalized);
+      } catch (error) {
+        setConfigError(error instanceof Error ? error.message : tEditor("jsonParseFail"));
+      }
       return;
     }
 
@@ -91,7 +148,7 @@ export function RedirectsGroupsManager({ isReadOnly = false }: RedirectsGroupsMa
     }
 
     save();
-  }, [applyJson, editorMode, isReadOnly, jsonDraft, save, tEditor]);
+  }, [applyJson, configDraft, dataConfigFile, editorMode, isReadOnly, jsonDraft, save, tConfig, tEditor]);
 
   const handleSelectGroup = useCallback(
     (groupId: string) => {
@@ -167,14 +224,15 @@ export function RedirectsGroupsManager({ isReadOnly = false }: RedirectsGroupsMa
       <ManagerSidebarFooter
         canUndo={canUndo}
         canRedo={canRedo}
-        isPending={isPending}
+        isPending={editorMode === "config" ? dataConfigFile.isPending : isPending}
         onUndo={undo}
         onRedo={redo}
         onSave={handleSave}
         configUrl={configSourceUrl}
         onLoadConfigUrl={loadFromUrl}
-        resultMessage={resultMessage}
-        lastCommitUrl={lastCommitUrl}
+        resultMessage={editorMode === "config" ? dataConfigFile.resultMessage : resultMessage}
+        lastCommitUrl={editorMode === "config" ? dataConfigFile.lastCommitUrl : lastCommitUrl}
+        showRedirectTools={editorMode !== "config"}
       />
     </div>
   );
@@ -227,37 +285,57 @@ export function RedirectsGroupsManager({ isReadOnly = false }: RedirectsGroupsMa
   );
 
   return (
-    <AppShell navigation={navigationNode}>
-      <main data-layout-region="content" className="mx-auto w-full max-w-[var(--app-content-max-width)] px-5 py-7 sm:px-8 sm:py-10 lg:px-10">
-        <section className="min-w-0">
-          <RightPanel
-            editorMode={editorMode}
-            onEnterRulesMode={enterRulesMode}
-            onEnterJsonMode={enterJsonMode}
-            jsonDraft={jsonDraft}
-            onJsonDraftChange={setJsonDraft}
-            jsonError={jsonError}
-            isReadOnly={isReadOnly}
-            rulesContent={
-              selectedGroup ? (
-                <GroupEntriesEditor
-                  group={selectedGroup}
-                  onAddEntry={addEntry}
-                  onRemoveEntry={removeEntry}
-                  onUpdateEntryKey={updateEntryKey}
-                  onUpdateEntryValue={updateEntryValue}
-                  isReadOnly={isReadOnly}
-                />
-              ) : (
-                <div>
-                  <h1 className="text-lg font-semibold text-ink">{tGroups("group")}</h1>
-                  <p className="mt-1 text-sm text-muted">{tGroups("selectHint")}</p>
-                </div>
-              )
-            }
-          />
-        </section>
-      </main>
-    </AppShell>
+    <RuntimeSettingsProvider canonicalOrigin={canonicalOrigin}>
+      <AppShell navigation={navigationNode}>
+        <main data-layout-region="content" className="mx-auto w-full max-w-[var(--app-content-max-width)] px-5 py-7 sm:px-8 sm:py-10 lg:px-10">
+          <section className="min-w-0">
+            <RightPanel
+              editorMode={editorMode}
+              onEnterRulesMode={enterRulesMode}
+              onEnterJsonMode={enterJsonMode}
+              onEnterConfigMode={enterConfigMode}
+              jsonDraft={jsonDraft}
+              onJsonDraftChange={setJsonDraft}
+              jsonError={jsonError}
+              isReadOnly={isReadOnly}
+              configContent={
+                isConfigLoading ? (
+                  <p className="py-3 text-sm text-muted">{tConfig("loading")}</p>
+                ) : (
+                  <>
+                    <JsonEditor
+                      jsonDraft={configDraft}
+                      onJsonDraftChange={setConfigDraft}
+                      jsonError={configError}
+                      isReadOnly={isReadOnly}
+                      tipText={tConfig("tip")}
+                      validateJson={validateInstanceDataConfig}
+                    />
+                    <PluginStatusPanel />
+                  </>
+                )
+              }
+              rulesContent={
+                selectedGroup ? (
+                  <GroupEntriesEditor
+                    group={selectedGroup}
+                    onAddEntry={addEntry}
+                    onRemoveEntry={removeEntry}
+                    onUpdateEntryKey={updateEntryKey}
+                    onUpdateEntryValue={updateEntryValue}
+                    isReadOnly={isReadOnly}
+                  />
+                ) : (
+                  <div>
+                    <h1 className="text-lg font-semibold text-ink">{tGroups("group")}</h1>
+                    <p className="mt-1 text-sm text-muted">{tGroups("selectHint")}</p>
+                  </div>
+                )
+              }
+            />
+          </section>
+        </main>
+      </AppShell>
+    </RuntimeSettingsProvider>
   );
 }

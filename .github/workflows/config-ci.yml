@@ -6,7 +6,14 @@ on:
       - main
     paths:
       - .github/workflows/config-ci.yml
+      - i0c.runtime.config.ts
       - packages/config/**
+      - packages/plugin-api/**
+      - packages/plugin-catalog/**
+      - packages/runtime-build/src/config.ts
+      - plugins/**/src/config.ts
+      - plugins/**/src/manifest.ts
+      - plugins/runtime/**/src/installation.ts
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
@@ -15,7 +22,14 @@ on:
       - main
     paths:
       - .github/workflows/config-ci.yml
+      - i0c.runtime.config.ts
       - packages/config/**
+      - packages/plugin-api/**
+      - packages/plugin-catalog/**
+      - packages/runtime-build/src/config.ts
+      - plugins/**/src/config.ts
+      - plugins/**/src/manifest.ts
+      - plugins/runtime/**/src/installation.ts
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
@@ -52,3 +66,6 @@ jobs:
 
       - name: Check shared configuration
         run: pnpm config:check
+
+      - name: Test installed plugin configuration
+        run: pnpm --filter @i0c/plugin-catalog test

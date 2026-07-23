@@ -10,6 +10,8 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
+import { analyticsProviderSchema } from "@i0c/analytics-domain";
+
 import { normalisePath, safeDecode } from "../core/utils";
 import type { AnalyticsProvider } from "../core/types";
 
@@ -86,7 +88,7 @@ function isIdentifier(value: unknown): value is string {
 }
 
 function isProvider(value: unknown): value is AnalyticsProvider {
-  return value === "cloudflare" || value === "vercel" || value === "netlify" || value === "unknown";
+  return analyticsProviderSchema.safeParse(value).success;
 }
 
 function isEntryDomain(value: unknown): value is string {

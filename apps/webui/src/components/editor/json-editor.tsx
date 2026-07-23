@@ -10,9 +10,22 @@ interface JsonEditorProps {
   onJsonDraftChange: (value: string) => void;
   jsonError: string | null;
   isReadOnly: boolean;
+  tipText?: string;
+  validateJson?: JsonEditorValidator;
 }
 
-const schemaAvailability = validateRedirectConfig(null);
+interface JsonEditorValidationIssue {
+  message: string;
+  path: string;
+}
+
+type JsonEditorValidationResult =
+  | { status: "valid" }
+  | { status: "invalid"; issues: JsonEditorValidationIssue[] }
+  | { status: "unavailable"; error: string };
+
+export type JsonEditorValidator = (value: unknown) => JsonEditorValidationResult;
+
 const lineHeightPx = 20;
 const paddingTopPx = 12;
 
@@ -21,11 +34,14 @@ export function JsonEditor({
   onJsonDraftChange,
   jsonError,
   isReadOnly,
+  tipText,
+  validateJson = validateRedirectConfig,
 }: JsonEditorProps) {
   const t = useTranslations("editor");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [activeLine, setActiveLine] = useState(1);
   const [schemaValidationError, setSchemaValidationError] = useState<string | null>(null);
+  const schemaAvailability = useMemo(() => validateJson(null), [validateJson]);
 
   const schemaLoadError = schemaAvailability.status === "unavailable"
     ? t("schemaLoadFail", { message: schemaAvailability.error })
@@ -69,7 +85,7 @@ export function JsonEditor({
         return;
       }
 
-      const validation = validateRedirectConfig(data);
+      const validation = validateJson(data);
       if (validation.status !== "invalid") {
         setSchemaValidationError(null);
         return;
@@ -92,7 +108,7 @@ export function JsonEditor({
     return () => {
       cancelled = true;
     };
-  }, [jsonDraft, jsonFormatError, t]);
+  }, [jsonDraft, jsonFormatError, t, validateJson]);
 
   const updateActiveLineFromSelection = useCallback(() => {
     const element = textareaRef.current;
@@ -205,7 +221,7 @@ export function JsonEditor({
           />
         </div>
       </div>
-      <p className="text-xs text-muted">{t("tipParse")}</p>
+      <p className="text-xs text-muted">{tipText ?? t("tipParse")}</p>
     </div>
   );
 }

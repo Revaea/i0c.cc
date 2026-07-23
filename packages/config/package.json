@@ -12,7 +12,9 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
-    }
+    },
+    "./config.schema.json": "./config.schema.json",
+    "./redirects.schema.json": "./redirects.schema.json"
   },
   "sideEffects": false,
   "scripts": {

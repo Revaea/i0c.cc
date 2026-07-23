@@ -56,6 +56,20 @@ test("accepts and normalizes a Runtime V2 link event", () => {
   assert.equal(normalized.sampleRate, 1);
 });
 
+test("accepts a bounded third-party Runtime provider", () => {
+  const parsed = analyticsEventSchema.parse({
+    ...baseEvent,
+    provider: "external-edge",
+    eventKind: "runtime",
+    matchKind: "unmatched",
+    matchOutcome: "not_found",
+    statusCode: 404,
+    sampleRate: 0.1
+  });
+
+  assert.equal(parsed.provider, "external-edge");
+});
+
 test("bounds untrusted entry and upstream domains to the source namespace", () => {
   const parsed = analyticsEventSchema.parse({
     ...baseEvent,

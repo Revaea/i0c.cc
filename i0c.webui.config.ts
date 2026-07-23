@@ -1,0 +1,80 @@
+import { bootstrapConfig } from "@i0c/config"
+import {
+  resolveD1AnalyticsStoreConfig,
+} from "@i0c/plugin-analytics-store-d1/config"
+import {
+  createD1AnalyticsStore,
+} from "@i0c/plugin-analytics-store-d1/store"
+import type { D1Database } from "@i0c/plugin-analytics-store-d1/types"
+import {
+  resolvePostgresAnalyticsStoreConfig,
+} from "@i0c/plugin-analytics-store-postgres/config"
+import {
+  createPostgresAnalyticsStore,
+} from "@i0c/plugin-analytics-store-postgres/store"
+import {
+  createGitHubContentsRepository,
+  type GitHubFetch,
+} from "@i0c/plugin-github-data/webui"
+
+import {
+  defineWebUiPluginInstallations,
+} from "./apps/webui/src/lib/plugins/installations"
+import { webUiPluginDescriptors } from "./i0c.webui.manifests"
+
+const webuiFetch: GitHubFetch = (input, init) => fetch(input, init)
+
+export const webUiPluginInstallations = defineWebUiPluginInstallations({
+  dataRepository: {
+    ...webUiPluginDescriptors.dataRepository,
+    create: () => createGitHubContentsRepository(
+      {
+        ...bootstrapConfig.data.github,
+        publicRevalidateSeconds: 60,
+      },
+      { fetchImpl: webuiFetch },
+    ),
+  },
+  analyticsStores: [
+    {
+      ...webUiPluginDescriptors.analyticsStores[0],
+      create: ({ declaration, development, readEnvironment }) => {
+        const databaseUrlBinding = declaration.secrets?.databaseUrl
+          ?? webUiPluginDescriptors.analyticsStores[0].manifest
+            .secrets.databaseUrl.defaultBinding
+          ?? "DATABASE_URL"
+        return createPostgresAnalyticsStore(
+          resolvePostgresAnalyticsStoreConfig(declaration.config),
+          {
+            connectionString: readEnvironment(databaseUrlBinding)?.trim() || null,
+            development,
+          },
+        )
+      },
+    },
+    {
+      ...webUiPluginDescriptors.analyticsStores[1],
+      create: ({ bindings, declaration }) => {
+        const database = bindings.get(
+          webUiPluginDescriptors.analyticsStores[1].manifest.id,
+        )
+        if (!isD1Database(database)) {
+          return null
+        }
+        return createD1AnalyticsStore(
+          resolveD1AnalyticsStoreConfig(declaration.config),
+          { database },
+        )
+      },
+    },
+  ],
+})
+
+function isD1Database(value: unknown): value is D1Database {
+  return typeof value === "object"
+    && value !== null
+    && "prepare" in value
+    && typeof value.prepare === "function"
+    && "batch" in value
+    && typeof value.batch === "function"
+}

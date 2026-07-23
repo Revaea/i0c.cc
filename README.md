@@ -15,8 +15,16 @@ This repository is maintained for personal use and engineering experimentation. 
 | Project | Path | Description |
 |---------|------|-------------|
 | Runtime | [apps/runtime](apps/runtime) | Provider-selectable redirect runtime for Cloudflare Workers, Vercel Edge Functions, and Netlify Edge Functions. |
-| WebUI | [apps/webui](apps/webui) | Next.js management panel for editing `redirects.json` and querying short-link analytics. |
-| Configuration | [packages/config](packages/config) | Version-controlled, non-sensitive settings shared by the Runtime and WebUI. |
+| WebUI | [apps/webui](apps/webui) | Next.js management panel for editing `config.json` and `redirects.json`, inspecting plugins, and querying analytics. |
+| Configuration | [packages/config](packages/config) | Bootstrap defaults, both data-document schemas, and validation shared by both applications. |
+| Plugin API | [packages/plugin-api](packages/plugin-api) | Stable compile-time manifests, lifecycle contracts, and typed extension boundaries for official plugins. |
+| Plugin Testkit | [packages/plugin-testkit](packages/plugin-testkit) | Shared plugin contracts and dependency-boundary checks. |
+| Plugin Catalog | [packages/plugin-catalog](packages/plugin-catalog) | Optional official presets and host-specific plugin configuration validation. |
+| Runtime Host | [packages/runtime-host](packages/runtime-host) | Platform-neutral Runtime deployment and executable-plugin installation contracts. |
+| Runtime Build | [packages/runtime-build](packages/runtime-build) | Build-time installation validation, root-config binding, and selected-adapter bundling. |
+| Official plugins | [plugins](plugins) | Git data, three Runtime adapters, HTTP analytics delivery, PostgreSQL, a D1 protocol-validation store, and bot classification. |
+
+Executable plugins are selected at build time: Runtime installations live in [i0c.runtime.config.ts](i0c.runtime.config.ts), WebUI server installations in [i0c.webui.config.ts](i0c.webui.config.ts), and client-safe WebUI renderers in [apps/webui/webui.extensions.ts](apps/webui/webui.extensions.ts). Remote `data/config.json` configures installed code but never downloads or executes new packages.
 
 ## Live previews
 
@@ -43,11 +51,11 @@ Use these settings when the platform asks for project or build configuration:
 
 | Platform | Project root | Build command | Output |
 |----------|--------------|---------------|--------|
-| Cloudflare Workers | `apps/runtime` | `pnpm build` | From `wrangler.toml` |
+| Cloudflare Workers | `apps/runtime` | `pnpm build:cf` | `dist/platforms/cloudflare.js` |
 | Vercel | `apps/runtime` | `pnpm build:vc` | `.vercel/output` |
 | Netlify | `apps/runtime` | `pnpm build:nf` | `dist` |
 
-Build from a full monorepo checkout so the Runtime can import the shared workspace package. On Vercel, keep **Include source files outside of the Root Directory in the Build Step** enabled. Non-sensitive Runtime settings come from [packages/config/src/index.ts](packages/config/src/index.ts); analytics delivery only requires the `ANALYTICS_WRITE_KEY` secret on each provider.
+Build from a full monorepo checkout so the Runtime can import the shared workspace packages. On Vercel, keep **Include source files outside of the Root Directory in the Build Step** enabled. Runtime instance settings and redirect rules are loaded from the `data` branch; analytics delivery only requires the `ANALYTICS_WRITE_KEY` secret on each provider.
 
 ### WebUI
 
@@ -68,7 +76,14 @@ Keep **Include source files outside of the Root Directory in the Build Step** en
 
 ## Application configuration
 
-Edit [packages/config/src/index.ts](packages/config/src/index.ts) to change the redirect source, canonical Runtime origin, robots policy, analytics namespace and collector endpoint, GitHub OAuth scope, or WebUI access policy. Both applications read these values from `@i0c/config` at build time, so a configuration change requires rebuilding and redeploying the affected applications.
+The `data` branch contains two independently editable documents:
+
+- `config.json` stores non-sensitive instance settings such as the canonical Runtime origin, cache TTLs, robots policy, analytics namespace and collector endpoint, WebUI access policy, and namespaced plugin configuration.
+- `redirects.json` stores redirect rules.
+
+The Runtime and WebUI fetch these documents remotely, cache the last valid values, and pick up changes without an application rebuild. The WebUI can edit both files; invalid `config.json` content remains visible to managers so it can be repaired, while consumers keep using the last valid value or the checked-in safe default.
+
+[packages/config](packages/config) owns the schemas, validation, safe defaults, and the bootstrap location of the `data` branch. Change the bootstrap repository, branch, paths, or GitHub OAuth scope in code only when moving the data source itself; that kind of change still requires rebuilding.
 
 The former non-sensitive environment variables are not read as overrides or fallbacks. Existing values left in a provider dashboard are ignored and can be removed after the new deployment is verified. Secrets and deployment-specific bindings remain in each application's environment example.
 
@@ -98,17 +113,22 @@ Run the WebUI:
 pnpm webui:dev
 ```
 
-Build both projects separately:
+Build the selected Runtime adapter and WebUI separately:
 
 ```bash
-pnpm runtime:build
+pnpm runtime:build:cf
+pnpm runtime:build:vc
+pnpm runtime:build:nf
 pnpm webui:build
 ```
 
-Run the Runtime analytics contract tests:
+Run the plugin, Runtime, and WebUI tests:
 
 ```bash
+pnpm plugins:check
+pnpm runtime:check
 pnpm runtime:test
+pnpm webui:test
 ```
 
 Run the full local validation before committing:
@@ -117,26 +137,16 @@ Run the full local validation before committing:
 pnpm check
 ```
 
-## Redirect data
+## Data branch
 
-The runtime reads redirect rules from `redirects.json`, usually from the `data` branch of this repository. The schema lives at:
+The Runtime reads `config.json` and `redirects.json` from the `data` branch of this repository. Their schemas live at:
 
 ```text
-apps/runtime/redirects.schema.json
+packages/config/config.schema.json
+packages/config/redirects.schema.json
 ```
 
-Use this schema reference in `redirects.json`:
-
-```jsonc
-{
-  "$schema": "https://raw.githubusercontent.com/Revaea/i0c.cc/main/apps/runtime/redirects.schema.json",
-  "Slots": {
-    // ...
-  }
-}
-```
-
-Validate the `data` branch redirect file against the schema:
+Each file declares its own schema through `$schema`. Validate both data documents from the local `origin/data` Git ref with:
 
 ```bash
 pnpm data:validate
@@ -147,6 +157,7 @@ pnpm data:validate
 - Runtime documentation: [apps/runtime/README.md](apps/runtime/README.md)
 - WebUI documentation: [apps/webui/README.md](apps/webui/README.md)
 - Analytics architecture and semantics: [docs/analytics.md](docs/analytics.md)
+- Internal plugin architecture: [docs/plugins.md](docs/plugins.md)
 - Chinese overview: [README.zh-CN.md](README.zh-CN.md)
 
 ## License

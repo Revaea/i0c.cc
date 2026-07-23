@@ -13,19 +13,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { resolveRuntimeOptions } from "../../src/lib/handlers/configuration/loader";
 import { dispatchRouteRequest } from "../../src/lib/handlers/routing/dispatcher";
 import { buildCompiledList } from "../../src/lib/handlers/routing/matcher";
 import type { ResolvedRuntime } from "../../src/lib/handlers/core/types";
 
 function createRuntime(fetchImpl: typeof fetch = fetch): ResolvedRuntime {
-  return {
+  return resolveRuntimeOptions({
     configUrl: "https://config.example/redirects.json",
-    cacheTtlSeconds: 60,
+    dataConfigUrl: null,
     fetchImpl,
     provider: "cloudflare",
     now: () => Date.now(),
     random: () => 0
-  };
+  });
 }
 
 test("dispatches an exact redirect with match metadata", async () => {

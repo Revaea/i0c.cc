@@ -37,3 +37,16 @@ export function readBindingVar(bindings: Record<string, unknown> | undefined, ke
   const raw = bindings[key];
   return typeof raw === "string" && raw.length > 0 ? raw : undefined;
 }
+
+export function readRuntimeSecret(
+  bindings: Record<string, unknown> | undefined,
+  key: string,
+  readEnvironment?: (name: string) => unknown
+): string | undefined {
+  const platformValue = readEnvironment?.(key);
+  return readBindingVar(bindings, key)
+    ?? (typeof platformValue === "string" && platformValue.length > 0
+      ? platformValue
+      : undefined)
+    ?? readEnvVar(key);
+}

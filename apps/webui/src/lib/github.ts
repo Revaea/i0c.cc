@@ -1,250 +1,74 @@
-import { Buffer } from "node:buffer";
+import { webUiPluginInstallations } from "@i0c/webui-config";
 
-import { appConfig } from "@i0c/config";
+import type {
+  AppDataDocumentKind,
+  AppDataDocumentPayload,
+  AppDataReadOptions,
+  AppDataWriteInput,
+  AppDataWriteResult
+} from "@/lib/data/repository";
 
-const {
-  owner,
-  repository: repo,
-  branch,
-  path: configPath,
-} = appConfig.redirects.github;
+export type GitHubDataDocumentKind = AppDataDocumentKind;
+export type GitHubDataDocumentPayload = AppDataDocumentPayload;
+export type RedirectConfigPayload = AppDataDocumentPayload;
+export type UpdateDataDocumentInput = Omit<AppDataWriteInput, "accessToken">;
+export type UpdateDataDocumentResult = AppDataWriteResult;
 
-const apiBase = "https://api.github.com";
-const publicConfigRevalidateSeconds = 60;
+export const APP_DATA_CONFIG_CACHE_TAG = "i0c:data-config";
 
-type RepoTarget = {
-  owner: string;
-  repo: string;
-  branch: string;
-  path: string;
-};
+export const githubDataRepository = webUiPluginInstallations.dataRepository.create();
 
-export interface RedirectConfigPayload {
-  content: string;
-  sha: string;
-  path: string;
-  htmlUrl?: string;
-  lastModified?: string;
+export function getGitHubDataDocument(
+  kind: GitHubDataDocumentKind,
+  accessToken: string | undefined,
+  options?: { sourceUrl?: string | null }
+): Promise<GitHubDataDocumentPayload> {
+  return githubDataRepository.read(kind, {
+    accessToken,
+    sourceUrl: options?.sourceUrl
+  });
 }
 
-function requireAccessToken(token: string | undefined): string {
-  if (!token) {
-    throw new Error("Missing GitHub access token in session.");
-  }
-  return token;
-}
-
-function buildHeaders(accessToken?: string): HeadersInit {
-  return {
-    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    Accept: "application/vnd.github.v3+json",
-    "Content-Type": "application/json"
-  } satisfies Record<string, string>;
-}
-
-function encodeGitHubPath(path: string): string {
-  return path
-    .split("/")
-    .map((segment) => encodeURIComponent(segment))
-    .join("/");
-}
-
-function parseGitHubSourceUrl(sourceUrl: string): RepoTarget {
-  let url: URL;
-  try {
-    url = new URL(sourceUrl);
-  } catch {
-    throw new Error("Invalid config URL.");
-  }
-
-  const host = url.hostname.toLowerCase();
-  const parts = url.pathname.split("/").filter(Boolean);
-
-  const ensureJsonPath = (path: string) => {
-    if (!/\.json$/i.test(path)) {
-      throw new Error("Config URL must point to a .json file.");
-    }
-    return path;
-  };
-
-  if (host === "github.com" || host === "www.github.com") {
-    // https://github.com/{owner}/{repo}/blob/{branch}/{path...}
-    // https://github.com/{owner}/{repo}/raw/{branch}/{path...}
-    const [repoOwner, repoName, mode, repoBranch, ...rest] = parts;
-    if (!repoOwner || !repoName || !mode || !repoBranch || rest.length === 0) {
-      throw new Error("Unsupported GitHub config URL.");
-    }
-    if (mode !== "blob" && mode !== "raw") {
-      throw new Error("Unsupported GitHub config URL.");
-    }
-    return {
-      owner: repoOwner,
-      repo: repoName,
-      branch: repoBranch,
-      path: ensureJsonPath(rest.join("/"))
-    };
-  }
-
-  if (host === "raw.githubusercontent.com") {
-    // https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path...}
-    const [repoOwner, repoName, repoBranch, ...rest] = parts;
-    if (!repoOwner || !repoName || !repoBranch || rest.length === 0) {
-      throw new Error("Unsupported GitHub config URL.");
-    }
-    return {
-      owner: repoOwner,
-      repo: repoName,
-      branch: repoBranch,
-      path: ensureJsonPath(rest.join("/"))
-    };
-  }
-
-  if (host === "api.github.com") {
-    // https://api.github.com/repos/{owner}/{repo}/contents/{path...}?ref={branch}
-    const [reposKeyword, repoOwner, repoName, contentsKeyword, ...rest] = parts;
-    if (reposKeyword !== "repos" || contentsKeyword !== "contents" || !repoOwner || !repoName || rest.length === 0) {
-      throw new Error("Unsupported GitHub config URL.");
-    }
-    const ref = url.searchParams.get("ref") || branch;
-    return {
-      owner: repoOwner,
-      repo: repoName,
-      branch: ref,
-      path: ensureJsonPath(rest.join("/"))
-    };
-  }
-
-  throw new Error("Only GitHub config URLs are supported.");
-}
-
-function resolveTarget(sourceUrl?: string | null): RepoTarget {
-  if (sourceUrl) {
-    return parseGitHubSourceUrl(sourceUrl);
-  }
-
-  if (!owner || !repo) {
-    throw new Error("The configured GitHub redirect repository is missing an owner or name.");
-  }
-
-  if (!/\.json$/i.test(configPath)) {
-    throw new Error("The configured GitHub redirect path must point to a .json file.");
-  }
-
-  return {
-    owner,
-    repo,
-    branch,
-    path: configPath
-  };
-}
-
-function buildContentsUrl(target: RepoTarget): string {
-  return `${apiBase}/repos/${target.owner}/${target.repo}/contents/${encodeGitHubPath(target.path)}`;
-}
-
-function normalizeGitHubErrorBody(status: number, rawBody: string): string {
-  const trimmed = rawBody.trim();
-  if (!trimmed) {
-    return "";
-  }
-
-  try {
-    const json = JSON.parse(trimmed) as { message?: string; documentation_url?: string; status?: string | number };
-    const message = typeof json?.message === "string" ? json.message : trimmed;
-    if (status === 404) {
-      return `${message} (repo/branch/path not found, or the current account lacks write permission)`;
-    }
-    return message;
-  } catch {
-    if (status === 404) {
-      return `${trimmed} (repo/branch/path not found, or the current account lacks write permission)`;
-    }
-    return trimmed;
-  }
-}
-
-export async function getRedirectConfig(
+export function getRedirectConfig(
   accessToken: string | undefined,
   options?: { sourceUrl?: string | null }
 ): Promise<RedirectConfigPayload> {
-  const target = resolveTarget(options?.sourceUrl);
-  const url = buildContentsUrl(target);
-  const response = await fetch(`${url}?ref=${encodeURIComponent(target.branch)}`, {
-    headers: buildHeaders(accessToken),
-    ...(accessToken
-      ? { cache: "no-store" as const }
-      : { next: { revalidate: publicConfigRevalidateSeconds } })
+  return githubDataRepository.read("redirects", {
+    accessToken,
+    sourceUrl: options?.sourceUrl
   });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    const normalized = normalizeGitHubErrorBody(response.status, errorBody);
-    throw new Error(
-      `Failed to load config from GitHub: ${response.status} ${response.statusText}${normalized ? ` - ${normalized}` : ""}`
-    );
-  }
-
-  const json = (await response.json()) as {
-    content: string;
-    sha: string;
-    path: string;
-    html_url?: string;
-  };
-
-  const rawContent = Buffer.from(json.content, "base64").toString("utf-8");
-
-  return {
-    content: rawContent,
-    sha: json.sha,
-    path: json.path,
-    htmlUrl: json.html_url,
-    lastModified: response.headers.get("last-modified") ?? undefined
-  };
 }
 
-export interface UpdateRedirectConfigInput {
-  content: string;
-  sha: string;
-  message?: string;
-  sourceUrl?: string | null;
-}
-
-export interface UpdateRedirectConfigResult {
-  sha: string;
-  commitUrl: string;
-}
-
-export async function updateRedirectConfig(accessToken: string, input: UpdateRedirectConfigInput): Promise<UpdateRedirectConfigResult> {
-  const target = resolveTarget(input.sourceUrl);
-  const url = buildContentsUrl(target);
-  const token = requireAccessToken(accessToken);
-  const { content, sha, message } = input;
-  const response = await fetch(url, {
-    method: "PUT",
-    headers: buildHeaders(token),
-    body: JSON.stringify({
-      message: message ?? "chore(redirects): update config",
-      content: Buffer.from(content, "utf-8").toString("base64"),
-      sha,
-      branch: target.branch
-    })
+export function getAppDataConfig(
+  accessToken?: string
+): Promise<GitHubDataDocumentPayload> {
+  return githubDataRepository.read("config", {
+    accessToken,
+    cacheTags: [APP_DATA_CONFIG_CACHE_TAG]
   });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    const normalized = normalizeGitHubErrorBody(response.status, errorBody);
-    throw new Error(
-      `Failed to update config: ${response.status} ${response.statusText}${normalized ? ` - ${normalized}` : ""}`
-    );
-  }
-
-  const json = (await response.json()) as {
-    content: { sha: string; html_url?: string };
-    commit: { html_url: string };
-  };
-
-  return {
-    sha: json.content.sha,
-    commitUrl: json.commit.html_url
-  };
 }
+
+export function updateGitHubDataDocument(
+  kind: GitHubDataDocumentKind,
+  accessToken: string,
+  input: UpdateDataDocumentInput
+): Promise<UpdateDataDocumentResult> {
+  return githubDataRepository.write(kind, { ...input, accessToken });
+}
+
+export function updateRedirectConfig(
+  accessToken: string,
+  input: UpdateDataDocumentInput
+): Promise<UpdateDataDocumentResult> {
+  return githubDataRepository.write("redirects", { ...input, accessToken });
+}
+
+export function updateAppDataConfig(
+  accessToken: string,
+  input: UpdateDataDocumentInput
+): Promise<UpdateDataDocumentResult> {
+  return githubDataRepository.write("config", { ...input, accessToken });
+}
+
+export type GitHubRepositoryReadOptions = AppDataReadOptions;
+export type GitHubRepositoryWriteInput = AppDataWriteInput;
