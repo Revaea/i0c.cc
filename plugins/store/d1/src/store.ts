@@ -65,7 +65,7 @@ export function createD1AnalyticsStore(
   return {
     configured: true,
     ...(services.migrations ? { migrations: services.migrations } : {}),
-    ingest: (event) => ingestD1Event(services.database, event),
+    ingest: (event) => ingestD1Event(services.database, event, clock),
     getOverview: (input) => queryOverview(services.database, input, clock),
     getAutomation: (input) => queryAutomation(services.database, input, clock),
     getEntryDomains: (input) => getEntryDomains(services.database, input.sourceId),
@@ -98,13 +98,15 @@ export const d1AnalyticsStorePlugin = {
 async function ingestD1Event(
   database: D1Database,
   event: D1AnalyticsStoreTypes["event"],
+  clock: () => Date,
 ): Promise<D1AnalyticsStoreTypes["ingestResult"]> {
+  const receivedAt = clock().toISOString()
   const statements: D1PreparedStatement[] = [database.prepare(`
     INSERT INTO analytics_source (source_id)
     VALUES (?)
     ON CONFLICT (source_id) DO UPDATE SET
-      updated_at = STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')
-  `).bind(event.sourceId)]
+      updated_at = ?
+  `).bind(event.sourceId, receivedAt)]
 
   if (event.eventKind === "link") {
     statements.push(database.prepare(`
@@ -164,16 +166,26 @@ async function ingestD1Event(
   }
 
   const eventStatementIndex = statements.length
-  statements.push(createD1EventInsertStatement(database, event, attribution))
+  statements.push(createD1EventInsertStatement(
+    database,
+    event,
+    attribution,
+    receivedAt,
+  ))
 
   if (attribution) {
     statements.push(database.prepare(`
       UPDATE analytics_upstream_claim
-      SET last_seen_at = STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')
+      SET last_seen_at = ?
       WHERE source_id = ?
         AND upstream_event_id = ?
         AND downstream_event_id = ?
-    `).bind(event.sourceId, attribution.upstreamEventId, event.eventId))
+    `).bind(
+      receivedAt,
+      event.sourceId,
+      attribution.upstreamEventId,
+      event.eventId,
+    ))
   }
 
   const results = await d1Batch(database, statements)
@@ -212,6 +224,7 @@ function createD1EventInsertStatement(
   database: D1Database,
   event: D1AnalyticsStoreTypes["event"],
   attribution: D1Attribution | null,
+  receivedAt: string,
 ): D1PreparedStatement {
   const isEntrySql = attribution
     ? `CASE WHEN EXISTS (
@@ -234,6 +247,7 @@ function createD1EventInsertStatement(
       source_id,
       analytics_id,
       occurred_at,
+      received_at,
       route_path,
       link_type,
       entry_domain,
@@ -259,7 +273,7 @@ function createD1EventInsertStatement(
       latency_ms
     )
     VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${isEntrySql}, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${isEntrySql}, ?, ?, ?
     )
     ON CONFLICT (event_id) DO NOTHING
   `).bind(
@@ -269,6 +283,7 @@ function createD1EventInsertStatement(
     event.sourceId,
     event.eventKind === "link" ? event.analyticsId : null,
     event.occurredAt,
+    receivedAt,
     event.eventKind === "link" ? event.routePath : null,
     event.eventKind === "link" ? event.linkType : null,
     event.entryDomain,
