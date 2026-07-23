@@ -56,7 +56,7 @@ export const runtimePluginInstallations = defineRuntimePluginInstallations({
 
 export { runtimePluginManifests } from "./i0c.runtime.manifests"
 
-export const runtimeInstallationConfig = defineRuntimeInstallationConfig({
+export const runtimeInstallationConfig = /* @__PURE__ */ defineRuntimeInstallationConfig({
   platforms: [
     cloudflareRuntimeInstallation,
     vercelRuntimeInstallation,

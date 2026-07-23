@@ -1,3 +1,5 @@
+import { dirname, join } from "node:path"
+
 import tsconfigPathsPluginModule from "@esbuild-plugins/tsconfig-paths"
 import type { Plugin } from "esbuild"
 import { build } from "tsup"
@@ -8,6 +10,7 @@ import type { RuntimePlatformManifest } from "@i0c/plugin-api"
 import type { RuntimePlatformInstallation } from "./config"
 
 const tsconfigPathsPlugin = resolveTsconfigPathsPlugin(tsconfigPathsPluginModule)
+const runtimePlatformModuleFilename = "virtual-runtime-platform.ts"
 
 export interface RuntimePlatformBuildOptions {
   baseBundlePackages: readonly string[]
@@ -48,7 +51,7 @@ export function createRuntimePlatformBuildOptions(
     outExtension: () => ({ js: ".js" }),
     splitting: false,
     sourcemap: false,
-    treeshake: false,
+    treeshake: true,
     minify: false,
     noExternal: [...noExternal],
     skipNodeModulesBundle: true,
@@ -56,8 +59,8 @@ export function createRuntimePlatformBuildOptions(
     platform: "neutral",
     esbuildPlugins: [
       createRuntimeConfigModulePlugin(options),
-      tsconfigPathsPlugin({ tsconfig: options.tsconfig }),
       createRuntimePlatformModulePlugin(options),
+      tsconfigPathsPlugin({ tsconfig: options.tsconfig }),
     ],
     ...(options.onSuccess ? { onSuccess: options.onSuccess } : {}),
     ...(options.watch ? { watch: true } : {}),
@@ -80,8 +83,7 @@ function createRuntimeConfigModulePlugin(
 function createRuntimePlatformModulePlugin(
   options: RuntimePlatformBuildOptions,
 ): Plugin {
-  const moduleId = "virtual:i0c-runtime-platform"
-  const namespace = "i0c-runtime-platform"
+  const modulePath = join(dirname(options.entryFile), runtimePlatformModuleFilename)
   const manifests = JSON.stringify(options.installedPlatformManifests)
   const selectedManifest = JSON.stringify(options.platform.manifest)
   const runtimeModule = JSON.stringify(options.platform.runtimeModule)
@@ -89,19 +91,23 @@ function createRuntimePlatformModulePlugin(
   return {
     name: "i0c-runtime-platform",
     setup(buildContext) {
-      buildContext.onResolve({ filter: /^virtual:i0c-runtime-platform$/ }, () => ({
-        namespace,
-        path: moduleId,
-      }))
-      buildContext.onLoad({ filter: /.*/, namespace }, () => ({
-        contents: [
-          `export { runtimePlatformPlugin } from ${runtimeModule}`,
-          `export const installedRuntimePlatformManifests = ${manifests}`,
-          `export const selectedRuntimePlatformManifest = ${selectedManifest}`,
-        ].join("\n"),
-        loader: "js",
-        resolveDir: options.moduleResolveDirectory,
-      }))
+      buildContext.onLoad(
+        { filter: /virtual-runtime-platform\.ts$/ },
+        (args) => {
+          if (args.path !== modulePath) {
+            return undefined
+          }
+          return {
+            contents: [
+              `export { runtimePlatformPlugin } from ${runtimeModule}`,
+              `export const installedRuntimePlatformManifests = ${manifests}`,
+              `export const selectedRuntimePlatformManifest = ${selectedManifest}`,
+            ].join("\n"),
+            loader: "js",
+            resolveDir: options.moduleResolveDirectory,
+          }
+        },
+      )
     },
   }
 }
