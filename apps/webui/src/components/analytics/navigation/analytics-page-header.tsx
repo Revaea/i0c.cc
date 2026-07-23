@@ -32,7 +32,7 @@ export function AnalyticsPageHeader({
 
   return (
     <div
-      className={`mb-6 flex flex-wrap items-center gap-3 border-b border-line pb-5 ${
+      className={`mb-6 flex flex-wrap items-center gap-3 border-b border-line pb-5 lg:pb-4 ${
         backAction ? "justify-between" : "justify-end"
       }`}
     >

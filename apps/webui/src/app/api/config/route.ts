@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   const sourceUrl = new URL(request.url).searchParams.get("sourceUrl") ?? undefined;
   if (authorization.isReadOnly && sourceUrl) {
     return NextResponse.json(
-      { error: "Custom config URLs are unavailable in public read-only mode" },
+      { error: "Custom rules JSON URLs are unavailable in public read-only mode" },
       { status: 400 },
     );
   }

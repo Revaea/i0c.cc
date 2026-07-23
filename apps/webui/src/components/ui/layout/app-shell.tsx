@@ -14,9 +14,14 @@ import { Button } from "@/components/ui/controls/button";
 interface AppShellProps {
   children: ReactNode;
   navigation: ReactNode;
+  onBeforeNavigate?: (proceed: () => void) => void;
 }
 
-export function AppShell({ children, navigation }: AppShellProps) {
+export function AppShell({
+  children,
+  navigation,
+  onBeforeNavigate,
+}: AppShellProps) {
   const tHeader = useTranslations("header");
   const tCommon = useTranslations("common");
   const {
@@ -76,6 +81,7 @@ export function AppShell({ children, navigation }: AppShellProps) {
           onToggle: toggleNavigation,
         }}
         layoutPreferences={layoutPreferences}
+        onBeforeNavigate={onBeforeNavigate}
       />
 
       <aside

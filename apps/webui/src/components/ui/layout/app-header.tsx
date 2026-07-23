@@ -17,15 +17,27 @@ export type AppHeaderProps = {
     isOpen: boolean;
     onToggle: () => void;
   };
+  onBeforeNavigate?: (proceed: () => void) => void;
 };
 
-export function AppHeader({ layoutPreferences, navigationToggle }: AppHeaderProps) {
+export function AppHeader({
+  layoutPreferences,
+  navigationToggle,
+  onBeforeNavigate,
+}: AppHeaderProps) {
   const t = useTranslations("header");
 
   const { data: session, status } = useSession();
   const navigationToggleLabel = navigationToggle?.isOpen
     ? t("closeNavigation")
     : t("openNavigation");
+  const requestNavigation = (proceed: () => void) => {
+    if (onBeforeNavigate) {
+      onBeforeNavigate(proceed);
+      return;
+    }
+    proceed();
+  };
 
   return (
     <header className="sticky top-0 z-[1000] flex h-[4.5rem] items-center border-b border-line/90 bg-panel/85 backdrop-blur-xl">
@@ -77,7 +89,7 @@ export function AppHeader({ layoutPreferences, navigationToggle }: AppHeaderProp
 
         <div className="flex min-w-0 shrink-0 items-center gap-2 text-sm text-ink sm:gap-3">
           <LayoutSwitcher {...layoutPreferences} />
-          <LanguageSwitcher />
+          <LanguageSwitcher onBeforeNavigate={onBeforeNavigate} />
           {session ? (
             <div className="flex min-w-0 items-center gap-2 border-l border-line pl-2 sm:pl-3">
               {session.user?.image ? (
@@ -93,7 +105,7 @@ export function AppHeader({ layoutPreferences, navigationToggle }: AppHeaderProp
                 {session.user?.name ?? session.user?.email ?? t("signedIn")}
               </span>
               <Button
-                onClick={() => signOut()}
+                onClick={() => requestNavigation(() => void signOut())}
                 size="icon-lg"
                 aria-label={t("signOut")}
                 title={t("signOut")}

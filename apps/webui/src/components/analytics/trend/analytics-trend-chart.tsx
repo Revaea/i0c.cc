@@ -13,6 +13,7 @@ import { TooltipWithBounds, useTooltip } from "@visx/tooltip"
 
 import { useDeviceTimeZone } from "../formatting/device-time-zone"
 import { formatCount, formatDate, formatDay, formatHour } from "../formatting/format"
+import { getLabelTickIndices } from "./axis-ticks"
 
 export interface AnalyticsTrendChartDatum {
   timestamp: string
@@ -90,21 +91,6 @@ function getYAxis(maxValue: number, intervalCount: number) {
   }
 }
 
-function getLabelTicks(length: number, maximumLabels: number) {
-  if (length <= maximumLabels) {
-    return Array.from({ length }, (_, index) => index)
-  }
-
-  const lastIndex = length - 1
-  const labelCount = Math.max(2, Math.min(length, maximumLabels))
-  const step = lastIndex / (labelCount - 1)
-
-  return Array.from(
-    { length: labelCount },
-    (_, index) => index * step,
-  )
-}
-
 function TrendChartCanvas({
   data,
   locale,
@@ -147,7 +133,7 @@ function TrendChartCanvas({
     clamp: true,
   })
   const maximumLabels = Math.max(2, Math.floor(innerWidth / 120) + 1)
-  const labelTicks = getLabelTicks(data.length, maximumLabels)
+  const labelTicks = getLabelTickIndices(data.length, maximumLabels)
   const activeIndex = tooltipData
     ? data.findIndex((point) => point.timestamp === tooltipData.timestamp)
     : -1

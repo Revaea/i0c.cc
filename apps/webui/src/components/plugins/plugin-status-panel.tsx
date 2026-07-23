@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocale } from "next-intl";
 
 import { Button } from "@/components/ui/controls/button";
+import {
+  SkeletonBlock,
+  SkeletonPulse,
+} from "@/components/ui/feedback/skeletons";
 import { resolveAppLocale } from "@/i18n/routing";
 import type { WebUiPluginStatusSnapshot } from "@/lib/plugins/status-types";
 
@@ -61,15 +65,39 @@ export function PluginStatusPanel() {
 
   if (!messages || isLoading) {
     return (
-      <section className="mt-8 border-t border-line pt-6" aria-busy="true">
-        <div className="h-5 w-32 animate-pulse rounded bg-panel-muted" />
-        <div className="mt-4 h-24 animate-pulse rounded-xl bg-panel-muted" />
-      </section>
+      <SkeletonPulse className="py-8">
+        <section aria-busy="true">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <SkeletonBlock className="h-5 w-32" />
+              <SkeletonBlock className="mt-2 h-4 w-64 max-w-full" />
+            </div>
+            <SkeletonBlock className="h-9 w-24 rounded-xl" />
+          </div>
+          <div className="mt-5 border-y border-line py-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <SkeletonBlock className="h-4 w-36" />
+                <SkeletonBlock className="mt-2 h-3 w-52 max-w-full" />
+              </div>
+              <SkeletonBlock className="h-7 w-20 rounded-full" />
+            </div>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {Array.from({ length: 4 }, (_, index) => (
+                <div key={index}>
+                  <SkeletonBlock className="h-3 w-20" />
+                  <SkeletonBlock className="mt-2 h-4 w-24" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </SkeletonPulse>
     );
   }
 
   return (
-    <section className="mt-8 border-t border-line pt-6">
+    <section className="py-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-ink">{messages.title}</h2>

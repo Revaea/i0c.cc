@@ -6,11 +6,11 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
 
 服务端 Data Repository 与 Analytics Store 工厂通过 [../../i0c.webui.config.ts](../../i0c.webui.config.ts) 在构建期安装。客户端安全的 UI Renderer 使用 [webui.extensions.ts](webui.extensions.ts)，确保它们留在客户端 Bundle。workspace fixture 会覆盖两条安装链，无需在 WebUI 宿主源码中增加工厂映射；生产 Renderer 清单目前有意保持为空。
 
-该项目提供三种编辑方式：
+该项目提供两种规则编辑方式和独立的设置界面：
 
 - 可视化规则编辑（分组树 + 表单）
-- JSON 编辑（右侧面板，可直接编辑原始 JSON）
-- 实例配置编辑（`config.json`，使用共享契约校验）
+- 规则 JSON 编辑（右侧面板，可直接编辑 `redirects.json`）
+- 位于侧边栏底部的可视化实例设置（`config.json`，使用共享契约校验）
 
 ## 快速开始
 
@@ -118,8 +118,8 @@ WebUI 不会把原有非敏感环境变量作为覆盖值或回退值读取。Ve
 
 - 通过版本化配置选择任意已登录用户、数字用户 ID 白名单或带指定管理员的 GitHub 全员只读模式。
 - 可视化编辑 `redirects.json`：分组树管理 + 规则表单编辑。
-- JSON 编辑器：行号、当前行高亮、JSON 语法校验（格式错误提示）。
-- 校验后编辑 `config.json`；当前文档无效时仍可查看原文并修复。
+- 规则 JSON 编辑器：行号、当前行高亮、JSON 语法校验（格式错误提示）。
+- 可视化并校验 `config.json`；只有当前文档无法安全转换为表单时，才显示原始内容恢复编辑器。
 - 通过认证后查看已安装 Manifest、配置状态、能力、缺失绑定和所选 Store 健康状态。
 - 表单行为对齐 Schema（规范来源：[https://raw.githubusercontent.com/Revaea/i0c.cc/main/packages/config/redirects.schema.json](https://raw.githubusercontent.com/Revaea/i0c.cc/main/packages/config/redirects.schema.json)）。
 - 支持撤销/重做，便于快速回退编辑。

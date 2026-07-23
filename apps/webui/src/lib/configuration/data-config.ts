@@ -1,11 +1,13 @@
 import "server-only";
 
 import {
+  bootstrapConfig,
   defaultDataConfig,
 } from "@i0c/config";
 import type { DataConfig } from "@i0c/config";
 
 import {
+  APP_DATA_CONFIG_CACHE_TAG,
   getAppDataConfig,
   type GitHubDataDocumentPayload,
 } from "@/lib/github";
@@ -19,16 +21,25 @@ interface DataConfigDocument {
   document: GitHubDataDocumentPayload;
 }
 
-const effectiveDataConfigCache = new EffectiveDataConfigCache({
-  adoptCacheSeconds: 5,
-  defaultConfig: defaultDataConfig,
-  failureRetrySeconds: 10,
-  loadRemote: async () => (await readDataConfigDocument()).config,
-  onLoadError: (error) => {
-    console.error("Failed to load remote instance config", error);
-  },
-  successCacheSeconds: () => 0,
-});
+interface DataConfigGlobalState {
+  effectiveDataConfigCache?: EffectiveDataConfigCache;
+}
+
+const publicDataConfigUrl = buildPublicDataConfigUrl();
+const dataConfigGlobal = globalThis as typeof globalThis & DataConfigGlobalState;
+const effectiveDataConfigCache = dataConfigGlobal.effectiveDataConfigCache
+  ?? new EffectiveDataConfigCache({
+    adoptCacheSeconds: 60,
+    defaultConfig: defaultDataConfig,
+    failureRetrySeconds: 10,
+    loadRemote: readRemoteDataConfig,
+    onLoadError: (error) => {
+      console.error("Failed to load remote instance config", error);
+    },
+    successCacheSeconds: (config) =>
+      Math.min(config.runtime.configCacheTtlSeconds, 60),
+  });
+dataConfigGlobal.effectiveDataConfigCache = effectiveDataConfigCache;
 
 export async function readDataConfigDocument(
   accessToken?: string,
@@ -81,4 +92,48 @@ export function parseDataConfig(content: string): DataConfig {
     ...(remainingCount > 0 ? [`and ${remainingCount} more`] : []),
   ].join("; ");
   throw new Error(`Instance config validation failed: ${details}`);
+}
+
+async function readRemoteDataConfig(): Promise<DataConfig> {
+  let publicSourceError: unknown;
+  try {
+    const response = await fetch(publicDataConfigUrl, {
+      next: {
+        revalidate: 60,
+        tags: [APP_DATA_CONFIG_CACHE_TAG],
+      },
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Failed to load public instance config: ${response.status} ${response.statusText}`,
+      );
+    }
+    return parseDataConfig(await response.text());
+  } catch (error) {
+    publicSourceError = error;
+  }
+
+  try {
+    return (await readDataConfigDocument()).config;
+  } catch (repositoryError) {
+    throw new AggregateError(
+      [publicSourceError, repositoryError],
+      "All remote instance config sources failed",
+    );
+  }
+}
+
+function buildPublicDataConfigUrl(): string {
+  const target = bootstrapConfig.data.github;
+  const path = target.configPath
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return [
+    "https://raw.githubusercontent.com",
+    encodeURIComponent(target.owner),
+    encodeURIComponent(target.repository),
+    encodeURIComponent(target.branch),
+    path,
+  ].join("/");
 }
