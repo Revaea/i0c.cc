@@ -28,7 +28,7 @@ Use these settings when the platform asks for project or build configuration:
 
 Build from a full monorepo checkout. On Vercel, keep **Include source files outside of the Root Directory in the Build Step** enabled so the build can include the shared workspace packages.
 
-The package-level `pnpm build` command validates all three providers. Wrangler runs `pnpm build:cf` immediately before a Cloudflare deployment; Vercel and Netlify use their own targeted build commands.
+The package-level `pnpm build` command generates and retains all three provider outputs in one pass. The provider-specific commands remain available for targeted builds and deployments.
 
 After deploying:
 

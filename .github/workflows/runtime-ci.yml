@@ -82,14 +82,8 @@ jobs:
       - name: Test Runtime
         run: pnpm runtime:test
 
-      - name: Validate Cloudflare Runtime deployment
-        run: pnpm --filter i0c-redirect-worker exec wrangler deploy --dry-run
-
-      - name: Build Vercel Runtime
-        run: pnpm runtime:build:vc
-
-      - name: Build Netlify Runtime
-        run: pnpm runtime:build:nf
+      - name: Build Runtime providers
+        run: pnpm runtime:build
 
       - name: Build external Runtime fixture
         run: pnpm --filter i0c-redirect-worker build:external-fixture
