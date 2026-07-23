@@ -4,6 +4,8 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
 
 这个 WebUI 服务于个人 [i0c.cc](https://github.com/Revaea/i0c.cc) 工作流，作为可选的管理界面维护，不定位为通用的企业级链接管理产品。
 
+服务端 Data Repository 与 Analytics Store 工厂通过 [../../i0c.webui.config.ts](../../i0c.webui.config.ts) 在构建期安装。客户端安全的 UI Renderer 使用 [webui.extensions.ts](webui.extensions.ts)，确保它们留在客户端 Bundle。workspace fixture 会覆盖两条安装链，无需在 WebUI 宿主源码中增加工厂映射；生产 Renderer 清单目前有意保持为空。
+
 该项目提供三种编辑方式：
 
 - 可视化规则编辑（分组树 + 表单）
@@ -33,7 +35,7 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
    因此目标仓库必须公开；任意 GitHub 用户登录后都可以查看规则和统计，名单内用户可以编辑配置、
    生成渠道链接并手动刷新统计。如果未配置名单，则任何人都不能管理。
 
-3. GitHub 启动仓库、分支和文件路径配置在 [../../packages/config/src/defaults.ts](../../packages/config/src/defaults.ts)。默认从 `Revaea/i0c.cc` 的 `data` 分支读取 `config.json` 与 `redirects.json`；二维码使用的 Runtime 规范地址来自 `config.json`。
+3. GitHub 启动仓库、分支和文件路径配置在 [../../packages/config/src/defaults.ts](../../packages/config/src/defaults.ts)，可执行 Repository 工厂由 [../../i0c.webui.config.ts](../../i0c.webui.config.ts) 安装。默认从 `Revaea/i0c.cc` 的 `data` 分支读取 `config.json` 与 `redirects.json`；二维码使用的 Runtime 规范地址来自 `config.json`。
 
 4. 生成 `NEXTAUTH_SECRET` 并写入 `.env.local`。生产环境将 `NEXTAUTH_URL` 设为 `https://你的域名`，开发环境可将 `NEXTAUTH_URL` 设为 `http://localhost:3000`。
 

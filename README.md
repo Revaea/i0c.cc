@@ -20,9 +20,11 @@ This repository is maintained for personal use and engineering experimentation. 
 | Plugin API | [packages/plugin-api](packages/plugin-api) | Stable compile-time manifests, lifecycle contracts, and typed extension boundaries for official plugins. |
 | Plugin Testkit | [packages/plugin-testkit](packages/plugin-testkit) | Shared plugin contracts and dependency-boundary checks. |
 | Plugin Catalog | [packages/plugin-catalog](packages/plugin-catalog) | Optional official presets and host-specific plugin configuration validation. |
-| Runtime Host | [packages/runtime-host](packages/runtime-host) | Platform-neutral Runtime deployment assembly. |
-| Runtime Build | [packages/runtime-build](packages/runtime-build) | Build-time platform installation and selected-adapter bundling. |
-| Official plugins | [plugins](plugins) | Git data, three Runtime adapters, HTTP analytics delivery, PostgreSQL and D1 stores, and bot classification. |
+| Runtime Host | [packages/runtime-host](packages/runtime-host) | Platform-neutral Runtime deployment and executable-plugin installation contracts. |
+| Runtime Build | [packages/runtime-build](packages/runtime-build) | Build-time installation validation, root-config binding, and selected-adapter bundling. |
+| Official plugins | [plugins](plugins) | Git data, three Runtime adapters, HTTP analytics delivery, PostgreSQL, a D1 protocol-validation store, and bot classification. |
+
+Executable plugins are selected at build time: Runtime installations live in [i0c.runtime.config.ts](i0c.runtime.config.ts), WebUI server installations in [i0c.webui.config.ts](i0c.webui.config.ts), and client-safe WebUI renderers in [apps/webui/webui.extensions.ts](apps/webui/webui.extensions.ts). Remote `data/config.json` configures installed code but never downloads or executes new packages.
 
 ## Live previews
 

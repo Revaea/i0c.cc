@@ -1,8 +1,8 @@
 # Runtime Host
 
-`@i0c/runtime-host` 将平台无关的 i0c 请求处理器与一个编译期 Runtime 平台插件组合起来。它会补充当前插件 ID 和已安装平台 Manifest，但不会导入任何具体平台。
+`@i0c/runtime-host` 负责平台无关的 Runtime 装配契约。它把 i0c 请求处理器与一个编译期平台插件组合起来，并校验已安装的 Runtime Data Source、Analytics Sink 与 Feature 集合，但不会导入具体实现。
 
-外部适配器实现 `RuntimePlatformPlugin` 并提供 Manifest 与 Runtime 入口后，即可在不修改 `apps/runtime` 源码的情况下完成装配。
+workspace 内的插件提供 Manifest 与类型化工厂或 Runtime Installation 入口，再通过根目录 `i0c.runtime.config.ts` 加入构建。Platform 与 Feature fixture 已证明该装配无需修改 `apps/runtime` 源码。公共包分发不属于当前契约。
 
 ## 检查
 

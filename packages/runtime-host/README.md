@@ -1,8 +1,8 @@
 # Runtime Host
 
-`@i0c/runtime-host` combines the provider-neutral i0c request handler with one compile-time Runtime platform plugin. It enriches platform context with the selected plugin ID and the installed platform manifests without importing a concrete provider.
+`@i0c/runtime-host` owns the provider-neutral Runtime assembly contracts. It combines the i0c request handler with one compile-time platform plugin and validates the installed Runtime Data Source, Analytics Sink, and Feature set without importing concrete implementations.
 
-External adapters implement `RuntimePlatformPlugin`, publish their Manifest and Runtime entrypoints, and can be assembled without changing `apps/runtime` source code.
+Workspace-local plugins expose their Manifest and typed factory or Runtime Installation entrypoints, then join the build through the root `i0c.runtime.config.ts`. Platform and Feature fixtures prove that this assembly does not require changes to `apps/runtime` source. Public package distribution is not part of the current contract.
 
 ## Checks
 

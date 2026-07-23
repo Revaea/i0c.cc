@@ -37,12 +37,12 @@ After deploying:
 ## Choose an adapter
 
 - Runtime host: [src/entry.ts](src/entry.ts)
-- Installed platforms: [../../i0c.runtime.config.ts](../../i0c.runtime.config.ts)
+- Installed Runtime plugins and platforms: [../../i0c.runtime.config.ts](../../i0c.runtime.config.ts)
 - Build assembly: [../../packages/runtime-build](../../packages/runtime-build)
 
-Need a custom platform? Publish a package with standard `./manifest`, `./runtime`, and `./installation` exports, install it, and add its installation descriptor to `i0c.runtime.config.ts`. The Runtime host source and official catalog do not need platform-specific changes. Programmatic consumers can still import `handleRedirectRequest` from [src/lib/handler.ts](src/lib/handler.ts). Stable plugin manifests and adapter contracts live in [../../packages/plugin-api](../../packages/plugin-api).
+Need a custom platform or Runtime feature? Add a workspace package with its Manifest and typed factory or `./installation` entry, then add it to `i0c.runtime.config.ts`. The Runtime host source and official catalog do not need plugin-specific changes. The external fixture builds a custom platform and Feature and verifies the Feature marker in the emitted artifact. The current contract proves source-workspace integration; the shared plugin packages are not yet published as a public npm SDK. Programmatic consumers can still import `handleRedirectRequest` from [src/lib/handler.ts](src/lib/handler.ts). Stable plugin manifests and adapter contracts live in [../../packages/plugin-api](../../packages/plugin-api).
 
-Each build injects only the selected Runtime adapter, while the host assembles the GitHub Raw Source, signed HTTP Sink, and bot-classifier Feature from installed manifests. Remote declarations control optional enablement, configuration, and Secret binding names. Installed platform packages and the initial Git data location remain bootstrap settings because they are required before `config.json` can be read. See [../../docs/plugins.md](../../docs/plugins.md) for the package and failure boundaries.
+Each build injects only the selected Runtime adapter and uses the same root installation configuration to assemble its Data Source, Analytics Sink, and Features. Remote declarations control optional enablement, configuration, and Secret binding names. Installed packages and the initial Git data location remain bootstrap settings because they are required before `config.json` can be read. See [../../docs/plugins.md](../../docs/plugins.md) for the package and failure boundaries.
 
 ## Environment variables and configuration
 

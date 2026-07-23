@@ -6,6 +6,8 @@ i0c.cc WebUI is a management panel based on Next.js 16, designed for online edit
 
 This WebUI supports the personal [i0c.cc](https://github.com/Revaea/i0c.cc) workflow. It is maintained as an optional management surface rather than a general-purpose enterprise URL management product.
 
+Server-side Data Repository and Analytics Store factories are installed at build time through [../../i0c.webui.config.ts](../../i0c.webui.config.ts). Client-safe UI renderers use [webui.extensions.ts](webui.extensions.ts) so they remain in the client bundle. Workspace fixtures exercise both installation paths without adding factory mappings to WebUI host source; the production renderer list is intentionally empty.
+
 This project provides three editing modes:
 
 - Visual rule editing (group tree + form)
@@ -38,7 +40,7 @@ This project provides three editing modes:
    Any GitHub user may sign in to inspect rules and analytics, while listed users may edit
    config, create campaign URLs, and refresh analytics. Without listed IDs, no one can manage it.
 
-3. The bootstrap GitHub repository, branch, and paths are defined in [../../packages/config/src/defaults.ts](../../packages/config/src/defaults.ts). The defaults load `config.json` and `redirects.json` from the `data` branch of `Revaea/i0c.cc`. The canonical Runtime origin used by QR codes comes from `config.json`.
+3. The bootstrap GitHub repository, branch, and paths are defined in [../../packages/config/src/defaults.ts](../../packages/config/src/defaults.ts), while its executable Repository factory is installed by [../../i0c.webui.config.ts](../../i0c.webui.config.ts). The defaults load `config.json` and `redirects.json` from the `data` branch of `Revaea/i0c.cc`. The canonical Runtime origin used by QR codes comes from `config.json`.
 
 4. Generate `NEXTAUTH_SECRET` and write it into `.env.local`. For production, set `NEXTAUTH_URL` to `https://your-domain`; for development, set it to `http://localhost:3000`.
 
