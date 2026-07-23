@@ -3,7 +3,7 @@ import {
   installedRuntimePlatformManifests,
   runtimePlatformPlugin,
   selectedRuntimePlatformManifest,
-} from "virtual:i0c-runtime-platform"
+} from "./virtual-runtime-platform"
 
 import { handleRedirectRequest } from "./lib/handler"
 

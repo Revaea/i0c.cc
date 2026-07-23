@@ -82,7 +82,12 @@ async function main(): Promise<void> {
       "@i0c/config",
       "@i0c/plugin-api",
       "@i0c/plugin-catalog",
+      "@i0c/runtime-build",
       "@i0c/runtime-host",
+      "zod",
+      ...runtimeInstallationConfig.platforms.flatMap(
+        (installation) => installation.bundlePackages,
+      ),
       ...runtimePluginInstallations.bundlePackages,
     ],
     entryFile: path.join(runtimeRoot, "src/entry.ts"),

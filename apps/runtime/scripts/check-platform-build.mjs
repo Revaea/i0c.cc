@@ -23,8 +23,11 @@ if (javaScriptEntries.length !== 1 || javaScriptEntries[0] !== expectedEntry) {
 
 const source = fs.readFileSync(path.join(distRoot, expectedEntry), "utf8")
 const forbiddenMarkers = [
+  "@i0c/runtime-build/config",
   "from \"postgres\"",
   "from 'postgres'",
+  "from \"zod\"",
+  "from 'zod'",
   "react-dom",
   "next/server",
 ]
@@ -36,6 +39,10 @@ for (const marker of forbiddenMarkers) {
   if (source.includes(marker)) {
     throw new Error(`${expectedEntry} contains forbidden dependency marker ${marker}`)
   }
+}
+
+if (/(?:^|\n)import\s/.test(source)) {
+  throw new Error(`${expectedEntry} contains an unresolved static import`)
 }
 
 for (const marker of requiredMarkers) {
