@@ -30,6 +30,8 @@ import type {
   RuntimePlatformManifest
 } from "@i0c/plugin-api";
 
+import type { RuntimePluginInstallations } from "@i0c/runtime-host/installations";
+
 export type RouteType = "prefix" | "exact" | "proxy";
 export type AnalyticsProvider = AnalyticsProviderType;
 export type AnalyticsRequestClass = "human" | "link_preview" | "crawler" | "monitor" | "asset" | "unknown";
@@ -135,6 +137,7 @@ export interface HandlerOptions {
   readEnvironment?(name: string): unknown;
   provider?: AnalyticsProvider;
   platformPluginId?: string;
+  pluginInstallations?: RuntimePluginInstallations;
   runtimePlatformManifests?: readonly RuntimePlatformManifest[];
   country?: string;
   waitUntil?(promise: Promise<unknown>): void;
@@ -159,6 +162,7 @@ export interface ResolvedRuntime {
   readEnvironment?: (name: string) => unknown;
   provider: AnalyticsProvider;
   platformPluginId?: string;
+  pluginInstallations: RuntimePluginInstallations;
   runtimePlatformManifests: readonly RuntimePlatformManifest[];
   country?: string;
   waitUntil?: (promise: Promise<unknown>) => void;

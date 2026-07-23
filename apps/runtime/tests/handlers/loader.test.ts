@@ -91,7 +91,8 @@ test("keeps the safe default when remote instance configuration is invalid", asy
   assert.equal(config.analytics.sourceId, "i0c.cc");
 });
 
-test("rejects a remote configuration that disables the required data source", async () => {
+test("keeps the safe default when remote configuration disables the required data source", async (context) => {
+  context.mock.method(console, "error", () => undefined);
   const runtime = resolveRuntimeOptions({
     dataConfigUrl: "https://config.example/disabled-source.json",
     now: () => 0,
@@ -103,13 +104,13 @@ test("rejects a remote configuration that disables the required data source", as
     })
   });
 
-  await assert.rejects(
-    loadDataConfig(runtime),
-    /data-source plugin must be enabled/
-  );
+  const config = await loadDataConfig(runtime);
+
+  assert.equal(config, defaultDataConfig);
 });
 
-test("rejects a remote configuration that disables the active platform", async () => {
+test("keeps the safe default when remote configuration disables the active platform", async (context) => {
+  context.mock.method(console, "error", () => undefined);
   const runtime = resolveRuntimeOptions({
     dataConfigUrl: "https://config.example/disabled-platform.json",
     provider: "cloudflare",
@@ -124,10 +125,41 @@ test("rejects a remote configuration that disables the active platform", async (
     })
   });
 
-  await assert.rejects(
-    loadDataConfig(runtime),
-    /Runtime platform plugin @i0c\/runtime-cloudflare must be enabled/
-  );
+  const config = await loadDataConfig(runtime);
+
+  assert.equal(config, defaultDataConfig);
+});
+
+test("keeps the last valid configuration when a plugin-invalid update is published", async (context) => {
+  context.mock.method(console, "error", () => undefined);
+  let now = 0;
+  let fetchCalls = 0;
+  const runtime = resolveRuntimeOptions({
+    dataConfigUrl: "https://config.example/plugin-invalid-update.json",
+    provider: "cloudflare",
+    platformPluginId: "@i0c/runtime-cloudflare",
+    runtimePlatformManifests,
+    now: () => now,
+    fetchImpl: async () => {
+      fetchCalls += 1;
+      return Response.json(fetchCalls === 1
+        ? defaultDataConfig
+        : {
+            ...defaultDataConfig,
+            plugins: {
+              ...defaultDataConfig.plugins,
+              "@i0c/runtime-cloudflare": { enabled: false }
+            }
+          });
+    }
+  });
+
+  const first = await loadDataConfig(runtime);
+  now = 600_001;
+  const second = await loadDataConfig(runtime);
+
+  assert.equal(second, first);
+  assert.equal(fetchCalls, 2);
 });
 
 test("accepts a replaceable data source without using the remote fetch adapter", async () => {

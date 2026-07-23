@@ -12,16 +12,7 @@
 
 import type { AnalyticsClassificationHookContext } from "@i0c/analytics-domain/classification";
 import type { DataConfig } from "@i0c/config";
-import {
-  resolveBotClassifierConfig
-} from "@i0c/plugin-feature-bot-classifier/config";
-import {
-  BOT_CLASSIFIER_PLUGIN_ID
-} from "@i0c/plugin-feature-bot-classifier/manifest";
-import {
-  createBotClassifierFeature
-} from "@i0c/plugin-feature-bot-classifier/runtime";
-import { RuntimeFeaturePipeline } from "@i0c/plugin-api";
+import { PluginError, RuntimeFeaturePipeline } from "@i0c/plugin-api";
 import type { RuntimeFeatureRegistration } from "@i0c/plugin-api";
 
 import type {
@@ -44,14 +35,21 @@ export function createRuntimeFeaturePipeline(
   const registrations: RuntimeFeatureRegistration<
     AnalyticsClassificationHookContext
   >[] = [...additionalRegistrations];
-  const botClassifier = configuredPlugins.find(
-    (plugin) => plugin.manifest.id === BOT_CLASSIFIER_PLUGIN_ID
-  );
-
-  if (botClassifier) {
-    registrations.push(createBotClassifierFeature(
-      resolveBotClassifierConfig(botClassifier.declaration.config)
-    ));
+  for (const plugin of configuredPlugins) {
+    if (plugin.manifest.kind !== "feature") {
+      continue;
+    }
+    const installation = platform.pluginInstallations.features.find(
+      (candidate) => candidate.manifest.id === plugin.manifest.id
+    );
+    if (!installation) {
+      throw new PluginError(
+        plugin.manifest.id,
+        "PLUGIN_NOT_INSTALLED",
+        "The configured Runtime feature has no installed factory"
+      );
+    }
+    registrations.push(installation.create(plugin.declaration.config));
   }
 
   return new RuntimeFeaturePipeline(registrations, runtimePluginLogger);

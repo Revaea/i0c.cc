@@ -1,49 +1,66 @@
 import "server-only";
 
-import type { D1Database } from "@i0c/plugin-analytics-store-d1/types";
+import type { DataConfig } from "@i0c/config";
 import {
-  D1_ANALYTICS_STORE_PLUGIN_ID
-} from "@i0c/plugin-analytics-store-d1/manifest";
-import {
-  resolveD1AnalyticsStoreConfig
-} from "@i0c/plugin-analytics-store-d1/config";
-import {
-  createD1AnalyticsStore,
-  type D1AnalyticsStore
-} from "@i0c/plugin-analytics-store-d1/store";
-import { PluginError } from "@i0c/plugin-api";
-import {
-  resolvePostgresAnalyticsStoreConfig
-} from "@i0c/plugin-analytics-store-postgres/config";
-import {
-  POSTGRES_ANALYTICS_STORE_PLUGIN_ID,
-  postgresAnalyticsStoreManifest
-} from "@i0c/plugin-analytics-store-postgres/manifest";
-import {
-  createPostgresAnalyticsStore,
-  type PostgresAnalyticsStore
-} from "@i0c/plugin-analytics-store-postgres/store";
+  PluginError,
+  type PluginConfigurationDeclaration
+} from "@i0c/plugin-api";
+import { webUiPluginInstallations } from "@i0c/webui-config";
 
 import { getEffectiveDataConfig } from "@/lib/configuration/data-config";
+import type { WebUiAnalyticsStore } from "@/lib/plugins/installations";
 import { resolveWebUiPlugins } from "@/lib/plugins/registry";
 
-type WebUiAnalyticsStore = D1AnalyticsStore | PostgresAnalyticsStore;
+export interface AnalyticsStoreSelection {
+  declaration: PluginConfigurationDeclaration;
+  pluginId: string;
+}
 
-let d1Database: D1Database | undefined;
+export type { WebUiAnalyticsStore } from "@/lib/plugins/installations";
+
+const analyticsStoreBindings = new Map<string, unknown>();
 let analyticsStoreCache:
   | { key: string; store: WebUiAnalyticsStore | null }
   | undefined;
 
-export function configureD1AnalyticsStore(database: D1Database): void {
-  d1Database = database;
+export function configureAnalyticsStoreBinding(
+  pluginId: string,
+  binding: unknown
+): void {
+  analyticsStoreBindings.set(pluginId, binding);
   analyticsStoreCache = undefined;
 }
 
-export async function getAnalyticsStore(): Promise<WebUiAnalyticsStore | null> {
-  const dataConfig = await getEffectiveDataConfig();
-  const selected = resolveWebUiPlugins(dataConfig)
+export function resolveAnalyticsStoreSelection(
+  config: DataConfig,
+): AnalyticsStoreSelection | undefined {
+  const selected = resolveWebUiPlugins(config)
     .find((plugin) => plugin.manifest.slot === "analytics-store");
-  const cacheKey = JSON.stringify(selected ?? null);
+  return selected
+    ? {
+        declaration: selected.declaration,
+        pluginId: selected.manifest.id,
+      }
+    : undefined;
+}
+
+function getAnalyticsStoreCacheKey(
+  selection: AnalyticsStoreSelection | undefined,
+): string {
+  return JSON.stringify(selection ?? null);
+}
+
+export async function getAnalyticsStore(
+  config?: DataConfig,
+): Promise<WebUiAnalyticsStore | null> {
+  const dataConfig = config ?? await getEffectiveDataConfig();
+  return getAnalyticsStoreForSelection(resolveAnalyticsStoreSelection(dataConfig));
+}
+
+export async function getAnalyticsStoreForSelection(
+  selected: AnalyticsStoreSelection | undefined,
+): Promise<WebUiAnalyticsStore | null> {
+  const cacheKey = getAnalyticsStoreCacheKey(selected);
   if (analyticsStoreCache?.key === cacheKey) {
     return analyticsStoreCache.store;
   }
@@ -52,53 +69,47 @@ export async function getAnalyticsStore(): Promise<WebUiAnalyticsStore | null> {
     analyticsStoreCache = { key: cacheKey, store: null };
     return null;
   }
-  if (selected.manifest.id === D1_ANALYTICS_STORE_PLUGIN_ID) {
-    if (!d1Database) {
-      throw new PluginError(
-        D1_ANALYTICS_STORE_PLUGIN_ID,
-        "PLUGIN_INITIALIZATION_FAILED",
-        "The D1 analytics store is enabled, but this WebUI deployment has no D1 binding"
-      );
-    }
-    const store = createD1AnalyticsStore(
-      resolveD1AnalyticsStoreConfig(selected.declaration.config),
-      { database: d1Database }
-    );
-    analyticsStoreCache = { key: cacheKey, store };
-    return store;
-  }
-  if (selected.manifest.id !== POSTGRES_ANALYTICS_STORE_PLUGIN_ID) {
+  const installation = webUiPluginInstallations.analyticsStores.find(
+    (candidate) => candidate.manifest.id === selected.pluginId
+  );
+  if (!installation) {
     throw new PluginError(
-      selected.manifest.id,
+      selected.pluginId,
       "PLUGIN_NOT_INSTALLED",
       "The selected analytics store has no WebUI factory"
     );
   }
 
-  const declaration = selected.declaration;
-  const databaseUrlBinding = declaration?.secrets?.databaseUrl
-    ?? postgresAnalyticsStoreManifest.secrets.databaseUrl.defaultBinding
-    ?? "DATABASE_URL";
-  const connectionString = process.env[databaseUrlBinding]?.trim() || null;
-
-  const store = createPostgresAnalyticsStore(
-    resolvePostgresAnalyticsStoreConfig(declaration?.config),
-    {
-      connectionString,
-      development: process.env.NODE_ENV === "development"
-    }
-  );
+  const store = installation.create({
+    bindings: analyticsStoreBindings,
+    declaration: selected.declaration,
+    development: process.env.NODE_ENV === "development",
+    readEnvironment: (name) => process.env[name]
+  });
   analyticsStoreCache = { key: cacheKey, store };
   return store;
 }
 
 export async function getRequiredAnalyticsStore(): Promise<WebUiAnalyticsStore> {
   const store = await getAnalyticsStore();
+  return requireAnalyticsStore(store);
+}
+
+export async function getRequiredAnalyticsStoreForSelection(
+  selection: AnalyticsStoreSelection | undefined,
+): Promise<WebUiAnalyticsStore> {
+  const store = await getAnalyticsStoreForSelection(selection);
+  return requireAnalyticsStore(store);
+}
+
+function requireAnalyticsStore(
+  store: WebUiAnalyticsStore | null,
+): WebUiAnalyticsStore {
   if (!store) {
     throw new PluginError(
-      postgresAnalyticsStoreManifest.id,
+      "@i0c/webui-host",
       "PLUGIN_NOT_INSTALLED",
-      "PostgreSQL analytics store is disabled"
+      "The selected analytics store is unavailable"
     );
   }
   return store;

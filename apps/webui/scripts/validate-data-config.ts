@@ -4,9 +4,27 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { validateDataConfig } from "@i0c/config"
-import { validateInstalledPluginDeclarations } from "@i0c/plugin-catalog"
+import {
+  validateInstalledPluginDeclarations,
+  validateRuntimeRequiredPluginDeclarations,
+  validateWebUiRequiredPluginDeclarations,
+} from "@i0c/plugin-catalog"
 
-import { runtimePlatformManifests } from "../../../i0c.runtime.config"
+import {
+  runtimePlatformManifests,
+  runtimePluginManifests,
+  runtimePluginDescriptors,
+} from "../../../i0c.runtime.manifests"
+import {
+  webUiPluginDescriptors,
+  webUiPluginManifests,
+} from "../../../i0c.webui.manifests"
+
+const installedHostPluginManifests = [
+  ...runtimePluginManifests,
+  ...webUiPluginManifests,
+  ...runtimePlatformManifests,
+]
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(scriptDir, "../../..")
@@ -52,10 +70,23 @@ function main(): void {
   const input = readSource(source)
   const result = validateDataConfig(parseJson(input.content, input.label))
   if (result.status === "valid") {
-    const pluginIssues = validateInstalledPluginDeclarations(
-      result.config.plugins,
-      runtimePlatformManifests,
-    )
+    const pluginIssues = [
+      ...validateInstalledPluginDeclarations(
+        result.config.plugins,
+        installedHostPluginManifests,
+      ),
+      ...validateRuntimeRequiredPluginDeclarations(
+        result.config.plugins,
+        {
+          dataSourcePluginId: runtimePluginDescriptors.dataSource.manifest.id,
+          runtimePlatformManifests,
+        },
+      ),
+      ...validateWebUiRequiredPluginDeclarations(
+        result.config.plugins,
+        webUiPluginDescriptors.dataRepository.manifest.id,
+      ),
+    ]
     if (pluginIssues.length > 0) {
       console.error(`Plugin configuration validation failed: ${input.label}`)
       for (const issue of pluginIssues.slice(0, 8)) {

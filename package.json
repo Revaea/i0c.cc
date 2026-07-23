@@ -35,11 +35,19 @@
     "data:validate": "pnpm --filter i0c.cc-webui validate:data-config && pnpm --filter i0c.cc-webui validate:redirects"
   },
   "devDependencies": {
+    "@i0c/analytics-domain": "workspace:*",
+    "@i0c/config": "workspace:*",
+    "@i0c/plugin-analytics-sink-http": "workspace:*",
+    "@i0c/plugin-analytics-store-d1": "workspace:*",
+    "@i0c/plugin-analytics-store-postgres": "workspace:*",
     "@i0c/plugin-api": "workspace:*",
+    "@i0c/plugin-feature-bot-classifier": "workspace:*",
+    "@i0c/plugin-github-data": "workspace:*",
     "@i0c/plugin-runtime-cloudflare": "workspace:*",
     "@i0c/plugin-runtime-netlify": "workspace:*",
     "@i0c/plugin-runtime-vercel": "workspace:*",
     "@i0c/runtime-build": "workspace:*",
-    "@i0c/runtime-fixture-external": "workspace:*"
+    "@i0c/runtime-fixture-external": "workspace:*",
+    "@i0c/runtime-host": "workspace:*"
   }
 }

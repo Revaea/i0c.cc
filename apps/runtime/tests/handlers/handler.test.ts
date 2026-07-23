@@ -123,3 +123,22 @@ test("uses the versioned robots policy instead of a legacy environment binding",
   assert.equal(response.status, 200);
   assert.match(await response.text(), /^User-agent: \*\nAllow: \/$/m);
 });
+
+test("settles concurrent data-source failures before returning an internal error", async () => {
+  const response = await handleRedirectRequest(
+    new Request("https://i0c.cc/source-failure"),
+    {
+      dataSource: {
+        async loadConfig() {
+          throw new Error("config failed");
+        },
+        async loadRules() {
+          throw new Error("rules failed");
+        }
+      }
+    }
+  );
+
+  assert.equal(response.status, 500);
+  assert.equal(await response.text(), "Internal Server Error");
+});

@@ -10,12 +10,9 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
-import type { HttpAnalyticsSinkConfig } from "@i0c/plugin-analytics-sink-http/config";
-import { createHttpAnalyticsSink } from "@i0c/plugin-analytics-sink-http/runtime";
+import { PluginError } from "@i0c/plugin-api";
 
 import type {
-  AnalyticsSinkContext,
-  AnalyticsSinkEvent,
   ResolvedRuntime,
   RuntimeAnalyticsSink
 } from "../core/types";
@@ -28,7 +25,7 @@ interface AnalyticsDispatchSettings {
   sourceId: string;
 }
 
-const httpSinkCache = new Map<number, RuntimeAnalyticsSink>();
+const analyticsSinkCache = new Map<string, RuntimeAnalyticsSink>();
 
 export function scheduleAnalyticsEvent(
   event: AnalyticsEventV2,
@@ -36,8 +33,12 @@ export function scheduleAnalyticsEvent(
   settings: AnalyticsDispatchSettings,
   completedAt: number
 ): void {
-  const sink = runtime.analyticsSink ?? getHttpAnalyticsSink(
-    settings.delivery?.maximumDeliveryAttempts ?? 2
+  if (!runtime.analyticsSink && !settings.delivery) {
+    return;
+  }
+  const sink = runtime.analyticsSink ?? getInstalledAnalyticsSink(
+    runtime,
+    settings.delivery
   );
   const task = sink.emit(event, {
     completedAt,
@@ -66,14 +67,34 @@ export function scheduleAnalyticsEvent(
   }
 }
 
-function getHttpAnalyticsSink(maximumDeliveryAttempts: number): RuntimeAnalyticsSink {
-  const existing = httpSinkCache.get(maximumDeliveryAttempts);
+function getInstalledAnalyticsSink(
+  runtime: ResolvedRuntime,
+  delivery: AnalyticsDeliveryConfig | null
+): RuntimeAnalyticsSink {
+  if (!delivery) {
+    throw new PluginError(
+      "@i0c/runtime-host",
+      "PLUGIN_NOT_INSTALLED",
+      "The Runtime analytics sink is not configured"
+    );
+  }
+  const installation = runtime.pluginInstallations.analyticsSinks.find(
+    (candidate) => candidate.manifest.id === delivery.pluginId
+  );
+  if (!installation) {
+    throw new PluginError(
+      delivery.pluginId,
+      "PLUGIN_NOT_INSTALLED",
+      "The configured Runtime analytics sink has no installed factory"
+    );
+  }
+  const cacheKey = `${delivery.pluginId}:${JSON.stringify(delivery.pluginConfig ?? null)}`;
+  const existing = analyticsSinkCache.get(cacheKey);
   if (existing) {
     return existing;
   }
 
-  const config: HttpAnalyticsSinkConfig = { maximumDeliveryAttempts };
-  const sink = createHttpAnalyticsSink<AnalyticsSinkEvent, AnalyticsSinkContext>(config);
-  httpSinkCache.set(maximumDeliveryAttempts, sink);
+  const sink = installation.create(delivery.pluginConfig);
+  analyticsSinkCache.set(cacheKey, sink);
   return sink;
 }

@@ -4,9 +4,11 @@ import test from "node:test"
 import { PLUGIN_API_VERSION } from "@i0c/plugin-api"
 
 import {
+  assertRuntimePlatformModuleMatchesInstallation,
   defineRuntimeInstallationConfig,
   defineRuntimePlatformInstallation,
   resolveRuntimePlatformInstallation,
+  type RuntimePlatformInstallation,
 } from "../src/config"
 
 const externalPlatform = defineRuntimePlatformInstallation({
@@ -54,4 +56,93 @@ test("rejects duplicate providers", () => {
       },
     ],
   }), /provider external-edge is duplicated/)
+})
+
+test("rejects a platform ID reserved by the Runtime host", () => {
+  assert.throws(() => defineRuntimeInstallationConfig({
+    reservedPluginIds: ["@i0c/github-raw-source"],
+    platforms: [{
+      ...externalPlatform,
+      manifest: {
+        ...externalPlatform.manifest,
+        id: "@i0c/github-raw-source",
+      },
+    }],
+  }), /plugin ID @i0c\/github-raw-source is duplicated/)
+})
+
+test("rejects a non-platform manifest in a Runtime installation", () => {
+  const invalidInstallation = {
+    ...externalPlatform,
+    manifest: {
+      id: externalPlatform.manifest.id,
+      name: externalPlatform.manifest.name,
+      version: externalPlatform.manifest.version,
+      apiVersion: externalPlatform.manifest.apiVersion,
+      kind: "feature",
+      slot: "feature:test",
+      hosts: externalPlatform.manifest.hosts,
+      capabilities: externalPlatform.manifest.capabilities,
+      config: externalPlatform.manifest.config,
+      secrets: externalPlatform.manifest.secrets,
+    },
+  } as unknown as RuntimePlatformInstallation
+
+  assert.throws(
+    () => defineRuntimePlatformInstallation(invalidInstallation),
+    /runtime-platform kind, slot, and host/,
+  )
+})
+
+test("rejects a Runtime output entry that escapes its output directory", () => {
+  assert.throws(() => defineRuntimePlatformInstallation({
+    ...externalPlatform,
+    outputEntry: "../escaped",
+  }), /safe relative path/)
+})
+
+test("rejects Runtime modules that are not installed package specifiers", () => {
+  for (const runtimeModule of [
+    " @example/runtime-external/runtime",
+    "../runtime-external/runtime",
+    "https://example.com/runtime.js",
+  ]) {
+    assert.throws(() => defineRuntimePlatformInstallation({
+      ...externalPlatform,
+      runtimeModule,
+    }), /installed package specifier/)
+  }
+
+  assert.throws(() => defineRuntimePlatformInstallation({
+    ...externalPlatform,
+    bundlePackages: ["../runtime-external"],
+  }), /bundle packages must use package specifiers/)
+})
+
+test("rejects malformed JavaScript installation descriptors deterministically", () => {
+  assert.throws(
+    () => defineRuntimePlatformInstallation({
+      manifest: {
+        id: "@example/runtime-malformed",
+      },
+    } as unknown as RuntimePlatformInstallation),
+    /name must not be empty/,
+  )
+})
+
+test("rejects a Runtime module whose manifest drifts from its installation", () => {
+  assert.throws(
+    () => assertRuntimePlatformModuleMatchesInstallation({
+      runtimePlatformPlugin: {
+        create() {
+          return undefined
+        },
+        manifest: {
+          ...externalPlatform.manifest,
+          provider: "drifted-edge",
+        },
+      },
+    }, externalPlatform),
+    /does not match its installation descriptor/,
+  )
 })

@@ -1,15 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { WebUiExtensionSlot } from "@i0c/plugin-api";
 
-import {
-  StaticWebUiExtensionRegistry,
-  type WebUiExtensionSlot,
-} from "@i0c/plugin-api";
-
-type WebUiExtensionRenderer = (context: unknown) => ReactNode;
-
-const installedWebUiExtensions = new StaticWebUiExtensionRegistry<WebUiExtensionRenderer>([]);
+import { installedWebUiExtensions } from "./extension-registry";
 
 interface WebUiPluginSlotProps {
   context?: unknown;

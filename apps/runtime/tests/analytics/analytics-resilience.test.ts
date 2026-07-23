@@ -56,7 +56,7 @@ function createAnalyticsContext(hasDelivery: boolean): AnalyticsRequestContext {
       delivery: hasDelivery
         ? {
           endpoint: "https://u.i0c.cc/api/analytics/events",
-          maximumDeliveryAttempts: 2,
+          pluginId: "@i0c/analytics-sink-http",
           sourceId: "i0c.cc",
           writeKey: "0123456789abcdef0123456789abcdef"
         }

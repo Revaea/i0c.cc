@@ -12,7 +12,9 @@
 
 import { defaultDataConfig } from "@i0c/config";
 import type { DataConfig } from "@i0c/config";
-import { createGitHubRawDataSource } from "@i0c/plugin-github-data/runtime";
+import {
+  runtimePluginInstallations as defaultRuntimePluginInstallations
+} from "@i0c/runtime-config";
 
 import { runtimePluginLogger } from "@/plugins/logger";
 import { createRuntimeFeaturePipeline } from "@/plugins/features";
@@ -55,8 +57,10 @@ export function resolveRuntimeOptions(options: HandlerOptions): ResolvedRuntime 
   let currentDataConfig: DataConfig = defaultDataConfig;
   const provider = options.provider ?? "unknown";
   const runtimeFeatures = options.runtimeFeatures ?? [];
+  const pluginInstallations = options.pluginInstallations
+    ?? defaultRuntimePluginInstallations;
 
-  const dataSource = options.dataSource ?? createGitHubRawDataSource(
+  const dataSource = options.dataSource ?? pluginInstallations.dataSource.create(
     {
       ...(dataConfigUrl ? { dataConfigUrl } : {}),
       redirectsConfigUrl,
@@ -75,6 +79,13 @@ export function resolveRuntimeOptions(options: HandlerOptions): ResolvedRuntime 
       setCurrentDataConfig: (config) => {
         currentDataConfig = config;
       },
+      validateDataConfig: (config) => {
+        resolveRuntimePlugins(config, {
+          platformPluginId: options.platformPluginId,
+          pluginInstallations,
+          runtimePlatformManifests: options.runtimePlatformManifests ?? []
+        });
+      },
       waitUntil: options.waitUntil
     }
   );
@@ -90,6 +101,7 @@ export function resolveRuntimeOptions(options: HandlerOptions): ResolvedRuntime 
       currentDataConfig,
       {
         platformPluginId: options.platformPluginId,
+        pluginInstallations,
         runtimePlatformManifests: options.runtimePlatformManifests ?? []
       },
       runtimeFeatures
@@ -103,6 +115,7 @@ export function resolveRuntimeOptions(options: HandlerOptions): ResolvedRuntime 
     readEnvironment: options.readEnvironment,
     provider,
     platformPluginId: options.platformPluginId,
+    pluginInstallations,
     runtimePlatformManifests: options.runtimePlatformManifests ?? [],
     country: options.country,
     waitUntil: options.waitUntil,
@@ -116,6 +129,7 @@ export async function loadDataConfig(runtime: ResolvedRuntime): Promise<DataConf
   const resolved = config ?? runtime.dataConfig;
   resolveRuntimePlugins(resolved, {
     platformPluginId: runtime.platformPluginId,
+    pluginInstallations: runtime.pluginInstallations,
     runtimePlatformManifests: runtime.runtimePlatformManifests
   });
   return resolved;

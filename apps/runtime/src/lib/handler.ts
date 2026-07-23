@@ -67,8 +67,10 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
       }
     }
     const needsRedirects = initialPath !== "/favicon.ico" && initialPath !== interLatinVariableFontPath;
-    const redirectsPromise = needsRedirects ? loadRedirects(runtime) : undefined;
-    const dataConfig = await loadDataConfig(runtime);
+    const [dataConfig, redirectsConfig] = await Promise.all([
+      loadDataConfig(runtime),
+      needsRedirects ? loadRedirects(runtime) : Promise.resolve(null)
+    ]);
     runtime = {
       ...runtime,
       dataConfig,
@@ -76,6 +78,7 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
         dataConfig,
         {
           platformPluginId: runtime.platformPluginId,
+          pluginInstallations: runtime.pluginInstallations,
           runtimePlatformManifests: runtime.runtimePlatformManifests
         },
         runtime.runtimeFeatures
@@ -99,7 +102,6 @@ export async function handleRedirectRequest(request: Request, options: HandlerOp
       return clearAttributionCookie(serveInterFont(), analytics.hasAttributionCookie);
     }
 
-    const redirectsConfig = redirectsPromise ? await redirectsPromise : null;
     const slotSource = getSlotSource(redirectsConfig);
 
     if (!slotSource) {

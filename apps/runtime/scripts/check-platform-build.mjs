@@ -5,6 +5,7 @@ import process from "node:process"
 const runtimeRoot = path.resolve(import.meta.dirname, "..")
 const platform = process.argv[2]
 const expectedEntry = process.argv[3]
+const requiredMarkers = process.argv.slice(4)
 
 if (!platform || !expectedEntry) {
   throw new Error("Runtime platform and expected entry are required")
@@ -34,6 +35,12 @@ if (platform !== "vercel") {
 for (const marker of forbiddenMarkers) {
   if (source.includes(marker)) {
     throw new Error(`${expectedEntry} contains forbidden dependency marker ${marker}`)
+  }
+}
+
+for (const marker of requiredMarkers) {
+  if (!source.includes(marker)) {
+    throw new Error(`${expectedEntry} is missing required plugin marker ${marker}`)
   }
 }
 

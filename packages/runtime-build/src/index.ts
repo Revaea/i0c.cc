@@ -17,6 +17,7 @@ export interface RuntimePlatformBuildOptions {
   onSuccess?: string
   outDir: string
   platform: RuntimePlatformInstallation
+  runtimeConfigFile: string
   tsconfig: string
   watch?: boolean
 }
@@ -54,11 +55,25 @@ export function createRuntimePlatformBuildOptions(
     shims: false,
     platform: "neutral",
     esbuildPlugins: [
+      createRuntimeConfigModulePlugin(options),
       tsconfigPathsPlugin({ tsconfig: options.tsconfig }),
       createRuntimePlatformModulePlugin(options),
     ],
     ...(options.onSuccess ? { onSuccess: options.onSuccess } : {}),
     ...(options.watch ? { watch: true } : {}),
+  }
+}
+
+function createRuntimeConfigModulePlugin(
+  options: RuntimePlatformBuildOptions,
+): Plugin {
+  return {
+    name: "i0c-runtime-config",
+    setup(buildContext) {
+      buildContext.onResolve({ filter: /^@i0c\/runtime-config$/ }, () => ({
+        path: options.runtimeConfigFile,
+      }))
+    },
   }
 }
 
@@ -68,6 +83,7 @@ function createRuntimePlatformModulePlugin(
   const moduleId = "virtual:i0c-runtime-platform"
   const namespace = "i0c-runtime-platform"
   const manifests = JSON.stringify(options.installedPlatformManifests)
+  const selectedManifest = JSON.stringify(options.platform.manifest)
   const runtimeModule = JSON.stringify(options.platform.runtimeModule)
 
   return {
@@ -81,6 +97,7 @@ function createRuntimePlatformModulePlugin(
         contents: [
           `export { runtimePlatformPlugin } from ${runtimeModule}`,
           `export const installedRuntimePlatformManifests = ${manifests}`,
+          `export const selectedRuntimePlatformManifest = ${selectedManifest}`,
         ].join("\n"),
         loader: "js",
         resolveDir: options.moduleResolveDirectory,

@@ -12,23 +12,20 @@
 
 import type { DataConfig, PluginInstanceConfig } from "@i0c/config";
 import { installedPluginIds } from "@i0c/plugin-catalog";
-import { runtimePluginManifests } from "@i0c/plugin-catalog/runtime";
 import { PluginError, StaticPluginRegistry } from "@i0c/plugin-api";
+import {
+  listDefaultRuntimePluginIds,
+  listRuntimePluginManifests,
+  type RuntimePluginInstallations
+} from "@i0c/runtime-host/installations";
 import type {
   ResolvedPluginConfiguration,
   RuntimePlatformManifest
 } from "@i0c/plugin-api";
 
-const GITHUB_RAW_SOURCE_PLUGIN_ID = "@i0c/github-raw-source";
-const HTTP_ANALYTICS_SINK_PLUGIN_ID = "@i0c/analytics-sink-http";
-const BOT_CLASSIFIER_PLUGIN_ID = "@i0c/feature-bot-classifier";
-
-const runtimeCorePluginManifests = runtimePluginManifests.filter(
-  (manifest) => manifest.kind !== "runtime-platform"
-);
-
 export interface RuntimePlatformSelection {
   platformPluginId?: string;
+  pluginInstallations: RuntimePluginInstallations;
   runtimePlatformManifests: readonly RuntimePlatformManifest[];
 }
 
@@ -47,7 +44,7 @@ export function resolveRuntimePluginConfigurations(
   config: DataConfig,
   platform: RuntimePlatformSelection
 ): readonly ResolvedPluginConfiguration[] {
-  const registry = createRuntimePluginRegistry(platform.runtimePlatformManifests);
+  const registry = createRuntimePluginRegistry(platform);
   const declarations = selectRuntimeDeclarations(config.plugins, platform);
   const result = registry.resolve("runtime", declarations);
   if (result.status === "invalid") {
@@ -60,9 +57,10 @@ export function resolveRuntimePluginConfigurations(
   }
 
   const enabledIds = new Set(result.plugins.map((plugin) => plugin.manifest.id));
-  if (!enabledIds.has(GITHUB_RAW_SOURCE_PLUGIN_ID)) {
+  const dataSourcePluginId = platform.pluginInstallations.dataSource.manifest.id;
+  if (!enabledIds.has(dataSourcePluginId)) {
     throw new PluginError(
-      GITHUB_RAW_SOURCE_PLUGIN_ID,
+      dataSourcePluginId,
       "PLUGIN_NOT_INSTALLED",
       "The Runtime data-source plugin must be enabled"
     );
@@ -86,17 +84,18 @@ export function isRuntimePluginEnabled(
 }
 
 function createRuntimePluginRegistry(
-  platformManifests: readonly RuntimePlatformManifest[]
+  platform: RuntimePlatformSelection
 ): StaticPluginRegistry {
-  const uniquePlatformManifests = [...new Map(
-    platformManifests.map((manifest) => [manifest.id, manifest])
-  ).values()];
+  const runtimePluginManifests = listRuntimePluginManifests(
+    platform.pluginInstallations
+  );
   return new StaticPluginRegistry(
-    [...runtimeCorePluginManifests, ...uniquePlatformManifests],
+    [...runtimePluginManifests, ...platform.runtimePlatformManifests],
     {
       recognizedPluginIds: [
         ...installedPluginIds,
-        ...uniquePlatformManifests.map((manifest) => manifest.id)
+        ...runtimePluginManifests.map((manifest) => manifest.id),
+        ...platform.runtimePlatformManifests.map((manifest) => manifest.id)
       ]
     }
   );
@@ -113,9 +112,9 @@ function selectRuntimeDeclarations(
     }
   }
 
-  declarations[GITHUB_RAW_SOURCE_PLUGIN_ID] ??= { enabled: true };
-  declarations[HTTP_ANALYTICS_SINK_PLUGIN_ID] ??= { enabled: true };
-  declarations[BOT_CLASSIFIER_PLUGIN_ID] ??= { enabled: true };
+  for (const pluginId of listDefaultRuntimePluginIds(platform.pluginInstallations)) {
+    declarations[pluginId] ??= { enabled: true };
+  }
   if (platform.platformPluginId) {
     declarations[platform.platformPluginId] ??= { enabled: true };
   }

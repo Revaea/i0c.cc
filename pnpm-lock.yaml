@@ -35,9 +35,30 @@ importers:
 
   .:
     devDependencies:
+      '@i0c/analytics-domain':
+        specifier: workspace:*
+        version: link:packages/analytics-domain
+      '@i0c/config':
+        specifier: workspace:*
+        version: link:packages/config
+      '@i0c/plugin-analytics-sink-http':
+        specifier: workspace:*
+        version: link:plugins/sink/http
+      '@i0c/plugin-analytics-store-d1':
+        specifier: workspace:*
+        version: link:plugins/store/d1
+      '@i0c/plugin-analytics-store-postgres':
+        specifier: workspace:*
+        version: link:plugins/store/postgres
       '@i0c/plugin-api':
         specifier: workspace:*
         version: link:packages/plugin-api
+      '@i0c/plugin-feature-bot-classifier':
+        specifier: workspace:*
+        version: link:plugins/feature/bot-classifier
+      '@i0c/plugin-github-data':
+        specifier: workspace:*
+        version: link:plugins/source/github
       '@i0c/plugin-runtime-cloudflare':
         specifier: workspace:*
         version: link:plugins/runtime/cloudflare
@@ -53,6 +74,9 @@ importers:
       '@i0c/runtime-fixture-external':
         specifier: workspace:*
         version: link:plugins/fixtures/runtime-external
+      '@i0c/runtime-host':
+        specifier: workspace:*
+        version: link:packages/runtime-host
 
   apps/runtime:
     dependencies:
@@ -317,6 +341,12 @@ importers:
 
   packages/runtime-host:
     dependencies:
+      '@i0c/analytics-domain':
+        specifier: workspace:*
+        version: link:../analytics-domain
+      '@i0c/config':
+        specifier: workspace:*
+        version: link:../config
       '@i0c/plugin-api':
         specifier: workspace:*
         version: link:../plugin-api
@@ -355,16 +385,47 @@ importers:
 
   plugins/fixtures/runtime-external:
     dependencies:
+      '@i0c/analytics-domain':
+        specifier: workspace:*
+        version: link:../../../packages/analytics-domain
       '@i0c/plugin-api':
         specifier: workspace:*
         version: link:../../../packages/plugin-api
       '@i0c/runtime-build':
         specifier: workspace:*
         version: link:../../../packages/runtime-build
+      '@i0c/runtime-host':
+        specifier: workspace:*
+        version: link:../../../packages/runtime-host
     devDependencies:
+      '@i0c/plugin-analytics-sink-http':
+        specifier: workspace:*
+        version: link:../../sink/http
+      '@i0c/plugin-feature-bot-classifier':
+        specifier: workspace:*
+        version: link:../../feature/bot-classifier
+      '@i0c/plugin-github-data':
+        specifier: workspace:*
+        version: link:../../source/github
       '@i0c/plugin-testkit':
         specifier: workspace:*
         version: link:../../../packages/plugin-testkit
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.5.0
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+
+  plugins/fixtures/webui-external:
+    dependencies:
+      '@i0c/plugin-api':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-api
+    devDependencies:
       '@types/node':
         specifier: ^25.5.0
         version: 25.5.0

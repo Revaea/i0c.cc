@@ -4,7 +4,7 @@ import type { DataConfig, PluginInstanceConfig } from "@i0c/config";
 import { installedPluginManifests } from "@i0c/plugin-catalog";
 import type { PluginManifest } from "@i0c/plugin-api";
 
-import { runtimePlatformManifests } from "../../../../../i0c.runtime.config";
+import { runtimePlatformManifests } from "../../../../../i0c.runtime.manifests";
 
 import { getAnalyticsStore } from "@/lib/analytics/store";
 import { getEffectiveDataConfig } from "@/lib/configuration/data-config";

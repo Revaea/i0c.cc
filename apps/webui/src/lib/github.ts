@@ -1,36 +1,22 @@
-import { bootstrapConfig } from "@i0c/config";
-import {
-  createGitHubContentsRepository,
-  type GitHubDataDocumentKind,
-  type GitHubDataDocumentPayload,
-  type GitHubDataReadOptions,
-  type GitHubDataWriteInput,
-  type GitHubFetch,
-  type RedirectConfigPayload,
-  type UpdateDataDocumentInput,
-  type UpdateDataDocumentResult
-} from "@i0c/plugin-github-data/webui";
+import { webUiPluginInstallations } from "@i0c/webui-config";
 
-export type {
-  GitHubDataDocumentKind,
-  GitHubDataDocumentPayload,
-  RedirectConfigPayload,
-  UpdateDataDocumentInput,
-  UpdateDataDocumentResult
-} from "@i0c/plugin-github-data/webui";
+import type {
+  AppDataDocumentKind,
+  AppDataDocumentPayload,
+  AppDataReadOptions,
+  AppDataWriteInput,
+  AppDataWriteResult
+} from "@/lib/data/repository";
 
-const dataTarget = bootstrapConfig.data.github;
-const webuiFetch: GitHubFetch = (input, init) => fetch(input, init);
+export type GitHubDataDocumentKind = AppDataDocumentKind;
+export type GitHubDataDocumentPayload = AppDataDocumentPayload;
+export type RedirectConfigPayload = AppDataDocumentPayload;
+export type UpdateDataDocumentInput = Omit<AppDataWriteInput, "accessToken">;
+export type UpdateDataDocumentResult = AppDataWriteResult;
 
-export const githubDataRepository = createGitHubContentsRepository(
-  {
-    ...dataTarget,
-    publicRevalidateSeconds: 60
-  },
-  {
-    fetchImpl: webuiFetch
-  }
-);
+export const APP_DATA_CONFIG_CACHE_TAG = "i0c:data-config";
+
+export const githubDataRepository = webUiPluginInstallations.dataRepository.create();
 
 export function getGitHubDataDocument(
   kind: GitHubDataDocumentKind,
@@ -56,7 +42,10 @@ export function getRedirectConfig(
 export function getAppDataConfig(
   accessToken?: string
 ): Promise<GitHubDataDocumentPayload> {
-  return githubDataRepository.read("config", { accessToken });
+  return githubDataRepository.read("config", {
+    accessToken,
+    cacheTags: [APP_DATA_CONFIG_CACHE_TAG]
+  });
 }
 
 export function updateGitHubDataDocument(
@@ -81,5 +70,5 @@ export function updateAppDataConfig(
   return githubDataRepository.write("config", { ...input, accessToken });
 }
 
-export type GitHubRepositoryReadOptions = GitHubDataReadOptions;
-export type GitHubRepositoryWriteInput = GitHubDataWriteInput;
+export type GitHubRepositoryReadOptions = AppDataReadOptions;
+export type GitHubRepositoryWriteInput = AppDataWriteInput;

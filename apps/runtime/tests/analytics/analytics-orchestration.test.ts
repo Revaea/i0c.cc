@@ -77,7 +77,7 @@ function createAnalyticsContext(writeKey = analyticsWriteKey): AnalyticsRequestC
     settings: {
       delivery: {
         endpoint: analyticsEndpoint,
-        maximumDeliveryAttempts: 2,
+        pluginId: HTTP_ANALYTICS_SINK_PLUGIN_ID,
         sourceId: "i0c.cc",
         writeKey
       },
@@ -131,7 +131,11 @@ test("uses versioned analytics settings and reads only the Runtime write key bin
 
   assert.deepEqual(analytics.settings.delivery, {
     endpoint: analyticsEndpoint,
-    maximumDeliveryAttempts: 2,
+    pluginConfig: {
+      maximumDeliveryAttempts: 2,
+      requestTimeoutMs: 5_000
+    },
+    pluginId: HTTP_ANALYTICS_SINK_PLUGIN_ID,
     sourceId: "i0c.cc",
     writeKey: analyticsWriteKey
   });
@@ -165,7 +169,13 @@ test("uses the HTTP sink plugin declaration for enablement, config, and secret m
 
   const analytics = await prepareAnalyticsRequest(request, runtime);
 
-  assert.equal(analytics.settings.delivery?.maximumDeliveryAttempts, 1);
+  assert.deepEqual(analytics.settings.delivery?.pluginConfig, {
+    maximumDeliveryAttempts: 1
+  });
+  assert.equal(
+    analytics.settings.delivery?.pluginId,
+    HTTP_ANALYTICS_SINK_PLUGIN_ID
+  );
   assert.equal(analytics.settings.delivery?.writeKey, analyticsWriteKey);
 
   runtime.dataConfig = {

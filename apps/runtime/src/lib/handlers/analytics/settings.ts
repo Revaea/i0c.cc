@@ -10,15 +10,9 @@
  * @see {@link https://github.com/Revaea/i0c.cc} for repository info.
  */
 
-import {
-  resolveHttpAnalyticsSinkConfig
-} from "@i0c/plugin-analytics-sink-http/config";
-import {
-  HTTP_ANALYTICS_SINK_PLUGIN_ID,
-  httpAnalyticsSinkManifest
-} from "@i0c/plugin-analytics-sink-http/manifest";
+import type { JsonObject } from "@i0c/plugin-api";
 
-import { isRuntimePluginEnabled } from "@/plugins/registry";
+import { resolveRuntimePluginConfigurations } from "@/plugins/registry";
 
 import {
   deriveAttributionHmacKey,
@@ -37,7 +31,8 @@ let attributionKeyCache: {
 
 export interface AnalyticsDeliveryConfig {
   endpoint: string;
-  maximumDeliveryAttempts: number;
+  pluginConfig?: JsonObject;
+  pluginId: string;
   sourceId: string;
   writeKey: string;
 }
@@ -62,26 +57,22 @@ export async function resolveAnalyticsSettings(
 ): Promise<AnalyticsRuntimeSettings> {
   const sourceId = normalizeAnalyticsHostname(runtime.dataConfig.analytics.sourceId) ?? undefined;
   const endpointValue = runtime.dataConfig.analytics.ingestEndpoint;
-  const sinkDeclaration = runtime.dataConfig.plugins[HTTP_ANALYTICS_SINK_PLUGIN_ID];
-  const sinkEnabled = isRuntimePluginEnabled(
+  const sinkPlugin = resolveRuntimePluginConfigurations(
     runtime.dataConfig,
     {
       platformPluginId: runtime.platformPluginId,
+      pluginInstallations: runtime.pluginInstallations,
       runtimePlatformManifests: runtime.runtimePlatformManifests
-    },
-    HTTP_ANALYTICS_SINK_PLUGIN_ID
-  );
-  const writeKeyBinding = sinkDeclaration?.secrets?.writeKey
-    ?? httpAnalyticsSinkManifest.secrets.writeKey.defaultBinding
+    }
+  ).find((plugin) => plugin.manifest.kind === "analytics-sink");
+  const writeKeyBinding = sinkPlugin?.declaration.secrets?.writeKey
+    ?? sinkPlugin?.manifest.secrets.writeKey?.defaultBinding
     ?? ANALYTICS_WRITE_KEY;
   const writeKey = readRuntimeSecret(
     runtime.envBindings,
     writeKeyBinding,
     runtime.readEnvironment
   )?.trim();
-  const { maximumDeliveryAttempts } = resolveHttpAnalyticsSinkConfig(
-    sinkDeclaration?.config
-  );
   const sourceHostname = sourceId;
   let attributionKey: ArrayBuffer | undefined;
   if (writeKey && writeKey.length >= 32) {
@@ -93,14 +84,17 @@ export async function resolveAnalyticsSettings(
   }
 
   let delivery: AnalyticsDeliveryConfig | null = null;
-  if (sinkEnabled && endpointValue && sourceId && writeKey && writeKey.length >= 32) {
+  if (sinkPlugin && endpointValue && sourceId && writeKey && writeKey.length >= 32) {
     try {
       const endpoint = new URL(endpointValue);
       const isLocalHttp = endpoint.protocol === "http:" && isLoopbackHost(endpoint.hostname);
       if ((endpoint.protocol === "https:" || isLocalHttp) && !endpoint.username && !endpoint.password) {
         delivery = {
           endpoint: endpoint.toString(),
-          maximumDeliveryAttempts,
+          ...(sinkPlugin.declaration.config
+            ? { pluginConfig: sinkPlugin.declaration.config }
+            : {}),
+          pluginId: sinkPlugin.manifest.id,
           sourceId,
           writeKey
         };

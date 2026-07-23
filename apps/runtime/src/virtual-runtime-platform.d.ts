@@ -6,4 +6,5 @@ declare module "virtual:i0c-runtime-platform" {
 
   export const installedRuntimePlatformManifests: readonly RuntimePlatformManifest[]
   export const runtimePlatformPlugin: RuntimePlatformPlugin
+  export const selectedRuntimePlatformManifest: RuntimePlatformManifest
 }

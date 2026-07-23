@@ -1,22 +1,12 @@
 {
-  "name": "@i0c/runtime-host",
+  "name": "@i0c/webui-fixture-external",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Revaea/i0c.cc.git"
-  },
   "exports": {
-    ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
-    },
-    "./installations": {
-      "types": "./src/installations.ts",
-      "default": "./src/installations.ts"
-    }
+    "./extension": "./src/extension.ts",
+    "./installation": "./webui.extensions.ts"
   },
   "sideEffects": false,
   "scripts": {
@@ -25,8 +15,6 @@
     "test": "tsx --test tests/**/*.test.ts"
   },
   "dependencies": {
-    "@i0c/analytics-domain": "workspace:*",
-    "@i0c/config": "workspace:*",
     "@i0c/plugin-api": "workspace:*"
   },
   "devDependencies": {
