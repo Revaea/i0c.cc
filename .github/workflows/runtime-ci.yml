@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/runtime-ci.yml
       - i0c.runtime.config.ts
+      - i0c.runtime.manifests.ts
       - apps/runtime/**
       - packages/config/**
       - packages/plugin-api/**
@@ -28,6 +29,7 @@ on:
     paths:
       - .github/workflows/runtime-ci.yml
       - i0c.runtime.config.ts
+      - i0c.runtime.manifests.ts
       - apps/runtime/**
       - packages/config/**
       - packages/plugin-api/**
