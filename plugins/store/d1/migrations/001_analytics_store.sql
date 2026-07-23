@@ -1,10 +1,14 @@
 PRAGMA foreign_keys = ON;
 
+-- d1-statement-breakpoint
+
 CREATE TABLE IF NOT EXISTS analytics_source (
   source_id TEXT PRIMARY KEY,
   created_at TEXT NOT NULL DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')),
   updated_at TEXT NOT NULL DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
+
+-- d1-statement-breakpoint
 
 CREATE TABLE IF NOT EXISTS analytics_link (
   source_id TEXT NOT NULL,
@@ -17,6 +21,8 @@ CREATE TABLE IF NOT EXISTS analytics_link (
   FOREIGN KEY (source_id) REFERENCES analytics_source(source_id)
 );
 
+-- d1-statement-breakpoint
+
 CREATE TABLE IF NOT EXISTS analytics_upstream_claim (
   source_id TEXT NOT NULL,
   upstream_event_id TEXT NOT NULL,
@@ -26,6 +32,8 @@ CREATE TABLE IF NOT EXISTS analytics_upstream_claim (
   last_seen_at TEXT NOT NULL DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')),
   PRIMARY KEY (source_id, upstream_event_id)
 );
+
+-- d1-statement-breakpoint
 
 CREATE TABLE IF NOT EXISTS analytics_event (
   event_id TEXT PRIMARY KEY,
@@ -65,17 +73,27 @@ CREATE TABLE IF NOT EXISTS analytics_event (
   )
 );
 
+-- d1-statement-breakpoint
+
 CREATE INDEX IF NOT EXISTS analytics_event_source_time_idx
   ON analytics_event (source_id, occurred_at DESC);
+
+-- d1-statement-breakpoint
 
 CREATE INDEX IF NOT EXISTS analytics_event_source_domain_time_idx
   ON analytics_event (source_id, entry_domain, occurred_at DESC);
 
+-- d1-statement-breakpoint
+
 CREATE INDEX IF NOT EXISTS analytics_event_link_time_idx
   ON analytics_event (source_id, analytics_id, occurred_at DESC);
 
+-- d1-statement-breakpoint
+
 CREATE INDEX IF NOT EXISTS analytics_event_received_idx
   ON analytics_event (received_at);
+
+-- d1-statement-breakpoint
 
 CREATE TABLE IF NOT EXISTS analytics_stats_hourly (
   bucket_start TEXT NOT NULL,
@@ -89,6 +107,8 @@ CREATE TABLE IF NOT EXISTS analytics_stats_hourly (
   PRIMARY KEY (bucket_start, source_id, entry_domain, analytics_id)
 );
 
+-- d1-statement-breakpoint
+
 CREATE TABLE IF NOT EXISTS analytics_stats_daily (
   bucket_day TEXT NOT NULL,
   source_id TEXT NOT NULL,
@@ -100,6 +120,8 @@ CREATE TABLE IF NOT EXISTS analytics_stats_daily (
   error_estimated_requests REAL NOT NULL DEFAULT 0,
   PRIMARY KEY (bucket_day, source_id, entry_domain, analytics_id)
 );
+
+-- d1-statement-breakpoint
 
 CREATE TRIGGER IF NOT EXISTS analytics_event_rollup_hourly_after_insert
 AFTER INSERT ON analytics_event
@@ -130,6 +152,8 @@ BEGIN
     error_observed_requests = error_observed_requests + excluded.error_observed_requests,
     error_estimated_requests = error_estimated_requests + excluded.error_estimated_requests;
 END;
+
+-- d1-statement-breakpoint
 
 CREATE TRIGGER IF NOT EXISTS analytics_event_rollup_daily_after_insert
 AFTER INSERT ON analytics_event

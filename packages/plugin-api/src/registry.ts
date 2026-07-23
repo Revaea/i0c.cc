@@ -39,19 +39,25 @@ export class StaticPluginRegistry {
   ) {
     const issues: PluginRegistryIssue[] = []
     const byId = new Map<string, PluginManifest>()
-    for (const manifest of manifests) {
+    for (const [index, manifest] of manifests.entries()) {
       const result = validatePluginManifest(manifest)
+      const manifestId = manifest !== null
+        && typeof manifest === "object"
+        && "id" in manifest
+        && typeof manifest.id === "string"
+        ? manifest.id
+        : `invalid-${index}`
       issues.push(...result.issues.map((message) => ({
-        path: `/manifests/${escapeJsonPointer(manifest.id)}`,
+        path: `/manifests/${escapeJsonPointer(manifestId)}`,
         message,
       })))
-      if (byId.has(manifest.id)) {
+      if (byId.has(manifestId)) {
         issues.push({
-          path: `/manifests/${escapeJsonPointer(manifest.id)}`,
+          path: `/manifests/${escapeJsonPointer(manifestId)}`,
           message: "plugin ID is registered more than once",
         })
       }
-      byId.set(manifest.id, manifest)
+      byId.set(manifestId, manifest)
     }
     if (issues.length > 0) {
       throw new TypeError(formatRegistryIssues(issues))
@@ -97,7 +103,12 @@ export class StaticPluginRegistry {
           message: `must be ${manifest.config.version}`,
         })
       }
-      if (declaration.config && manifest.config.schema) {
+      if (manifest.config.required && declaration.config === undefined) {
+        issues.push({
+          path: `${path}/config`,
+          message: "is required",
+        })
+      } else if (declaration.config !== undefined && manifest.config.schema) {
         issues.push(...validateJsonSchema(
           manifest.config.schema,
           declaration.config,

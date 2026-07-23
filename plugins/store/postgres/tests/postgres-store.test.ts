@@ -26,6 +26,27 @@ test("reports a missing database secret without connecting", async () => {
   })
 })
 
+test("treats a whitespace-only database secret as unconfigured", () => {
+  const store = createPostgresAnalyticsStore(
+    defaultPostgresAnalyticsStoreConfig,
+    { connectionString: "   ", development: false },
+  )
+
+  assert.equal(store.configured, false)
+})
+
+test("rejects an empty retention source instead of pruning every source", async () => {
+  const store = createPostgresAnalyticsStore(
+    defaultPostgresAnalyticsStoreConfig,
+    { connectionString: null, development: false },
+  )
+
+  await assert.rejects(
+    store.runRetention({ sourceId: "  " }),
+    /sourceId must not be empty/,
+  )
+})
+
 test("owns the ordered PostgreSQL migration set", async () => {
   const directory = fileURLToPath(new URL("../migrations/", import.meta.url))
   const filenames = (await readdir(directory))

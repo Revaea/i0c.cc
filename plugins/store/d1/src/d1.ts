@@ -45,6 +45,17 @@ export async function d1Run(
   return result
 }
 
+export async function d1Batch(
+  database: D1Database,
+  statements: readonly D1PreparedStatement[],
+): Promise<D1Result[]> {
+  const results = await database.batch(statements)
+  for (const result of results) {
+    assertD1Result(result)
+  }
+  return results
+}
+
 export function assertD1Result(result: D1Result): void {
   if (!result.success) {
     throw new Error(result.error || "D1 operation failed")

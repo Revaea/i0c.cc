@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url"
 import Ajv, { type AnySchema, type ErrorObject } from "ajv"
 import addFormats from "ajv-formats"
 
-import { findRedirectConfigSemanticIssues } from "../src/lib/redirects/config-semantics"
+import { validateRedirectsConfig } from "@i0c/config"
 
 interface RedirectSource {
   label: string
@@ -147,15 +147,15 @@ function main() {
     return
   }
 
-  const semanticIssues = findRedirectConfigSemanticIssues(data)
-  if (semanticIssues.length > 0) {
+  const sharedResult = validateRedirectsConfig(data)
+  if (sharedResult.status === "invalid") {
     console.error(`Redirect config failed semantic validation: ${input.label}`)
-    for (const issue of semanticIssues.slice(0, 8)) {
+    for (const issue of sharedResult.issues.slice(0, 8)) {
       console.error(`- ${issue.path} ${issue.message}`)
     }
 
-    if (semanticIssues.length > 8) {
-      console.error(`... and ${semanticIssues.length - 8} more`)
+    if (sharedResult.issues.length > 8) {
+      console.error(`... and ${sharedResult.issues.length - 8} more`)
     }
 
     process.exitCode = 1

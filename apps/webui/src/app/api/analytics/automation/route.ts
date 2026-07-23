@@ -4,6 +4,7 @@ import {
   createWebUiAuthorizationErrorResponse,
   getWebUiReadRequestAuthorization,
 } from "@/auth/authorization";
+import { createPrivateAnalyticsJsonResponse } from "@/lib/analytics/api-response";
 import { parseAnalyticsQueryScope } from "@/lib/analytics/query-input";
 import {
   getAnalyticsAutomationOverview,
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    return NextResponse.json(
+    return createPrivateAnalyticsJsonResponse(
       await getAnalyticsAutomationOverview(scope),
     );
   } catch (error) {

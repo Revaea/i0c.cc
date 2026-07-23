@@ -1,9 +1,8 @@
 import Ajv, { type AnySchema, type ValidateFunction } from "ajv";
 import addFormats from "ajv-formats";
 
+import { validateRedirectsConfig } from "@i0c/config";
 import redirectsSchema from "@i0c/config/redirects.schema.json";
-
-import { findRedirectConfigSemanticIssues } from "./config-semantics";
 
 export interface RedirectConfigValidationIssue {
   message: string;
@@ -57,8 +56,8 @@ export function validateRedirectConfig(value: unknown): RedirectConfigValidation
     };
   }
 
-  const semanticIssues = findRedirectConfigSemanticIssues(value);
-  return semanticIssues.length > 0
-    ? { status: "invalid", issues: semanticIssues }
+  const sharedResult = validateRedirectsConfig(value);
+  return sharedResult.status === "invalid"
+    ? { status: "invalid", issues: sharedResult.issues }
     : { status: "valid" };
 }

@@ -71,16 +71,20 @@ export function createHttpAnalyticsSink<
       ) {
         let response: Response
         try {
-          response = await context.fetchImpl(context.endpoint, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Analytics-Timestamp": timestamp,
-              "X-Analytics-Signature": signatureHeader,
+          response = await fetchWithTimeout(
+            context,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Analytics-Timestamp": timestamp,
+                "X-Analytics-Signature": signatureHeader,
+              },
+              body,
+              redirect: "manual",
             },
-            body,
-            redirect: "manual",
-          })
+            config.requestTimeoutMs,
+          )
         } catch (error) {
           if (attempt === config.maximumDeliveryAttempts) {
             throw error
@@ -106,6 +110,23 @@ export function createHttpAnalyticsSink<
 export const httpAnalyticsSinkPlugin = {
   manifest: httpAnalyticsSinkManifest,
   create: createHttpAnalyticsSink,
+}
+
+async function fetchWithTimeout(
+  context: HttpAnalyticsSinkContext,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await context.fetchImpl(context.endpoint, {
+      ...init,
+      signal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 async function discardResponse(response: Response): Promise<void> {

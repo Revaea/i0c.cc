@@ -12,18 +12,23 @@ import {
 import { validateInstanceDataConfig } from "@/lib/configuration/validation";
 import { resolveWebUiPlugins } from "@/lib/plugins/registry";
 
+import { EffectiveDataConfigCache } from "./effective-data-config-cache";
+
 interface DataConfigDocument {
   config: DataConfig;
   document: GitHubDataDocumentPayload;
 }
 
-interface DataConfigCacheEntry {
-  config: DataConfig;
-  expiresAt: number;
-}
-
-let cachedDataConfig: DataConfigCacheEntry | undefined;
-let inFlightDataConfig: Promise<DataConfig> | undefined;
+const effectiveDataConfigCache = new EffectiveDataConfigCache({
+  adoptCacheSeconds: 5,
+  defaultConfig: defaultDataConfig,
+  failureRetrySeconds: 10,
+  loadRemote: async () => (await readDataConfigDocument()).config,
+  onLoadError: (error) => {
+    console.error("Failed to load remote instance config", error);
+  },
+  successCacheSeconds: () => 0,
+});
 
 export async function readDataConfigDocument(
   accessToken?: string,
@@ -42,27 +47,15 @@ export function readRawDataConfigDocument(
 }
 
 export async function getEffectiveDataConfig(): Promise<DataConfig> {
-  const now = Date.now();
-  if (cachedDataConfig && cachedDataConfig.expiresAt > now) {
-    return cachedDataConfig.config;
-  }
-  if (inFlightDataConfig) {
-    return inFlightDataConfig;
-  }
-
-  const load = loadEffectiveDataConfig(now);
-  inFlightDataConfig = load;
-  try {
-    return await load;
-  } finally {
-    if (inFlightDataConfig === load) {
-      inFlightDataConfig = undefined;
-    }
-  }
+  return (await effectiveDataConfigCache.get()).config;
 }
 
-export function invalidateDataConfigCache(): void {
-  cachedDataConfig = undefined;
+export function getAuthoritativeDataConfig(): Promise<DataConfig> {
+  return effectiveDataConfigCache.getAuthoritative();
+}
+
+export function adoptDataConfigCache(config: DataConfig): void {
+  effectiveDataConfigCache.adopt(config);
 }
 
 export function parseDataConfig(content: string): DataConfig {
@@ -88,23 +81,4 @@ export function parseDataConfig(content: string): DataConfig {
     ...(remainingCount > 0 ? [`and ${remainingCount} more`] : []),
   ].join("; ");
   throw new Error(`Instance config validation failed: ${details}`);
-}
-
-async function loadEffectiveDataConfig(now: number): Promise<DataConfig> {
-  try {
-    const { config } = await readDataConfigDocument();
-    cachedDataConfig = {
-      config,
-      expiresAt: Date.now() + config.runtime.configCacheTtlSeconds * 1000,
-    };
-    return config;
-  } catch (error) {
-    console.error("Failed to load remote instance config", error);
-    const config = cachedDataConfig?.config ?? defaultDataConfig;
-    cachedDataConfig = {
-      config,
-      expiresAt: now + Math.min(60, config.runtime.configCacheTtlSeconds) * 1000,
-    };
-    return config;
-  }
 }

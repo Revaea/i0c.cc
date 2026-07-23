@@ -102,7 +102,9 @@
           "description": "Lower numbers run first when multiple rules share a base path.",
           "oneOf": [
             {
-              "type": "integer"
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
             },
             {
               "type": "string",
@@ -120,7 +122,24 @@
             "required": ["type"]
           },
           "then": {
-            "not": { "required": ["status"] }
+            "allOf": [
+              {
+                "not": { "required": ["status"] }
+              },
+              {
+                "properties": {
+                  "target": {
+                    "pattern": "^[Hh][Tt][Tt][Pp][Ss]?://(?![^/?#]*@)"
+                  },
+                  "to": {
+                    "pattern": "^[Hh][Tt][Tt][Pp][Ss]?://(?![^/?#]*@)"
+                  },
+                  "url": {
+                    "pattern": "^[Hh][Tt][Tt][Pp][Ss]?://(?![^/?#]*@)"
+                  }
+                }
+              }
+            ]
           }
         },
         {

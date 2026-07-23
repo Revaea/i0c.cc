@@ -40,6 +40,8 @@ export interface UpdateDataDocumentResult {
 
 export interface GitHubDataReadOptions {
   accessToken?: string
+  cacheTags?: readonly string[]
+  cacheMode?: "default" | "no-store"
   sourceUrl?: string | null
 }
 
@@ -50,6 +52,7 @@ export interface GitHubDataWriteInput extends UpdateDataDocumentInput {
 export interface GitHubRequestInit extends RequestInit {
   next?: {
     revalidate: number
+    tags?: string[]
   }
 }
 
@@ -84,9 +87,16 @@ export function createGitHubContentsRepository(
         `${url}?ref=${encodeURIComponent(target.branch)}`,
         {
           headers: buildHeaders(options.accessToken),
-          ...(options.accessToken
+          ...(options.accessToken || options.cacheMode === "no-store"
             ? { cache: "no-store" as const }
-            : { next: { revalidate: config.publicRevalidateSeconds } }),
+            : {
+                next: {
+                  revalidate: config.publicRevalidateSeconds,
+                  ...(options.cacheTags?.length
+                    ? { tags: [...options.cacheTags] }
+                    : {}),
+                },
+              }),
         },
       )
 

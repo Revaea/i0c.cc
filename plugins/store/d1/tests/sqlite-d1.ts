@@ -1,7 +1,6 @@
 import {
   DatabaseSync,
   type SQLInputValue,
-  type StatementSync,
 } from "node:sqlite"
 
 import type {
@@ -13,9 +12,10 @@ import type {
 
 export class SQLiteD1Database implements D1Database {
   readonly database = new DatabaseSync(":memory:")
+  private nextBatchFailureIndex: number | undefined
 
   prepare(query: string): D1PreparedStatement {
-    return new SQLiteD1Statement(this.database.prepare(query))
+    return new SQLiteD1Statement(this.database, query)
   }
 
   async batch<T = Record<string, unknown>>(
@@ -23,15 +23,20 @@ export class SQLiteD1Database implements D1Database {
   ): Promise<D1Result<T>[]> {
     this.database.exec("BEGIN IMMEDIATE")
     try {
-      const results = statements.map((statement) => {
+      const results = statements.map((statement, index) => {
+        if (index === this.nextBatchFailureIndex) {
+          throw new Error(`Injected D1 batch failure at statement ${index}`)
+        }
         if (!(statement instanceof SQLiteD1Statement)) {
           throw new Error("SQLite D1 tests received an incompatible statement")
         }
         return statement.runSync<T>()
       })
+      this.nextBatchFailureIndex = undefined
       this.database.exec("COMMIT")
       return results
     } catch (error) {
+      this.nextBatchFailureIndex = undefined
       this.database.exec("ROLLBACK")
       throw error
     }
@@ -46,25 +51,32 @@ export class SQLiteD1Database implements D1Database {
   close(): void {
     this.database.close()
   }
+
+  failNextBatchAt(index: number): void {
+    this.nextBatchFailureIndex = index
+  }
 }
 
 class SQLiteD1Statement implements D1PreparedStatement {
   constructor(
-    private readonly statement: StatementSync,
+    private readonly database: DatabaseSync,
+    private readonly query: string,
     private readonly values: readonly SQLInputValue[] = [],
   ) {}
 
   bind(...values: readonly unknown[]): D1PreparedStatement {
     return new SQLiteD1Statement(
-      this.statement,
+      this.database,
+      this.query,
       values.map(toSqliteValue),
     )
   }
 
   async all<T = Record<string, unknown>>(): Promise<D1Result<T>> {
+    const statement = this.database.prepare(this.query)
     return {
       success: true,
-      results: this.statement.all(...this.values) as T[],
+      results: statement.all(...this.values) as T[],
       meta: { changes: 0 },
     }
   }
@@ -72,7 +84,8 @@ class SQLiteD1Statement implements D1PreparedStatement {
   async first<T = Record<string, unknown>>(
     columnName?: string,
   ): Promise<T | null> {
-    const row = this.statement.get(...this.values) as Record<string, unknown> | undefined
+    const statement = this.database.prepare(this.query)
+    const row = statement.get(...this.values) as Record<string, unknown> | undefined
     if (!row) {
       return null
     }
@@ -84,7 +97,8 @@ class SQLiteD1Statement implements D1PreparedStatement {
   }
 
   runSync<T = Record<string, unknown>>(): D1Result<T> {
-    const result = this.statement.run(...this.values)
+    const statement = this.database.prepare(this.query)
+    const result = statement.run(...this.values)
     return {
       success: true,
       results: [],

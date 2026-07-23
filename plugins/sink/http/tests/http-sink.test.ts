@@ -6,11 +6,22 @@ import {
   assertPluginManifest,
 } from "@i0c/plugin-testkit"
 
+import {
+  defaultHttpAnalyticsSinkConfig,
+  resolveHttpAnalyticsSinkConfig,
+} from "../src/config"
 import { httpAnalyticsSinkManifest } from "../src/manifest"
 import { createHttpAnalyticsSink } from "../src/runtime"
 
 test("declares a valid HTTP sink manifest", () => {
   assertPluginManifest(httpAnalyticsSinkManifest)
+})
+
+test("bounds delivery attempts and timeouts when resolving direct input", () => {
+  assert.deepEqual(resolveHttpAnalyticsSinkConfig({
+    maximumDeliveryAttempts: 6,
+    requestTimeoutMs: 5_001,
+  }), defaultHttpAnalyticsSinkConfig)
 })
 
 test("signs and delivers an analytics event", async () => {
@@ -20,7 +31,7 @@ test("signs and delivers an analytics event", async () => {
     endpoint: string
     fetchImpl: typeof fetch
     writeKey?: string
-  }>({ maximumDeliveryAttempts: 2 })
+  }>({ maximumDeliveryAttempts: 2, requestTimeoutMs: 5_000 })
 
   await assertAnalyticsSinkContract({
     sink,
@@ -48,7 +59,10 @@ test("signs and delivers an analytics event", async () => {
 
 test("retries only transient collector failures", async () => {
   let attempts = 0
-  const sink = createHttpAnalyticsSink({ maximumDeliveryAttempts: 2 })
+  const sink = createHttpAnalyticsSink({
+    maximumDeliveryAttempts: 2,
+    requestTimeoutMs: 5_000,
+  })
 
   await sink.emit(
     { eventKind: "runtime" },
@@ -64,4 +78,27 @@ test("retries only transient collector failures", async () => {
   )
 
   assert.equal(attempts, 2)
+})
+
+test("aborts a stalled collector request after the configured timeout", async () => {
+  const sink = createHttpAnalyticsSink({
+    maximumDeliveryAttempts: 1,
+    requestTimeoutMs: 100,
+  })
+
+  await assert.rejects(() => sink.emit(
+    { eventKind: "runtime" },
+    {
+      completedAt: 1_000,
+      endpoint: "https://collector.example/events",
+      writeKey: "0123456789abcdef0123456789abcdef",
+      fetchImpl(_input, init) {
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            reject(new DOMException("The operation was aborted", "AbortError"))
+          }, { once: true })
+        })
+      },
+    },
+  ), { name: "AbortError" })
 })

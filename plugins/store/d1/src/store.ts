@@ -33,16 +33,12 @@ import {
   type D1AnalyticsLinkRecord,
 } from "./aggregation"
 import type { D1AnalyticsStoreConfig } from "./config"
-import type { D1Database, D1Result } from "./d1"
-import { assertD1Result, d1All, d1Run } from "./d1"
+import type { D1Database, D1PreparedStatement, D1Result } from "./d1"
+import { assertD1Result, d1All, d1Batch } from "./d1"
 import { d1AnalyticsStoreManifest } from "./manifest"
 import type { D1AnalyticsStoreTypes } from "./types"
 
 const DAY_MS = 24 * 60 * 60 * 1000
-
-interface CountRow {
-  count: number
-}
 
 interface QueryContext {
   range: QueryRange
@@ -103,15 +99,15 @@ async function ingestD1Event(
   database: D1Database,
   event: D1AnalyticsStoreTypes["event"],
 ): Promise<D1AnalyticsStoreTypes["ingestResult"]> {
-  await d1Run(database.prepare(`
+  const statements: D1PreparedStatement[] = [database.prepare(`
     INSERT INTO analytics_source (source_id)
     VALUES (?)
     ON CONFLICT (source_id) DO UPDATE SET
       updated_at = STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')
-  `).bind(event.sourceId))
+  `).bind(event.sourceId)]
 
   if (event.eventKind === "link") {
-    await d1Run(database.prepare(`
+    statements.push(database.prepare(`
       INSERT INTO analytics_link (
         source_id,
         analytics_id,
@@ -144,10 +140,93 @@ async function ingestD1Event(
     ))
   }
 
-  const attribution = event.eventKind === "link"
-    ? await resolveD1Attribution(database, event)
-    : { isEntry: true, didCreateClaim: false }
-  const result = await d1Run(database.prepare(`
+  const attribution = resolveD1Attribution(event)
+  if (attribution) {
+    statements.push(database.prepare(`
+      INSERT INTO analytics_upstream_claim (
+        source_id,
+        upstream_event_id,
+        downstream_event_id,
+        upstream_analytics_id
+      )
+      SELECT ?, ?, ?, ?
+      WHERE NOT EXISTS (
+        SELECT 1 FROM analytics_event WHERE event_id = ?
+      )
+      ON CONFLICT (source_id, upstream_event_id) DO NOTHING
+    `).bind(
+      event.sourceId,
+      attribution.upstreamEventId,
+      event.eventId,
+      attribution.upstreamAnalyticsId,
+      event.eventId,
+    ))
+  }
+
+  const eventStatementIndex = statements.length
+  statements.push(createD1EventInsertStatement(database, event, attribution))
+
+  if (attribution) {
+    statements.push(database.prepare(`
+      UPDATE analytics_upstream_claim
+      SET last_seen_at = STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')
+      WHERE source_id = ?
+        AND upstream_event_id = ?
+        AND downstream_event_id = ?
+    `).bind(event.sourceId, attribution.upstreamEventId, event.eventId))
+  }
+
+  const results = await d1Batch(database, statements)
+  const eventResult = results[eventStatementIndex]
+  if (!eventResult) {
+    throw new Error("D1 ingest batch returned no event result")
+  }
+  return { isDuplicate: readChanges(eventResult) === 0 }
+}
+
+interface D1Attribution {
+  upstreamAnalyticsId: string
+  upstreamEventId: string
+}
+
+function resolveD1Attribution(
+  event: D1AnalyticsStoreTypes["event"],
+): D1Attribution | null {
+  if (
+    event.eventKind !== "link"
+    || !event.upstreamEventId
+    || !event.upstreamAnalyticsId
+    || !event.upstreamEntryDomain
+    || !event.upstreamProvider
+  ) {
+    return null
+  }
+
+  return {
+    upstreamAnalyticsId: event.upstreamAnalyticsId,
+    upstreamEventId: event.upstreamEventId,
+  }
+}
+
+function createD1EventInsertStatement(
+  database: D1Database,
+  event: D1AnalyticsStoreTypes["event"],
+  attribution: D1Attribution | null,
+): D1PreparedStatement {
+  const isEntrySql = attribution
+    ? `CASE WHEN EXISTS (
+        SELECT 1
+        FROM analytics_upstream_claim
+        WHERE source_id = ?
+          AND upstream_event_id = ?
+          AND downstream_event_id = ?
+      ) THEN 0 ELSE 1 END`
+    : "?"
+  const isEntryBindings: readonly unknown[] = attribution
+    ? [event.sourceId, attribution.upstreamEventId, event.eventId]
+    : [1]
+
+  return database.prepare(`
     INSERT INTO analytics_event (
       event_id,
       schema_version,
@@ -180,7 +259,7 @@ async function ingestD1Event(
       latency_ms
     )
     VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${isEntrySql}, ?, ?, ?
     )
     ON CONFLICT (event_id) DO NOTHING
   `).bind(
@@ -209,73 +288,11 @@ async function ingestD1Event(
     event.eventKind === "link" ? event.campaignId : null,
     event.eventKind === "link" ? event.upstreamEventId : null,
     event.eventKind === "link" ? event.upstreamAnalyticsId : null,
-    attribution.isEntry ? 1 : 0,
+    ...isEntryBindings,
     event.probeCategory,
     event.sampleRate,
     event.latencyMs,
-  ))
-
-  const isDuplicate = readChanges(result) === 0
-  if (
-    isDuplicate
-    && attribution.didCreateClaim
-    && event.eventKind === "link"
-    && event.upstreamEventId
-  ) {
-    await d1Run(database.prepare(`
-      DELETE FROM analytics_upstream_claim
-      WHERE source_id = ?
-        AND upstream_event_id = ?
-        AND downstream_event_id = ?
-    `).bind(event.sourceId, event.upstreamEventId, event.eventId))
-  }
-  return { isDuplicate }
-}
-
-async function resolveD1Attribution(
-  database: D1Database,
-  event: Extract<D1AnalyticsStoreTypes["event"], { eventKind: "link" }>,
-): Promise<{ isEntry: boolean; didCreateClaim: boolean }> {
-  if (
-    !event.upstreamEventId
-    || !event.upstreamAnalyticsId
-    || !event.upstreamEntryDomain
-    || !event.upstreamProvider
-  ) {
-    return { isEntry: true, didCreateClaim: false }
-  }
-
-  const claimResult = await d1Run(database.prepare(`
-    INSERT INTO analytics_upstream_claim (
-      source_id,
-      upstream_event_id,
-      downstream_event_id,
-      upstream_analytics_id
-    )
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT (source_id, upstream_event_id) DO NOTHING
-  `).bind(
-    event.sourceId,
-    event.upstreamEventId,
-    event.eventId,
-    event.upstreamAnalyticsId,
-  ))
-  const didCreateClaim = readChanges(claimResult) > 0
-  const claims = await d1All<{ downstreamEventId: string }>(database.prepare(`
-    SELECT downstream_event_id AS downstreamEventId
-    FROM analytics_upstream_claim
-    WHERE source_id = ? AND upstream_event_id = ?
-    LIMIT 1
-  `).bind(event.sourceId, event.upstreamEventId))
-  const isEntry = claims[0]?.downstreamEventId !== event.eventId
-  if (!isEntry) {
-    await d1Run(database.prepare(`
-      UPDATE analytics_upstream_claim
-      SET last_seen_at = STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')
-      WHERE source_id = ? AND upstream_event_id = ?
-    `).bind(event.sourceId, event.upstreamEventId))
-  }
-  return { isEntry, didCreateClaim }
+  )
 }
 
 async function queryOverview(
@@ -562,43 +579,37 @@ async function runD1Retention(
   config: D1AnalyticsStoreConfig,
   clock: () => Date,
 ): Promise<AnalyticsRetentionResult> {
+  const sourceId = scope.sourceId?.trim()
+  if (scope.sourceId !== undefined && !sourceId) {
+    throw new Error("Analytics retention sourceId must not be empty")
+  }
   const cutoffAt = new Date(clock().getTime() - config.retentionDays * DAY_MS)
     .toISOString()
-  const sourceClause = scope.sourceId ? " AND source_id = ?" : ""
-  const values = scope.sourceId ? [cutoffAt, scope.sourceId] : [cutoffAt]
-  const rows = await d1All<{ eventKind: "link" | "runtime"; count: number }>(
-    database.prepare(`
-      SELECT event_kind AS eventKind, COUNT(*) AS count
-      FROM analytics_event
-      WHERE received_at < ?${sourceClause}
-      GROUP BY event_kind
-    `).bind(...values),
-  )
-  const claims = await d1All<CountRow>(database.prepare(`
-    SELECT COUNT(*) AS count
-    FROM analytics_upstream_claim
-    WHERE last_seen_at < ?${sourceClause}
-  `).bind(...values))
-  const deleteResults = await database.batch([
+  const sourceClause = sourceId ? " AND source_id = ?" : ""
+  const values = sourceId ? [cutoffAt, sourceId] : [cutoffAt]
+  const deleteResults = await d1Batch(database, [
     database.prepare(`
       DELETE FROM analytics_event
-      WHERE received_at < ?${sourceClause}
+      WHERE event_kind = 'link' AND received_at < ?${sourceClause}
+    `).bind(...values),
+    database.prepare(`
+      DELETE FROM analytics_event
+      WHERE event_kind = 'runtime' AND received_at < ?${sourceClause}
     `).bind(...values),
     database.prepare(`
       DELETE FROM analytics_upstream_claim
       WHERE last_seen_at < ?${sourceClause}
     `).bind(...values),
   ])
-  deleteResults.forEach(assertD1Result)
 
   return {
     retentionDays: config.retentionDays,
     cutoffAt,
     deleted: {
-      accessEvents: rows.find((row) => row.eventKind === "link")?.count ?? 0,
-      runtimeEvents: rows.find((row) => row.eventKind === "runtime")?.count ?? 0,
+      accessEvents: readChanges(deleteResults[0]),
+      runtimeEvents: readChanges(deleteResults[1]),
       eventReceipts: 0,
-      upstreamClaims: claims[0]?.count ?? 0,
+      upstreamClaims: readChanges(deleteResults[2]),
     },
   }
 }

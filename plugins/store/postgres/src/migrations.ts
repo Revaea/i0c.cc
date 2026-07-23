@@ -5,13 +5,14 @@ import { fileURLToPath } from "node:url"
 
 import postgres, { type Sql } from "postgres"
 
-import type {
-  PluginMigrationAction,
-  PluginMigrationApplyInput,
-  PluginMigrationApplyResult,
-  PluginMigrationPlan,
-  PluginMigrationProvider,
-  PluginMigrationStatus,
+import {
+  assertContinuousMigrationHistory,
+  type PluginMigrationAction,
+  type PluginMigrationApplyInput,
+  type PluginMigrationApplyResult,
+  type PluginMigrationPlan,
+  type PluginMigrationProvider,
+  type PluginMigrationStatus,
 } from "@i0c/plugin-api"
 
 interface MigrationFile {
@@ -42,6 +43,7 @@ export function createPostgresMigrationProvider(
       return withMigrationClient(options.connectionString, async (sql) => {
         const files = await readMigrationFiles(migrationsDirectory)
         const applied = await readAppliedMigrations(sql)
+        validateAppliedHistory(files, applied)
         validateAppliedChecksums(files, applied)
         const pending = files.filter((file) => !applied.has(file.filename))
 
@@ -56,6 +58,7 @@ export function createPostgresMigrationProvider(
       return withMigrationClient(options.connectionString, async (sql) => {
         const files = await readMigrationFiles(migrationsDirectory)
         const applied = await readAppliedMigrations(sql)
+        validateAppliedHistory(files, applied)
         validateAppliedChecksums(files, applied)
 
         return {
@@ -72,43 +75,58 @@ export function createPostgresMigrationProvider(
     ): Promise<PluginMigrationApplyResult> {
       return withMigrationClient(options.connectionString, async (sql) => {
         const files = await readMigrationFiles(migrationsDirectory)
-        await ensureMigrationTable(sql)
-        const applied = await readAppliedMigrations(sql)
-        validateAppliedChecksums(files, applied)
-        const previousVersion = resolveCurrentVersion(files, applied)
+        return withMigrationLock(sql, async () => {
+          await ensureMigrationTable(sql)
+          const applied = await readAppliedMigrations(sql)
+          validateAppliedHistory(files, applied)
+          validateAppliedChecksums(files, applied)
+          const previousVersion = resolveCurrentVersion(files, applied)
 
-        if (
-          input.expectedCurrentVersion !== undefined &&
-          input.expectedCurrentVersion !== previousVersion
-        ) {
-          throw new Error(
-            `Expected migration version ${input.expectedCurrentVersion ?? "none"}, found ${previousVersion ?? "none"}`,
-          )
-        }
-
-        const appliedNow: string[] = []
-        for (const file of files) {
-          if (applied.has(file.filename)) {
-            continue
+          if (
+            input.expectedCurrentVersion !== undefined &&
+            input.expectedCurrentVersion !== previousVersion
+          ) {
+            throw new Error(
+              `Expected migration version ${input.expectedCurrentVersion ?? "none"}, found ${previousVersion ?? "none"}`,
+            )
           }
 
-          await sql.begin(async (transaction) => {
-            await transaction.unsafe(file.sql)
-            await transaction`
-              INSERT INTO analytics_schema_migration (filename, checksum)
-              VALUES (${file.filename}, ${file.checksum})
-            `
-          })
-          appliedNow.push(file.filename)
-        }
+          const appliedNow: string[] = []
+          for (const file of files) {
+            if (applied.has(file.filename)) {
+              continue
+            }
 
-        return {
-          previousVersion,
-          currentVersion: resolveTargetVersion(files),
-          applied: appliedNow,
-        }
+            await sql.begin(async (transaction) => {
+              await transaction.unsafe(file.sql)
+              await transaction`
+                INSERT INTO analytics_schema_migration (filename, checksum)
+                VALUES (${file.filename}, ${file.checksum})
+              `
+            })
+            appliedNow.push(file.filename)
+          }
+
+          return {
+            previousVersion,
+            currentVersion: resolveTargetVersion(files),
+            applied: appliedNow,
+          }
+        })
       })
     },
+  }
+}
+
+async function withMigrationLock<T>(
+  sql: Sql,
+  operation: () => Promise<T>,
+): Promise<T> {
+  await sql`SELECT pg_advisory_lock(hashtext('i0c.analytics.migrations'))`
+  try {
+    return await operation()
+  } finally {
+    await sql`SELECT pg_advisory_unlock(hashtext('i0c.analytics.migrations'))`
   }
 }
 
@@ -185,6 +203,16 @@ function validateAppliedChecksums(
       throw new Error(`Applied migration has changed: ${file.filename}`)
     }
   }
+}
+
+function validateAppliedHistory(
+  files: readonly MigrationFile[],
+  applied: ReadonlyMap<string, string>,
+): void {
+  assertContinuousMigrationHistory(
+    files.map((file) => file.filename),
+    new Set(applied.keys()),
+  )
 }
 
 function resolveCurrentVersion(

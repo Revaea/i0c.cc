@@ -4,6 +4,8 @@ import type { JWT } from "next-auth/jwt";
 
 import type { WebUiAccessMode } from "@i0c/config";
 
+import { getAuthoritativeDataConfig } from "@/lib/configuration/data-config";
+
 import {
   applyWebUiTokenAuthorization as applyTokenAuthorization,
   canGitHubUserSignInForAccessMode,
@@ -11,7 +13,6 @@ import {
   isTokenAuthorizedForAccessMode,
   isValidGitHubUserId,
 } from "./token-authorization";
-import { getEffectiveDataConfig } from "@/lib/configuration/data-config";
 
 export { hasWebUiAccessToken } from "./token-authorization";
 
@@ -45,7 +46,7 @@ function parseAllowedGitHubUserIds(values: readonly string[]): ReadonlySet<strin
 }
 
 async function readWebUiAccessPolicy(): Promise<WebUiAccessPolicy> {
-  const config = await getEffectiveDataConfig();
+  const config = await getAuthoritativeDataConfig();
   const mode: WebUiAccessMode = config.webui.access.mode;
   const allowedGitHubUserIds = parseAllowedGitHubUserIds(
     config.webui.access.managerGitHubUserIds,

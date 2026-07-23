@@ -1,3 +1,4 @@
+import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 import test from "node:test"
 
@@ -20,7 +21,15 @@ test("passes the shared analytics store behavior contract", {
   }
 
   const migrations = createPostgresMigrationProvider({ connectionString })
-  await migrations.applyMigrations()
+  const concurrentMigrationResults = await Promise.all([
+    migrations.applyMigrations(),
+    migrations.applyMigrations(),
+  ])
+  const migrationStatus = await migrations.migrationStatus()
+  assert.equal(migrationStatus.pending, 0)
+  assert.ok(concurrentMigrationResults.every(
+    (result) => result.currentVersion === migrationStatus.targetVersion,
+  ))
   const store = createPostgresAnalyticsStore(
     defaultPostgresAnalyticsStoreConfig,
     {
@@ -82,6 +91,13 @@ test("passes the shared analytics store behavior contract", {
       occurredAt.getTime() - 182 * 24 * 60 * 60 * 1000,
     ).toISOString(),
   }
+  const otherSourceExpiredEvent: CanonicalAnalyticsLinkEvent = {
+    ...expiredEvent,
+    eventId: randomUUID(),
+    sourceId: `${sourceId}-retention-control`,
+    analyticsId: `${sourceId}-retention-control-link`,
+    routePath: "/retention-control",
+  }
 
   await assertAnalyticsStoreBehaviorContract<PostgresAnalyticsStoreTypes>({
     store,
@@ -103,11 +119,22 @@ test("passes the shared analytics store behavior contract", {
     },
     retentionScope: { sourceId },
     async prepareRetention() {
+      await store.ingest(otherSourceExpiredEvent)
       const sql = getDatabase()
       await sql`
         UPDATE access_event
         SET received_at = NOW() - INTERVAL '182 days'
         WHERE event_id = ${expiredEvent.eventId}
+      `
+      await sql`
+        UPDATE access_event
+        SET received_at = NOW() - INTERVAL '182 days'
+        WHERE event_id = ${otherSourceExpiredEvent.eventId}
+      `
+      await sql`
+        UPDATE analytics_event_receipt
+        SET received_at = NOW() - INTERVAL '182 days'
+        WHERE event_id = ${otherSourceExpiredEvent.eventId}
       `
       await sql`
         UPDATE analytics_event_receipt
@@ -130,4 +157,12 @@ test("passes the shared analytics store behavior contract", {
     getRetentionDeletedRawEvents: (result) =>
       result.deleted.accessEvents + result.deleted.runtimeEvents,
   })
+
+  const sql = getDatabase()
+  const [retentionControl] = await sql<{ count: number | string }[]>`
+    SELECT COUNT(*)::BIGINT AS count
+    FROM access_event
+    WHERE event_id = ${otherSourceExpiredEvent.eventId}
+  `
+  assert.equal(Number(retentionControl?.count ?? 0), 1)
 })

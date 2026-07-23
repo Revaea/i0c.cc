@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { DataConfig } from "@i0c/config";
+
 import { getEffectiveDataConfig } from "@/lib/configuration/data-config";
 
 const hostnameLabelPattern = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
@@ -16,9 +18,13 @@ function normalizeAnalyticsSourceId(value: string): string | null {
     : null;
 }
 
+export function resolveAnalyticsSourceId(config: DataConfig): string | null {
+  return normalizeAnalyticsSourceId(config.analytics.sourceId);
+}
+
 export async function readAnalyticsSourceId(): Promise<string | null> {
   const config = await getEffectiveDataConfig();
-  return normalizeAnalyticsSourceId(config.analytics.sourceId);
+  return resolveAnalyticsSourceId(config);
 }
 
 export function readAnalyticsIngestSecret(): string | null {

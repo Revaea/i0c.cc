@@ -1,3 +1,4 @@
+import { revalidateTag } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -7,11 +8,14 @@ import {
   getWebUiReadRequestAuthorization,
 } from "@/auth/authorization";
 import {
-  invalidateDataConfigCache,
+  adoptDataConfigCache,
   parseDataConfig,
   readRawDataConfigDocument,
 } from "@/lib/configuration/data-config";
-import { updateAppDataConfig } from "@/lib/github";
+import {
+  APP_DATA_CONFIG_CACHE_TAG,
+  updateAppDataConfig,
+} from "@/lib/github";
 
 const updateSchema = z.object({
   content: z.string().min(2, { message: "Config content is required" }),
@@ -53,8 +57,9 @@ export async function PUT(request: NextRequest) {
     );
   }
 
+  let config: ReturnType<typeof parseDataConfig>;
   try {
-    parseDataConfig(parsed.data.content);
+    config = parseDataConfig(parsed.data.content);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invalid instance config";
     return NextResponse.json({ error: message }, { status: 400 });
@@ -65,7 +70,8 @@ export async function PUT(request: NextRequest) {
       authorization.accessToken,
       parsed.data,
     );
-    invalidateDataConfigCache();
+    revalidateTag(APP_DATA_CONFIG_CACHE_TAG, { expire: 0 });
+    adoptDataConfigCache(config);
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

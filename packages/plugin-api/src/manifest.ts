@@ -19,6 +19,7 @@ export type PluginKind = (typeof pluginKinds)[number]
 export type PluginSlot = PluginKind | `feature:${string}`
 
 export interface PluginConfigurationManifest {
+  required?: boolean
   version: number
   schema?: JsonObject
 }

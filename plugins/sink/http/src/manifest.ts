@@ -15,7 +15,12 @@ export const httpAnalyticsSinkManifest = {
   kind: "analytics-sink",
   slot: "analytics-sink",
   hosts: ["runtime"],
-  capabilities: ["hmac-sha256", "retry:transient", "redirect:manual"],
+  capabilities: [
+    "hmac-sha256",
+    "retry:transient",
+    "redirect:manual",
+    "timeout:abort",
+  ],
   config: {
     version: 1,
     schema: httpAnalyticsSinkConfigSchema,

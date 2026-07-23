@@ -57,14 +57,15 @@ export function createPostgresAnalyticsStore(
   config: PostgresAnalyticsStoreConfig,
   services: PostgresAnalyticsStoreServices,
 ): PostgresAnalyticsStore {
+  const connectionString = services.connectionString?.trim() || null
   configurePostgresDatabase({
-    connectionString: services.connectionString,
+    connectionString,
     config,
     development: services.development,
   })
 
   return {
-    configured: services.connectionString !== null,
+    configured: connectionString !== null,
     ...(services.migrations ? { migrations: services.migrations } : {}),
     ingest: ingestAnalyticsEvent,
     async getOverview(input) {
@@ -82,8 +83,8 @@ export function createPostgresAnalyticsStore(
     async rebuildAggregates(input) {
       return rebuildPostgresAggregates(input, config)
     },
-    async runRetention() {
-      return pruneExpiredAnalyticsRows(config)
+    async runRetention(scope) {
+      return pruneExpiredAnalyticsRows(config, scope)
     },
     async healthCheck() {
       if (!isDatabaseConfigured()) {

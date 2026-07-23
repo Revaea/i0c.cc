@@ -60,6 +60,7 @@ export const defaultDataConfig = {
       version: 1,
       config: {
         maximumDeliveryAttempts: 2,
+        requestTimeoutMs: 5_000,
       },
       secrets: {
         writeKey: "ANALYTICS_WRITE_KEY",

@@ -1,5 +1,6 @@
 import {
   validateDataConfig,
+  validateRedirectsConfig,
   type DataConfig,
   type RedirectsConfig,
 } from "@i0c/config"
@@ -42,6 +43,7 @@ export interface GitHubRawSourceServices {
   logger: PluginLogger
   now(): number
   setCurrentDataConfig(config: DataConfig): void
+  validateDataConfig?(config: DataConfig): void
   waitUntil?(promise: Promise<unknown>): void
 }
 
@@ -50,6 +52,7 @@ const redirectsMemoryCache = new Map<string, MemoryCacheEntry<RedirectsConfig>>(
 const dataConfigInFlightLoads = new Map<string, Promise<DataConfig | null>>()
 const redirectsInFlightLoads = new Map<string, Promise<RedirectsConfig | null>>()
 const remoteRetryAfter = new Map<string, number>()
+const platformCacheWrites = new Map<string, Promise<void>>()
 
 export function createGitHubRawDataSource(
   config: GitHubRawSourceBootstrapConfig,
@@ -73,7 +76,11 @@ export function createGitHubRawDataSource(
         logger: services.logger,
         memoryCache: dataConfigMemoryCache,
         now: services.now,
-        parse: (text) => parseDataConfig(text, services.logger),
+        parse: (text) => parseDataConfig(
+          text,
+          services.logger,
+          services.validateDataConfig,
+        ),
         url: config.dataConfigUrl,
         waitUntil: services.waitUntil,
       })
@@ -240,6 +247,7 @@ function writePlatformCache<T>(
     return
   }
 
+  const cache = options.cache
   const response = new Response(text, {
     headers: {
       "Content-Type": "application/json",
@@ -247,15 +255,22 @@ function writePlatformCache<T>(
     },
   })
 
-  try {
-    const task = options.cache
-      .put(new Request(options.url), response)
-      .catch((error: unknown) => {
+  const previousWrite = platformCacheWrites.get(options.url)
+  const task = (previousWrite ?? Promise.resolve())
+    .then(() => cache.put(new Request(options.url), response))
+    .catch((error: unknown) => {
         options.logger.error(`Failed to write ${options.label} cache`, {
           error: error instanceof Error ? error.message : String(error),
         })
-      })
+    })
+  platformCacheWrites.set(options.url, task)
+  void task.finally(() => {
+    if (platformCacheWrites.get(options.url) === task) {
+      platformCacheWrites.delete(options.url)
+    }
+  })
 
+  try {
     if (options.waitUntil) {
       try {
         options.waitUntil(task)
@@ -270,17 +285,29 @@ function writePlatformCache<T>(
 
     void task
   } catch (error) {
-    options.logger.error(`Failed to start ${options.label} cache write`, {
+    options.logger.error(`Failed to schedule ${options.label} cache write`, {
       error: error instanceof Error ? error.message : String(error),
     })
   }
 }
 
-function parseDataConfig(text: string, logger: PluginLogger): DataConfig | null {
+function parseDataConfig(
+  text: string,
+  logger: PluginLogger,
+  validateConfig?: (config: DataConfig) => void,
+): DataConfig | null {
   const value = parseJson(text, "data config", logger)
   const result = validateDataConfig(value)
 
   if (result.status === "valid") {
+    try {
+      validateConfig?.(result.config)
+    } catch (error) {
+      logger.error("Invalid data config", {
+        issues: error instanceof Error ? error.message : String(error),
+      })
+      return null
+    }
     return result.config
   }
 
@@ -298,15 +325,19 @@ function parseRedirectsConfig(
   logger: PluginLogger,
 ): RedirectsConfig | null {
   const value = parseJson(text, "redirect config", logger)
+  const result = validateRedirectsConfig(value)
 
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    logger.error("Invalid redirect config", {
-      error: "root value must be an object",
-    })
-    return null
+  if (result.status === "valid") {
+    return result.config
   }
 
-  return value as RedirectsConfig
+  logger.error("Invalid redirect config", {
+    issues: result.issues
+      .slice(0, 5)
+      .map((item) => `${item.path}: ${item.message}`)
+      .join("; "),
+  })
+  return null
 }
 
 function parseJson(text: string, label: string, logger: PluginLogger): unknown {
