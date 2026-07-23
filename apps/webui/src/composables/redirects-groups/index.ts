@@ -41,7 +41,7 @@ export function useRedirectsGroups() {
     fallbackLoadErrorText: tGroups("loadFail"),
     fallbackSaveErrorText: tGroups("saveFail"),
     saveOkText: tGroups("saveOk"),
-    commitMessage: "chore(redirects): update config",
+    commitMessage: "chore(redirects): update rules",
   });
 
   const loadConfig = configFile.load;
@@ -218,16 +218,38 @@ export function useRedirectsGroups() {
     [formatSerializationError, pushCurrentSnapshot]
   );
 
-  const save = useCallback((overrideContent?: string) => {
+  const save = useCallback(async (overrideContent?: string): Promise<boolean> => {
     try {
       const content = overrideContent
         ?? JSON.stringify(buildConfig(rootGroup, baseConfig, slotsKey), null, 2);
       setSaveValidationError(null);
-      saveConfig(content);
+      return await saveConfig(content);
     } catch (error) {
       setSaveValidationError(formatSerializationError(error));
+      return false;
     }
   }, [baseConfig, formatSerializationError, rootGroup, saveConfig, slotsKey]);
+
+  const discardChanges = useCallback(async (): Promise<boolean> => {
+    if (!configFile.lastSavedContent) {
+      return false;
+    }
+
+    try {
+      const parsed = await parseInitialContent(configFile.lastSavedContent);
+      setEditorState((prev) => applyParsedConfig(prev, parsed));
+      setSaveValidationError(null);
+      resetHistory();
+      return true;
+    } catch (error) {
+      setSaveValidationError(formatSerializationError(error));
+      return false;
+    }
+  }, [
+    configFile.lastSavedContent,
+    formatSerializationError,
+    resetHistory,
+  ]);
 
   const previewJson = useMemo(() => {
     try {
@@ -269,9 +291,11 @@ export function useRedirectsGroups() {
     isPending: configFile.isPending,
     canonicalOrigin: configFile.canonicalOrigin,
     save,
+    discardChanges,
     applyJson,
     previewJson,
     resultMessage: saveValidationError ?? configFile.resultMessage,
-    lastCommitUrl: configFile.lastCommitUrl
+    lastCommitUrl: configFile.lastCommitUrl,
+    lastSavedContent: configFile.lastSavedContent,
   };
 }

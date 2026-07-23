@@ -6,7 +6,7 @@
     "rootTitle": "根目录（直接写在 slots 下的规则）",
     "empty": "暂无分组",
     "readOnlyTitle": "公开只读视图",
-    "readOnlyDescription": "可以查看规则，但不能编辑或加载自定义配置地址。",
+    "readOnlyDescription": "可以查看规则和设置，但不能编辑或加载自定义规则 JSON 地址。",
     "cannotLoad": "无法加载分组",
     "group": "分组",
     "selectHint": "从右侧选择分组",
@@ -15,11 +15,18 @@
     "saving": "保存中...",
     "save": "保存改动",
     "viewCommit": "查看提交",
-    "configUrl": "配置地址",
-    "configUrlPlaceholder": "粘贴 GitHub 的 .json 文件地址（https://...）",
+    "dismissNotification": "关闭通知",
+    "configUrl": "规则 JSON 地址",
+    "configUrlPlaceholder": "粘贴 GitHub 的 redirects.json 地址（https://...）",
     "configUrlInvalid": "请输入有效的 https 链接。",
-    "configUrlTypeHint": "链接需要指向 .json 文件。",
-    "loadConfig": "加载配置",
+    "configUrlTypeHint": "规则地址需要指向 .json 文件。",
+    "sourceButton": "规则来源",
+    "sourceDialogTitle": "加载规则 JSON",
+    "sourceDialogDescription": "从另一个公开的 GitHub JSON 文件加载并编辑规则，不修改实例设置。",
+    "sourceDialogHint": "该地址仅用于本次编辑会话，并且必须指向公开的 GitHub JSON 文件。",
+    "sourceDialogCancel": "取消",
+    "sourceDialogLoading": "加载中…",
+    "loadConfig": "加载规则",
     "expandAll": "展开",
     "collapseAll": "收起",
     "saveOk": "保存成功",
@@ -56,11 +63,6 @@
     "entries": "条目目录",
     "rules": "规则编辑",
     "json": "JSON 编辑",
-    "config": "实例配置",
-    "configPreferred": "保存将更新 config.json",
-    "jsonPreferred": "保存将以此 JSON 为准",
-    "editAndSave": "编辑规则并保存",
-    "readOnlyHint": "只读预览",
     "tipParse": "提示：切回“规则编辑”后会以解析后的内容为准。",
     "unknownError": "未知错误",
     "jsonParseFail": "JSON 解析失败",
@@ -70,13 +72,104 @@
     "schemaValidateFail": "Schema 校验失败：\n{lines}{more}",
     "schemaValidateMore": "\n… 还有 {count} 条"
   },
+  "unsavedChanges": {
+    "rulesTitle": "规则尚未保存",
+    "rulesDescription": "离开规则编辑前，可以先保存当前改动；不保存将恢复到上次成功加载或保存的规则。",
+    "settingsTitle": "设置尚未保存",
+    "settingsDescription": "离开设置前，可以先保存当前改动；不保存将恢复到上次成功加载或保存的设置。",
+    "cancel": "继续编辑",
+    "discard": "不保存",
+    "save": "保存并继续",
+    "saving": "保存中…"
+  },
   "instanceConfig": {
-    "loading": "正在加载实例配置…",
-    "loadFail": "实例配置加载失败",
-    "saveFail": "实例配置保存失败",
-    "saveOk": "实例配置已保存",
-    "tip": "公开配置会在保存前校验；密钥值继续保留在环境变量中。",
-    "validationFail": "实例配置校验失败：{details}"
+    "navigationLabel": "设置",
+    "title": "设置",
+    "description": "管理 Runtime、统计、访问权限和已安装插件的公开配置；密钥值仍保留在部署环境变量中。",
+    "loading": "正在加载设置…",
+    "loadFail": "设置加载失败",
+    "saveFail": "设置保存失败",
+    "saveOk": "设置已保存",
+    "validationFail": "设置校验失败：{details}",
+    "validationSummary": "部分设置仍需修正，完成后才能保存。",
+    "visualUnavailable": "当前 config.json 无法安全转换为表单，请使用下方的恢复编辑器修复。",
+    "recoveryTip": "只有 config.json 无法在可视化设置中打开时，才会显示恢复编辑器。",
+    "required": "必需",
+    "enabled": "已启用",
+    "disabled": "已停用",
+    "fixedValue": "该值由已安装插件的契约固定。",
+    "range": "允许范围：{minimum}–{maximum}",
+    "togglePlugin": "切换{name}",
+    "secretBinding": "{secret} 环境变量绑定",
+    "secretBindingHint": "这里填写环境变量名称，不填写密钥值。",
+    "addManager": "新增管理者",
+    "removeManager": "移除管理者",
+      "managerIdLabel": "管理者 GitHub 用户 ID {index}",
+      "categoryNavigation": "设置分类",
+      "sections": {
+      "runtime": {
+        "title": "Runtime",
+        "description": "配置公开 Runtime 地址、爬虫策略和远程配置的缓存时间。"
+      },
+      "analytics": {
+        "title": "统计",
+        "description": "配置事件接收端点，以及所有 Runtime 适配器共用的统计命名空间。"
+      },
+        "access": {
+          "title": "WebUI 访问",
+          "description": "选择谁可以进入面板，以及哪些 GitHub 账号可以管理数据。"
+        },
+        "installedPlugins": {
+          "title": "已安装插件"
+        },
+        "plugins": {
+          "title": "插件配置",
+        "description": "启用已安装插件，并编辑它们的公开参数和环境变量绑定。"
+      }
+    },
+    "fields": {
+      "canonicalOrigin": "Runtime 规范地址",
+      "robotsPolicy": "爬虫策略",
+      "configCacheTtlSeconds": "设置缓存时间",
+      "redirectsCacheTtlSeconds": "规则缓存时间",
+      "ingestEndpoint": "统计接收端点",
+      "sourceId": "统计来源 ID",
+      "accessMode": "访问模式",
+      "managerGitHubUserIds": "管理者 GitHub 用户 ID",
+      "maximumDeliveryAttempts": "最大投递次数",
+      "requestTimeoutMs": "请求超时",
+      "hookTimeoutMs": "分类钩子超时",
+      "maxConnections": "最大数据库连接数",
+      "idleTimeoutSeconds": "空闲超时",
+      "developmentIdleTimeoutSeconds": "开发环境空闲超时",
+      "connectTimeoutSeconds": "连接超时",
+      "retentionDays": "原始事件保留期"
+    },
+    "fieldHints": {
+      "canonicalOrigin": "二维码和 Runtime 规范链接使用的 HTTPS 源站。",
+      "robotsPolicy": "允许或阻止遵循规则的爬虫索引 Runtime 响应。",
+      "configCacheTtlSeconds": "Runtime 再次检查 config.json 前可保留最后有效配置的秒数。",
+      "redirectsCacheTtlSeconds": "Runtime 再次检查 redirects.json 前可保留规则的秒数。",
+      "ingestEndpoint": "接收签名统计事件的 HTTPS 端点。",
+      "sourceId": "所有 Runtime 部署共用的小写基础域名。",
+      "accessMode": "公开只读仍需登录 GitHub；名单内管理者可以编辑。",
+      "managerGitHubUserIds": "填写 GitHub 数字账号 ID；白名单模式至少需要一名管理者。"
+    },
+    "options": {
+      "robotsAllow": "允许索引",
+      "robotsDisallow": "禁止索引",
+      "authenticated": "任意已登录 GitHub 用户",
+      "allowlist": "仅限管理者",
+      "publicReadonly": "GitHub 用户只读，管理者可编辑"
+    },
+    "pluginKinds": {
+      "runtimePlatform": "Runtime 适配器",
+      "dataSource": "数据来源",
+      "dataRepository": "数据仓库",
+      "analyticsSink": "统计投递",
+      "analyticsStore": "统计存储",
+      "feature": "功能"
+    }
   },
   "routeEntry": {
     "ruleType": "规则类型",

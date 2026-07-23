@@ -10,9 +10,13 @@ import {resolveAppLocale, type AppLocale} from '@/i18n/routing';
 
 export type LanguageSwitcherProps = {
   className?: string;
+  onBeforeNavigate?: (proceed: () => void) => void;
 };
 
-export function LanguageSwitcher({className}: LanguageSwitcherProps) {
+export function LanguageSwitcher({
+  className,
+  onBeforeNavigate,
+}: LanguageSwitcherProps) {
   const locale = useLocale();
   const tHeader = useTranslations('header');
   const pathname = usePathname();
@@ -74,9 +78,17 @@ export function LanguageSwitcher({className}: LanguageSwitcherProps) {
       return;
     }
 
-    const search = searchParams.toString();
-    const href = `${pathname}${search ? `?${search}` : ''}${window.location.hash}`;
-    router.replace(href, {locale: nextLocale});
+    const proceed = () => {
+      const search = searchParams.toString();
+      const href = `${pathname}${search ? `?${search}` : ''}${window.location.hash}`;
+      router.replace(href, {locale: nextLocale});
+    };
+
+    if (onBeforeNavigate) {
+      onBeforeNavigate(proceed);
+      return;
+    }
+    proceed();
   };
 
   return (

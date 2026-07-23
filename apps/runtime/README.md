@@ -28,6 +28,8 @@ Use these settings when the platform asks for project or build configuration:
 
 Build from a full monorepo checkout. On Vercel, keep **Include source files outside of the Root Directory in the Build Step** enabled so the build can include the shared workspace packages.
 
+The package-level `pnpm build` command generates and retains all three provider outputs in one pass. The provider-specific commands remain available for targeted builds and deployments.
+
 After deploying:
 
 - Edit `config.json` or `redirects.json` on the `data` branch when non-sensitive settings or rules change. Built-in adapters pick up valid updates after their configured cache TTL without a rebuild.

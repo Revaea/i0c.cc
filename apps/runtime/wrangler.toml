@@ -3,6 +3,9 @@ name = 'i0c'
 main = "dist/platforms/cloudflare.js"
 compatibility_date = "2025-12-14"
 
+[build]
+command = "pnpm build:cf"
+
 [observability]
 [observability.logs]
 enabled = true

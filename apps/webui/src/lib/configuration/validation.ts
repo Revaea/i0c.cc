@@ -18,11 +18,17 @@ import {
   runtimePluginDescriptors,
 } from "../../../../../i0c.runtime.manifests";
 
-const installedHostPluginManifests = [
+export const installedInstancePluginManifests = [
   ...runtimePluginManifests,
   ...webUiPluginManifests,
   ...runtimePlatformManifests,
 ];
+
+export const requiredInstancePluginIds: ReadonlySet<string> = new Set([
+  runtimePluginDescriptors.dataSource.manifest.id,
+  webUiPluginDescriptors.dataRepository.manifest.id,
+  ...runtimePlatformManifests.map((manifest) => manifest.id),
+]);
 
 export function validateInstanceDataConfig(value: unknown): DataConfigValidationResult {
   const coreResult = validateDataConfig(value);
@@ -32,7 +38,7 @@ export function validateInstanceDataConfig(value: unknown): DataConfigValidation
 
   const pluginIssues = validateInstalledPluginDeclarations(
     coreResult.config.plugins,
-    installedHostPluginManifests
+    installedInstancePluginManifests
   );
   const runtimeRequirementIssues = validateRuntimeRequiredPluginDeclarations(
     coreResult.config.plugins,

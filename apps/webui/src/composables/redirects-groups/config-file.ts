@@ -18,6 +18,7 @@ export function useRedirectsConfigFile(options: {
 
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [lastCommitUrl, setLastCommitUrl] = useState<string | null>(null);
+  const [lastSavedContent, setLastSavedContent] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const load = useCallback(async (nextSourceUrl?: string | null) => {
@@ -41,46 +42,52 @@ export function useRedirectsConfigFile(options: {
 
     setSha(data.config.sha);
     setCanonicalOrigin(data.runtime.canonicalOrigin);
+    setLastSavedContent(data.config.content);
     return data.config.content;
   }, [options.fallbackLoadErrorText]);
 
   const save = useCallback(
-    (content: string) => {
-      startTransition(async () => {
-        setResultMessage(null);
-        setLastCommitUrl(null);
+    (content: string): Promise<boolean> =>
+      new Promise((resolve) => {
+        startTransition(async () => {
+          setResultMessage(null);
+          setLastCommitUrl(null);
 
-        try {
-          const result = await saveRedirectsConfig(
-            {
-              content,
-              sha,
-              message: options.commitMessage,
-              ...(sourceUrl ? { sourceUrl } : {}),
-            },
-            {
-              fallbackSaveErrorText: options.fallbackSaveErrorText,
-            }
-          );
+          try {
+            const result = await saveRedirectsConfig(
+              {
+                content,
+                sha,
+                message: options.commitMessage,
+                ...(sourceUrl ? { sourceUrl } : {}),
+              },
+              {
+                fallbackSaveErrorText: options.fallbackSaveErrorText,
+              },
+            );
 
-          setSha(result.sha);
-          setLastCommitUrl(result.commitUrl);
-          setResultMessage(options.saveOkText);
-        } catch (error) {
-          setResultMessage(
-            error instanceof Error
-              ? error.message
-              : options.fallbackSaveErrorText
-          );
-        }
-      });
-    },
+            setSha(result.sha);
+            setLastSavedContent(content);
+            setLastCommitUrl(result.commitUrl);
+            setResultMessage(options.saveOkText);
+            resolve(true);
+          } catch (error) {
+            setResultMessage(
+              error instanceof Error
+                ? error.message
+                : options.fallbackSaveErrorText,
+            );
+            resolve(false);
+          }
+        });
+      }),
     [options.commitMessage, options.fallbackSaveErrorText, options.saveOkText, sha, sourceUrl]
   );
 
   return {
     isPending,
     canonicalOrigin,
+    lastSavedContent,
     sourceUrl,
     load,
     save,

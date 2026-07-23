@@ -13,6 +13,7 @@ export type RouteEntriesCatalogProps = {
   title?: string;
   onAddRule?: () => void;
   addRuleLabel?: string;
+  onLocateEntry?: (entryId: string) => void;
   onRemoveEntry?: (entryId: string) => void;
   showLocateButton?: boolean;
 };
@@ -24,6 +25,7 @@ export function RouteEntriesCatalog({
   title,
   onAddRule,
   addRuleLabel,
+  onLocateEntry,
   onRemoveEntry,
   showLocateButton,
 }: RouteEntriesCatalogProps) {
@@ -86,6 +88,11 @@ export function RouteEntriesCatalog({
   };
 
   const handleJump = (entryId: string) => {
+    if (onLocateEntry) {
+      onLocateEntry(entryId);
+      return;
+    }
+
     const target = document.getElementById(`entry-${entryId}`);
     if (target) {
       target.scrollIntoView({ behavior: "smooth", block: "center" });

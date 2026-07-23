@@ -14,6 +14,7 @@ export function useDataConfigFile(options: UseDataConfigFileOptions) {
   const [sha, setSha] = useState("");
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [lastCommitUrl, setLastCommitUrl] = useState<string | null>(null);
+  const [lastSavedContent, setLastSavedContent] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const load = useCallback(async () => {
@@ -21,33 +22,42 @@ export function useDataConfigFile(options: UseDataConfigFileOptions) {
     setLastCommitUrl(null);
     const data = await fetchDataConfig(options.fallbackLoadErrorText);
     setSha(data.document.sha);
+    setLastSavedContent(data.document.content);
     return data.document.content;
   }, [options.fallbackLoadErrorText]);
 
-  const save = useCallback((content: string) => {
-    startTransition(async () => {
-      setResultMessage(null);
-      setLastCommitUrl(null);
-      try {
-        const result = await saveDataConfig({
-          content,
-          message: "chore(config): update instance settings",
-          sha,
-        }, options.fallbackSaveErrorText);
-        setSha(result.sha);
-        setLastCommitUrl(result.commitUrl);
-        setResultMessage(options.saveOkText);
-      } catch (error) {
-        setResultMessage(
-          error instanceof Error ? error.message : options.fallbackSaveErrorText,
-        );
-      }
-    });
-  }, [options.fallbackSaveErrorText, options.saveOkText, sha]);
+  const save = useCallback(
+    (content: string): Promise<boolean> =>
+      new Promise((resolve) => {
+        startTransition(async () => {
+          setResultMessage(null);
+          setLastCommitUrl(null);
+          try {
+            const result = await saveDataConfig({
+              content,
+              message: "chore(config): update instance settings",
+              sha,
+            }, options.fallbackSaveErrorText);
+            setSha(result.sha);
+            setLastSavedContent(content);
+            setLastCommitUrl(result.commitUrl);
+            setResultMessage(options.saveOkText);
+            resolve(true);
+          } catch (error) {
+            setResultMessage(
+              error instanceof Error ? error.message : options.fallbackSaveErrorText,
+            );
+            resolve(false);
+          }
+        });
+      }),
+    [options.fallbackSaveErrorText, options.saveOkText, sha],
+  );
 
   return {
     isPending,
     lastCommitUrl,
+    lastSavedContent,
     load,
     resultMessage,
     save,

@@ -28,6 +28,8 @@
 
 构建时必须使用完整的 monorepo 检出。Vercel 需要保持开启 **Include source files outside of the Root Directory in the Build Step**，让构建能够包含共享 workspace 包。
 
+包目录中的 `pnpm build` 会一次生成并保留三个平台的产物。需要单独构建或部署某个平台时，仍可使用对应的平台专用命令。
+
 部署完成后：
 
 - 非敏感配置或规则变化时，编辑 `data` 分支的 `config.json` 或 `redirects.json`。内置适配器会在对应缓存时间结束后获取有效更新，不需要重新构建。

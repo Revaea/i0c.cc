@@ -8,11 +8,11 @@ This WebUI supports the personal [i0c.cc](https://github.com/Revaea/i0c.cc) work
 
 Server-side Data Repository and Analytics Store factories are installed at build time through [../../i0c.webui.config.ts](../../i0c.webui.config.ts). Client-safe UI renderers use [webui.extensions.ts](webui.extensions.ts) so they remain in the client bundle. Workspace fixtures exercise both installation paths without adding factory mappings to WebUI host source; the production renderer list is intentionally empty.
 
-This project provides three editing modes:
+This project provides two rule-editing modes and a separate settings surface:
 
 - Visual rule editing (group tree + form)
-- JSON editing (right panel, directly edit raw JSON)
-- Instance configuration editing (`config.json`, with shared contract validation)
+- Rules JSON editing (right panel, directly edit `redirects.json`)
+- Visual instance settings in the bottom of the sidebar (`config.json`, with shared contract validation)
 
 ## Quick Start
 
@@ -128,8 +128,8 @@ The WebUI does not read former non-sensitive environment variables as overrides 
 
 - Versioned authenticated, numeric-ID allowlist, or GitHub-wide read-only access with configured managers.
 - Visual editing of `redirects.json`: group tree management + rule form editing.
-- JSON editor: line numbers, current line highlighting, JSON syntax validation (error prompts for formatting issues).
-- Validated `config.json` editing with raw-content recovery when the current document is invalid.
+- Rules JSON editor: line numbers, current line highlighting, JSON syntax validation (error prompts for formatting issues).
+- Visual, validated `config.json` settings with a raw recovery editor only when the current document cannot be represented safely.
 - Authenticated plugin status reporting for installed manifests, configuration state, capabilities, missing bindings, and selected-Store health.
 - Form behavior aligned with the schema (specification source: [https://raw.githubusercontent.com/Revaea/i0c.cc/main/packages/config/redirects.schema.json](https://raw.githubusercontent.com/Revaea/i0c.cc/main/packages/config/redirects.schema.json)).
 - Supports undo/redo for quick editing rollback.
