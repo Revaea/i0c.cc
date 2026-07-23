@@ -37,7 +37,7 @@
     "@visx/tooltip": "^4.0.0",
     "ajv": "^8.18.0",
     "ajv-formats": "^3.0.1",
-    "next": "16.2.10",
+    "next": "16.2.11",
     "next-auth": "^4.24.13",
     "next-intl": "^4.9.2",
     "qrcode.react": "^4.2.0",
