@@ -28,7 +28,7 @@
 
 构建时必须使用完整的 monorepo 检出。Vercel 需要保持开启 **Include source files outside of the Root Directory in the Build Step**，让构建能够包含共享 workspace 包。
 
-包目录中的 `pnpm build` 会一次生成并保留三个平台的产物。需要单独构建或部署某个平台时，仍可使用对应的平台专用命令。
+包目录中的 `pnpm build` 会验证三个平台。Wrangler 会在 Cloudflare 部署前执行 `pnpm build:cf`；Vercel 与 Netlify 则使用各自的平台专用构建命令。
 
 部署完成后：
 

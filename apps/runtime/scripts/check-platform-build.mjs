@@ -5,10 +5,7 @@ import process from "node:process"
 const runtimeRoot = path.resolve(import.meta.dirname, "..")
 const platform = process.argv[2]
 const expectedEntry = process.argv[3]
-const allowAdditionalEntries = process.argv.includes("--allow-additional")
-const requiredMarkers = process.argv
-  .slice(4)
-  .filter((argument) => argument !== "--allow-additional")
+const requiredMarkers = process.argv.slice(4)
 
 if (!platform || !expectedEntry) {
   throw new Error("Runtime platform and expected entry are required")
@@ -18,13 +15,7 @@ const distRoot = path.join(runtimeRoot, "dist")
 const javaScriptEntries = collectJavaScriptEntries(distRoot)
   .filter((entry) => !entry.startsWith("netlify/"))
 
-if (!javaScriptEntries.includes(expectedEntry)) {
-  throw new Error(
-    `Expected ${expectedEntry}, found ${javaScriptEntries.join(", ") || "no JavaScript output"}`,
-  )
-}
-
-if (!allowAdditionalEntries && javaScriptEntries.length !== 1) {
+if (javaScriptEntries.length !== 1 || javaScriptEntries[0] !== expectedEntry) {
   throw new Error(
     `Expected only ${expectedEntry}, found ${javaScriptEntries.join(", ") || "no JavaScript output"}`,
   )
@@ -60,11 +51,7 @@ for (const marker of requiredMarkers) {
   }
 }
 
-console.log(
-  allowAdditionalEntries
-    ? `${platform} Runtime build contains ${expectedEntry}`
-    : `${platform} Runtime build contains only ${expectedEntry}`,
-)
+console.log(`${platform} Runtime build contains only ${expectedEntry}`)
 
 function collectJavaScriptEntries(directory) {
   if (!fs.existsSync(directory)) {

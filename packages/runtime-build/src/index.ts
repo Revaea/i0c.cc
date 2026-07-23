@@ -14,7 +14,6 @@ const runtimePlatformModuleFilename = "virtual-runtime-platform.ts"
 
 export interface RuntimePlatformBuildOptions {
   baseBundlePackages: readonly string[]
-  clean?: boolean
   entryFile: string
   installedPlatformManifests: readonly RuntimePlatformManifest[]
   moduleResolveDirectory: string
@@ -47,7 +46,7 @@ export function createRuntimePlatformBuildOptions(
     format: ["esm"],
     target: "es2021",
     outDir: options.outDir,
-    clean: options.clean ?? true,
+    clean: true,
     dts: false,
     outExtension: () => ({ js: ".js" }),
     splitting: false,
