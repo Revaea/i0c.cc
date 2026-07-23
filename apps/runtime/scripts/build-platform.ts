@@ -25,6 +25,7 @@ async function main(): Promise<void> {
   }
 
   const isWatch = process.argv.includes("--watch")
+  const shouldClean = !process.argv.includes("--preserve-output")
   const runtimeRoot = path.resolve(process.cwd())
   const workspaceRoot = path.resolve(runtimeRoot, "../..")
   const configArgumentIndex = process.argv.indexOf("--config")
@@ -90,6 +91,7 @@ async function main(): Promise<void> {
       ),
       ...runtimePluginInstallations.bundlePackages,
     ],
+    clean: shouldClean,
     entryFile: path.join(runtimeRoot, "src/entry.ts"),
     installedPlatformManifests: runtimeInstallationConfig.platforms.map(
       (installation) => installation.manifest,
