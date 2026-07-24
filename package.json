@@ -8,7 +8,7 @@
     "url": "https://github.com/Revaea/i0c.cc.git"
   },
   "homepage": "https://github.com/Revaea/i0c.cc",
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "pnpm@11.17.0+sha512.cca3cea332ad254bb84145f966d19f4879615210346fc92c79a047f23a0d7b3cca3c3792f0076ba1f1831d277efbcf0a9119b31a9a60eca7fb3d6231f331ef72",
   "scripts": {
     "check": "pnpm config:check && pnpm plugins:check && pnpm runtime:check && pnpm runtime:test && pnpm runtime:build && pnpm webui:test && pnpm webui:lint && pnpm webui:build",
     "config:check": "pnpm --filter @i0c/config check",
