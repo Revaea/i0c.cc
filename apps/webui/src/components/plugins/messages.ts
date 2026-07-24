@@ -4,6 +4,7 @@ export interface PluginStatusMessages {
   apiVersion: string;
   bindingsNotObservable: string;
   capabilities: string;
+  configurationTab: string;
   configuration: string;
   configurationStates: Record<"compatibility" | "configured" | "disabled", string>;
   description: string;
@@ -18,6 +19,7 @@ export interface PluginStatusMessages {
   missingBindings: string;
   noMissingBindings: string;
   refresh: string;
+  statusTab: string;
   title: string;
 }
 

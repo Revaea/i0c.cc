@@ -79,7 +79,7 @@ function main(): void {
         result.config.plugins,
         {
           dataSourcePluginId: runtimePluginDescriptors.dataSource.manifest.id,
-          runtimePlatformManifests,
+          runtimePlatformManifests: [],
         },
       ),
       ...validateWebUiRequiredPluginDeclarations(

@@ -24,7 +24,7 @@ test("rejects a config that disables the Runtime data source", () => {
   }
 });
 
-test("rejects a config that disables an installed Runtime platform", () => {
+test("allows a config that disables an installed Runtime platform", () => {
   const result = validateInstanceDataConfig({
     ...defaultDataConfig,
     plugins: {
@@ -33,14 +33,7 @@ test("rejects a config that disables an installed Runtime platform", () => {
     },
   });
 
-  assert.equal(result.status, "invalid");
-  if (result.status === "invalid") {
-    assert.ok(
-      result.issues.some(
-        (issue) => issue.path === "/plugins/@i0c~1runtime-cloudflare/enabled",
-      ),
-    );
-  }
+  assert.equal(result.status, "valid");
 });
 
 test("rejects an incompatible Runtime plugin config version", () => {

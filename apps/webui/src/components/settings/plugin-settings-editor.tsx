@@ -1,14 +1,19 @@
 "use client";
 
-import { useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 
 import type {
   JsonObject,
   JsonValue,
   PluginInstanceConfig,
 } from "@i0c/config";
-import type { PluginManifest } from "@i0c/plugin-api";
+import type {
+  PluginConfigurationFieldUi,
+  PluginLocalizedText,
+  PluginManifest,
+  PluginSecretRequirement,
+} from "@i0c/plugin-api";
 
 import { DropdownSelect } from "@/components/ui/controls/dropdown-select";
 import {
@@ -18,76 +23,45 @@ import {
 } from "@/components/ui/controls/form-control";
 import { NumberInput } from "@/components/ui/controls/number-input";
 import { Switch } from "@/components/ui/controls/switch";
+import { ConfirmationDialog } from "@/components/ui/feedback/confirmation-dialog";
 import {
+  compatibilityEnabledInstancePluginIds,
   installedInstancePluginManifests,
   requiredInstancePluginIds,
 } from "@/lib/configuration/validation";
 
-interface PluginSettingsEditorProps {
+interface PluginConfigurationEditorProps {
   isReadOnly: boolean;
   value: Record<string, PluginInstanceConfig>;
   onChange: (value: Record<string, PluginInstanceConfig>) => void;
 }
 
-const pluginKindOrder = [
-  "data-source",
-  "data-repository",
-  "runtime-platform",
-  "analytics-sink",
-  "analytics-store",
-  "feature",
-] as const;
-
-export function PluginSettingsEditor({
+export function PluginConfigurationEditor({
   isReadOnly,
+  manifest,
   value,
   onChange,
-}: PluginSettingsEditorProps) {
+}: PluginConfigurationEditorProps & {
+  manifest: PluginManifest;
+}) {
+  const locale = useLocale();
   const t = useTranslations("instanceConfig");
-  const manifests = useMemo(() => {
-    const manifestsById = new Map<string, PluginManifest>();
-    for (const manifest of installedInstancePluginManifests) {
-      manifestsById.set(manifest.id, manifest);
-    }
-
-    return [...manifestsById.values()].sort((left, right) => {
-      const kindDifference =
-        pluginKindOrder.indexOf(left.kind)
-        - pluginKindOrder.indexOf(right.kind);
-      return kindDifference || left.name.localeCompare(right.name);
-    });
-  }, []);
-  const fieldLabels: Record<string, string> = {
-    connectTimeoutSeconds: t("fields.connectTimeoutSeconds"),
-    developmentIdleTimeoutSeconds: t("fields.developmentIdleTimeoutSeconds"),
-    hookTimeoutMs: t("fields.hookTimeoutMs"),
-    idleTimeoutSeconds: t("fields.idleTimeoutSeconds"),
-    maxConnections: t("fields.maxConnections"),
-    maximumDeliveryAttempts: t("fields.maximumDeliveryAttempts"),
-    requestTimeoutMs: t("fields.requestTimeoutMs"),
-    retentionDays: t("fields.retentionDays"),
-  };
-  const kindLabels: Record<string, string> = {
-    "analytics-sink": t("pluginKinds.analyticsSink"),
-    "analytics-store": t("pluginKinds.analyticsStore"),
-    "data-repository": t("pluginKinds.dataRepository"),
-    "data-source": t("pluginKinds.dataSource"),
-    "runtime-platform": t("pluginKinds.runtimePlatform"),
-    feature: t("pluginKinds.feature"),
-  };
-  const manifestGroups = pluginKindOrder
-    .map((kind) => ({
-      kind,
-      manifests: manifests.filter((manifest) => manifest.kind === kind),
-    }))
-    .filter((group) => group.manifests.length > 0);
+  const declaration = value[manifest.id];
+  const isRequired = requiredInstancePluginIds.has(manifest.id);
+  const isEnabled = declaration?.enabled
+    ?? compatibilityEnabledInstancePluginIds.has(manifest.id);
+  const properties = getSchemaProperties(manifest);
+  const propertyEntries = sortPluginConfigProperties(manifest, properties);
+  const secretEntries = sortPluginSecrets(manifest.secrets);
+  const hasDetails = Object.keys(properties).length > 0 || secretEntries.length > 0;
+  const fieldsDisabled = isReadOnly || !isEnabled;
+  const [isDisablePlatformDialogOpen, setIsDisablePlatformDialogOpen] = useState(false);
 
   function updateDeclaration(
-    manifest: PluginManifest,
     updater: (current: PluginInstanceConfig) => PluginInstanceConfig,
   ) {
     const current = value[manifest.id] ?? {
-      enabled: requiredInstancePluginIds.has(manifest.id),
+      enabled: isRequired,
       version: manifest.config.version,
     };
     onChange({
@@ -96,42 +70,50 @@ export function PluginSettingsEditor({
     });
   }
 
-  function setPluginEnabled(manifest: PluginManifest, enabled: boolean) {
+  function applyPluginEnabled(enabled: boolean) {
     const next = { ...value };
     if (enabled && manifest.kind === "analytics-store") {
-      for (const candidate of manifests) {
+      for (const candidate of installedInstancePluginManifests) {
         if (candidate.kind !== "analytics-store" || candidate.id === manifest.id) {
           continue;
         }
-        const declaration = next[candidate.id];
-        if (declaration) {
-          next[candidate.id] = { ...declaration, enabled: false };
+        const candidateDeclaration = next[candidate.id];
+        if (candidateDeclaration) {
+          next[candidate.id] = { ...candidateDeclaration, enabled: false };
         }
       }
     }
+    const config = declaration?.config ?? createInitialConfig(manifest);
+    const secrets = declaration?.secrets ?? createInitialSecrets(manifest);
+    onChange({
+      ...next,
+      [manifest.id]: {
+        ...(declaration ?? {
+          enabled: false,
+          version: manifest.config.version,
+        }),
+        enabled,
+        version: declaration?.version ?? manifest.config.version,
+        ...(Object.keys(config).length > 0 ? { config } : {}),
+        ...(Object.keys(secrets).length > 0 ? { secrets } : {}),
+      },
+    });
+  }
 
-    const current = next[manifest.id] ?? {
-      enabled: false,
-      version: manifest.config.version,
-    };
-    const config = current.config ?? createInitialConfig(manifest);
-    const secrets = current.secrets ?? createInitialSecrets(manifest);
-    next[manifest.id] = {
-      ...current,
-      enabled,
-      version: current.version ?? manifest.config.version,
-      ...(Object.keys(config).length > 0 ? { config } : {}),
-      ...(Object.keys(secrets).length > 0 ? { secrets } : {}),
-    };
-    onChange(next);
+  function setPluginEnabled(enabled: boolean) {
+    if (!enabled && manifest.kind === "runtime-platform") {
+      setIsDisablePlatformDialogOpen(true);
+      return;
+    }
+
+    applyPluginEnabled(enabled);
   }
 
   function updateConfigProperty(
-    manifest: PluginManifest,
     property: string,
     nextValue: JsonValue | undefined,
   ) {
-    updateDeclaration(manifest, (current) => {
+    updateDeclaration((current) => {
       const config = { ...(current.config ?? {}) };
       if (nextValue === undefined) {
         delete config[property];
@@ -146,12 +128,8 @@ export function PluginSettingsEditor({
     });
   }
 
-  function updateSecretBinding(
-    manifest: PluginManifest,
-    secret: string,
-    binding: string,
-  ) {
-    updateDeclaration(manifest, (current) => ({
+  function updateSecretBinding(secret: string, binding: string) {
+    updateDeclaration((current) => ({
       ...current,
       version: current.version ?? manifest.config.version,
       secrets: {
@@ -162,131 +140,131 @@ export function PluginSettingsEditor({
   }
 
   return (
-    <section className="py-8">
-      <div>
-        <h2 className="text-base font-semibold text-ink">
-          {t("sections.plugins.title")}
-        </h2>
-        <p className="mt-1 max-w-3xl text-sm leading-6 text-muted">
-          {t("sections.plugins.description")}
-        </p>
-      </div>
-
-      <div className="mt-6 space-y-8">
-        {manifestGroups.map((group) => (
-          <div key={group.kind}>
-            <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-              {kindLabels[group.kind] ?? group.kind}
-            </h3>
-            <div className="mt-3 divide-y divide-line border-t border-line">
-              {group.manifests.map((manifest) => {
-                const declaration = value[manifest.id];
-                const isRequired = requiredInstancePluginIds.has(manifest.id);
-                const isEnabled = declaration?.enabled ?? isRequired;
-                const properties = getSchemaProperties(manifest);
-                const secretEntries = Object.entries(manifest.secrets);
-                const hasDetails =
-                  Object.keys(properties).length > 0 || secretEntries.length > 0;
-                const fieldsDisabled = isReadOnly || !isEnabled;
-
-                return (
-                  <article key={manifest.id} className="py-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-sm font-semibold text-ink">
-                            {manifest.name}
-                          </h3>
-                          {isRequired ? (
-                            <span className="rounded-full border border-accent-soft bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent-strong">
-                              {t("required")}
-                            </span>
-                          ) : null}
-                        </div>
-                        <code className="mt-1 block break-all text-xs text-muted">
-                          {manifest.id}
-                        </code>
-                      </div>
-                      <Switch
-                        checked={isEnabled}
-                        disabled={isReadOnly || isRequired}
-                        label={t("togglePlugin", { name: manifest.name })}
-                        onChange={(enabled) => setPluginEnabled(manifest, enabled)}
-                      />
-                    </div>
-
-                    {isEnabled && hasDetails ? (
-                      <div className="mt-5 grid gap-4 border-t border-line pt-5 sm:grid-cols-2">
-                        {Object.entries(properties).map(([property, schema]) => (
-                          <PluginPropertyField
-                            key={property}
-                            disabled={fieldsDisabled}
-                            label={fieldLabels[property] ?? humanize(property)}
-                            onChange={(nextValue) =>
-                              updateConfigProperty(manifest, property, nextValue)
-                            }
-                            schema={schema}
-                            value={declaration?.config?.[property]}
-                          />
-                        ))}
-
-                        {secretEntries.map(([secret, requirement]) => {
-                          const binding =
-                            declaration?.secrets?.[secret]
-                            ?? requirement.defaultBinding
-                            ?? "";
-                          return (
-                            <div key={secret}>
-                              <label className={fieldLabelRowClassName}>
-                                <span className={fieldLabelClassName}>
-                                  {t("secretBinding", { secret })}
-                                </span>
-                              </label>
-                              <input
-                                value={binding}
-                                disabled={fieldsDisabled}
-                                onChange={(event) =>
-                                  updateSecretBinding(
-                                    manifest,
-                                    secret,
-                                    event.target.value.toUpperCase(),
-                                  )
-                                }
-                                placeholder={requirement.defaultBinding}
-                                autoCapitalize="characters"
-                                autoCorrect="off"
-                                spellCheck={false}
-                                className={formControlClassName({ className: "w-full font-mono" })}
-                              />
-                              <p className="mt-1.5 text-xs leading-5 text-muted">
-                                {t("secretBindingHint")}
-                              </p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-                  </article>
-                );
-              })}
-            </div>
+    <>
+      <div className="border-t border-line pt-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-ink">{t("pluginState")}</p>
+            <p className="mt-1 text-xs text-muted">
+              {isEnabled ? t("enabled") : t("disabled")}
+            </p>
+            {isRequired ? (
+              <p className="mt-1 text-xs text-accent-strong">{t("required")}</p>
+            ) : null}
           </div>
-        ))}
+          <Switch
+            checked={isEnabled}
+            disabled={isReadOnly || isRequired}
+            label={t("togglePlugin", { name: manifest.name })}
+            onChange={setPluginEnabled}
+          />
+        </div>
+
+        {isEnabled && hasDetails ? (
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {propertyEntries.map(([property, schema]) => {
+              const ui = getFieldUi(manifest, property);
+              return (
+                <PluginPropertyField
+                  key={property}
+                  control={ui?.control}
+                  disabled={fieldsDisabled}
+                  help={resolveLocalizedText(ui?.help, locale)}
+                  label={
+                    resolveLocalizedText(ui?.label, locale)
+                    ?? humanize(property)
+                  }
+                  onChange={(nextValue) =>
+                    updateConfigProperty(property, nextValue)
+                  }
+                  placeholder={resolveLocalizedText(ui?.placeholder, locale)}
+                  schema={schema}
+                  value={declaration?.config?.[property]}
+                />
+              );
+            })}
+
+            {secretEntries.map(([secret, requirement]) => {
+              const binding =
+                declaration?.secrets?.[secret]
+                ?? requirement.defaultBinding
+                ?? "";
+              const label = resolveLocalizedText(
+                requirement.label,
+                locale,
+              ) ?? t("secretBinding", { secret });
+              const help = resolveLocalizedText(
+                requirement.help,
+                locale,
+              ) ?? requirement.description ?? t("secretBindingHint");
+
+              return (
+                <div key={secret}>
+                  <label className={fieldLabelRowClassName}>
+                    <span className={fieldLabelClassName}>{label}</span>
+                  </label>
+                  <input
+                    value={binding}
+                    disabled={fieldsDisabled}
+                    onChange={(event) =>
+                      updateSecretBinding(secret, event.target.value.toUpperCase())
+                    }
+                    placeholder={requirement.defaultBinding}
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    className={formControlClassName({
+                      className: "w-full font-mono",
+                    })}
+                  />
+                  {help ? (
+                    <p className="mt-1.5 text-xs leading-5 text-muted">
+                      {help}
+                    </p>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-muted">
+            {isEnabled ? t("noPluginSettings") : t("disabledPluginSettings")}
+          </p>
+        )}
       </div>
-    </section>
+      <ConfirmationDialog
+        isOpen={isDisablePlatformDialogOpen}
+        title={t("disableRuntimePlatformTitle")}
+        description={t("disableRuntimePlatformConfirm", { name: manifest.name })}
+        cancelLabel={t("disableRuntimePlatformCancel")}
+        confirmLabel={t("disableRuntimePlatformConfirmAction")}
+        tone="danger"
+        onCancel={() => setIsDisablePlatformDialogOpen(false)}
+        onConfirm={() => {
+          setIsDisablePlatformDialogOpen(false);
+          applyPluginEnabled(false);
+        }}
+      />
+    </>
   );
 }
 
 function PluginPropertyField({
+  control,
   disabled,
+  help,
   label,
   onChange,
+  placeholder,
   schema,
   value,
 }: {
+  control?: PluginConfigurationFieldUi["control"];
   disabled: boolean;
+  help?: string;
   label: string;
   onChange: (value: JsonValue | undefined) => void;
+  placeholder?: string;
   schema: JsonObject;
   value: JsonValue | undefined;
 }) {
@@ -302,6 +280,8 @@ function PluginPropertyField({
     : [];
   const hint = constantValue !== undefined
     ? t("fixedValue")
+    : help
+      ? help
     : minimum !== undefined || maximum !== undefined
       ? t("range", {
           minimum: minimum ?? "−∞",
@@ -315,7 +295,7 @@ function PluginPropertyField({
         <span className={fieldLabelClassName}>{label}</span>
       </label>
 
-      {enumValues.length > 0 ? (
+      {control === "select" || enumValues.length > 0 ? (
         <DropdownSelect
           value={String(value ?? enumValues[0] ?? "")}
           disabled={disabled}
@@ -328,7 +308,7 @@ function PluginPropertyField({
             label: String(item),
           }))}
         />
-      ) : schema.type === "boolean" ? (
+      ) : control === "switch" || schema.type === "boolean" ? (
         <div className="flex h-10 items-center justify-between rounded-xl border border-line bg-panel px-3.5">
           <span className="text-sm text-ink">
             {value === true ? t("enabled") : t("disabled")}
@@ -340,7 +320,7 @@ function PluginPropertyField({
             onChange={onChange}
           />
         </div>
-      ) : schema.type === "integer" || schema.type === "number" || typeof constantValue === "number" ? (
+      ) : control === "number" || schema.type === "integer" || schema.type === "number" || typeof constantValue === "number" ? (
         <NumberInput
           value={
             typeof constantValue === "number"
@@ -365,6 +345,7 @@ function PluginPropertyField({
           disabled={disabled}
           readOnly={constantValue !== undefined}
           onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
           className={formControlClassName({ className: "w-full" })}
         />
       )}
@@ -389,6 +370,46 @@ function getSchemaProperties(
   );
 }
 
+function sortPluginConfigProperties(
+  manifest: PluginManifest,
+  properties: Record<string, JsonObject>,
+): [string, JsonObject][] {
+  return Object.entries(properties)
+    .map((entry, index) => ({ entry, index }))
+    .sort((left, right) => {
+      const leftOrder = getFieldUi(manifest, left.entry[0])?.order;
+      const rightOrder = getFieldUi(manifest, right.entry[0])?.order;
+      return readOrder(leftOrder) - readOrder(rightOrder)
+        || left.index - right.index;
+    })
+    .map((item) => item.entry);
+}
+
+function sortPluginSecrets(
+  secrets: Readonly<Record<string, PluginSecretRequirement>>,
+): [string, PluginSecretRequirement][] {
+  return Object.entries(secrets)
+    .map((entry, index) => ({ entry, index }))
+    .sort((left, right) => {
+      return readOrder(left.entry[1].order) - readOrder(right.entry[1].order)
+        || left.index - right.index;
+    })
+    .map((item) => item.entry);
+}
+
+function getFieldUi(
+  manifest: PluginManifest,
+  property: string,
+): PluginConfigurationFieldUi | undefined {
+  return manifest.config.ui?.fields?.[property];
+}
+
+function readOrder(value: number | undefined): number {
+  return typeof value === "number" && Number.isSafeInteger(value)
+    ? value
+    : Number.MAX_SAFE_INTEGER;
+}
+
 function createInitialConfig(manifest: PluginManifest): JsonObject {
   const config: JsonObject = {};
   for (const [property, schema] of Object.entries(getSchemaProperties(manifest))) {
@@ -409,6 +430,19 @@ function createInitialSecrets(
       )
       .map(([secret, requirement]) => [secret, requirement.defaultBinding]),
   );
+}
+
+function resolveLocalizedText(
+  value: PluginLocalizedText | undefined,
+  locale: string,
+): string | undefined {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (!value) {
+    return undefined;
+  }
+  return value[locale] ?? value.en ?? Object.values(value)[0];
 }
 
 function isJsonObject(value: JsonValue | undefined): value is JsonObject {

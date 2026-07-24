@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 
 import type { DataConfig, RobotsPolicy, WebUiAccessMode } from "@i0c/config";
 
-import { PluginSettingsEditor } from "@/components/settings/plugin-settings-editor";
+import { PluginStatusPanel } from "@/components/plugins/plugin-status-panel";
 import { Button } from "@/components/ui/controls/button";
 import { DropdownSelect } from "@/components/ui/controls/dropdown-select";
 import {
@@ -19,7 +19,6 @@ import { validateInstanceDataConfig } from "@/lib/configuration/validation";
 interface InstanceSettingsEditorProps {
   isReadOnly: boolean;
   onChange: (value: DataConfig) => void;
-  pluginStatusContent: ReactNode;
   value: DataConfig;
 }
 
@@ -33,13 +32,11 @@ type SettingsCategory =
   | "runtime"
   | "analytics"
   | "access"
-  | "installed-plugins"
-  | "plugin-settings";
+  | "installed-plugins";
 
 export function InstanceSettingsEditor({
   isReadOnly,
   onChange,
-  pluginStatusContent,
   value,
 }: InstanceSettingsEditorProps) {
   const t = useTranslations("instanceConfig");
@@ -128,12 +125,6 @@ export function InstanceSettingsEditor({
               onClick={() => setSelectedCategory("installed-plugins")}
             >
               {t("sections.installedPlugins.title")}
-            </SettingsCategoryButton>
-            <SettingsCategoryButton
-              isSelected={selectedCategory === "plugin-settings"}
-              onClick={() => setSelectedCategory("plugin-settings")}
-            >
-              {t("sections.plugins.title")}
             </SettingsCategoryButton>
           </div>
         </nav>
@@ -378,12 +369,8 @@ export function InstanceSettingsEditor({
             </SettingsSection>
           ) : null}
 
-          {selectedCategory === "installed-plugins"
-            ? pluginStatusContent
-            : null}
-
-          {selectedCategory === "plugin-settings" ? (
-            <PluginSettingsEditor
+          {selectedCategory === "installed-plugins" ? (
+            <PluginStatusPanel
               value={value.plugins}
               isReadOnly={isReadOnly}
               onChange={(plugins) => onChange({ ...value, plugins })}
