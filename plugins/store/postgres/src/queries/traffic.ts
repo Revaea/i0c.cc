@@ -5,6 +5,7 @@ import type {
   AnalyticsSeriesPoint,
 } from "@i0c/analytics-domain/types"
 import { resolveSeriesBucket } from "@i0c/analytics-domain/range"
+import { createTrendComparison } from "@i0c/analytics-domain/trend"
 
 import { getDatabase } from "../database"
 import type { ResolvedQueryScope } from "../scope"
@@ -46,6 +47,7 @@ interface LinkSummaryRow {
   bots: DatabaseNumber;
   suspected_automation: DatabaseNumber;
   errors: DatabaseNumber;
+  previous_requests: DatabaseNumber;
   previous_clicks: DatabaseNumber;
 }
 
@@ -454,7 +456,10 @@ export async function getLinkSummaries(
         AND (${scope.entryDomain === "all"} OR entry_domain = ${scope.entryDomain})
       GROUP BY analytics_id
     ), previous_stats AS (
-      SELECT analytics_id, SUM(entry_human_requests) AS clicks
+      SELECT
+        analytics_id,
+        SUM(requests) AS requests,
+        SUM(entry_human_requests) AS clicks
       FROM link_stats_hourly_domain
       WHERE source_id = ${sourceId}
         AND bucket_start >= ${scope.range.previousStart}
@@ -474,6 +479,7 @@ export async function getLinkSummaries(
       current_stats.bots,
       current_stats.suspected_automation,
       current_stats.errors,
+      COALESCE(previous_stats.requests, 0) AS previous_requests,
       COALESCE(previous_stats.clicks, 0) AS previous_clicks
     FROM analytics_link AS link
     LEFT JOIN current_stats ON current_stats.analytics_id = link.analytics_id
@@ -490,6 +496,7 @@ export async function getLinkSummaries(
   return rows.map((row) => {
     const clicks = toNumber(row.clicks);
     const entryClicks = toNumber(row.entry_clicks);
+    const previousRequests = toNumber(row.previous_requests);
     const previousClicks = toNumber(row.previous_clicks);
     const declaredBots = toNumber(row.bots);
     const previews = toNumber(row.previews);
@@ -508,8 +515,11 @@ export async function getLinkSummaries(
       declaredBots: declaredBots + previews,
       suspectedAutomation,
       errors: toNumber(row.errors),
-      trendPercent:
-        previousClicks > 0 ? ((entryClicks - previousClicks) / previousClicks) * 100 : null,
+      trend: createTrendComparison(
+        entryClicks,
+        previousClicks,
+        previousRequests > 0,
+      ),
     };
   });
 }

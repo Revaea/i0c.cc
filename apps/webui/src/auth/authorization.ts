@@ -6,9 +6,9 @@ import { getServerSession } from "next-auth/next";
 import type { NextRequest } from "next/server";
 
 import {
+  getWebUiTokenAuthorization,
   hasWebUiAccessToken,
   isWebUiPublicReadOnly,
-  isWebUiTokenAuthorized,
 } from "./access-policy";
 import { authOptions } from "./config";
 
@@ -16,7 +16,7 @@ export type WebUiAuthorizationDenial = "unauthenticated" | "forbidden";
 
 type WebUiAuthorizationDenied =
   | { status: "unauthenticated" }
-  | { status: "forbidden" };
+  | { status: "forbidden"; isBlocked: boolean };
 
 type WebUiReadSessionAuthorization =
   | WebUiAuthorizationDenied
@@ -53,7 +53,10 @@ async function getAuthenticatedSessionAuthorization(): Promise<WebUiManagementSe
   }
 
   if (session.hasAccessToken !== true || session.isAuthorized !== true) {
-    return { status: "forbidden" };
+    return {
+      status: "forbidden",
+      isBlocked: session.isBlocked === true,
+    };
   }
 
   return { status: "authorized" };
@@ -67,7 +70,8 @@ export async function getWebUiReadSessionAuthorization(): Promise<WebUiReadSessi
 
   if (
     await isWebUiPublicReadOnly() &&
-    authorization.status === "forbidden"
+    authorization.status === "forbidden" &&
+    !authorization.isBlocked
   ) {
     return { status: "authorized", isReadOnly: true };
   }
@@ -98,8 +102,15 @@ async function getAuthenticatedRequestAuthorization(
     return { status: "unauthenticated" };
   }
 
-  if (!await isWebUiTokenAuthorized(token) || !hasWebUiAccessToken(token)) {
-    return { status: "forbidden" };
+  const tokenAuthorization = await getWebUiTokenAuthorization(token);
+  if (
+    !tokenAuthorization.isAuthorized
+    || !hasWebUiAccessToken(token)
+  ) {
+    return {
+      status: "forbidden",
+      isBlocked: tokenAuthorization.isBlocked,
+    };
   }
 
   return {
@@ -122,7 +133,8 @@ export async function getWebUiReadRequestAuthorization(
 
   if (
     await isWebUiPublicReadOnly() &&
-    authorization.status === "forbidden"
+    authorization.status === "forbidden" &&
+    !authorization.isBlocked
   ) {
     return { status: "authorized", isReadOnly: true };
   }

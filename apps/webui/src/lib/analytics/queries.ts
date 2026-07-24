@@ -60,7 +60,7 @@ async function queryAnalyticsOverview(
 
 const getCachedAnalyticsOverview = unstable_cache(
   queryAnalyticsOverview,
-  ["analytics-overview-v6"],
+  ["analytics-overview-v7"],
   { revalidate: analyticsCacheSeconds, tags: [analyticsCacheTag] }
 );
 

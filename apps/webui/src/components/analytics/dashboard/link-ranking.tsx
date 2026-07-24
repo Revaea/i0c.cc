@@ -1,6 +1,8 @@
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 
+import type { AnalyticsTrendComparison } from "@i0c/analytics-domain/types"
+
 import { cardClassName } from "@/components/ui/surfaces/card"
 
 import { formatChangeRate, formatCount } from "../formatting/format"
@@ -27,10 +29,36 @@ interface AutomationLinkRankingProps {
   entryDomain: string
 }
 
-function TrendChange({ value, locale }: { value?: number | null; locale: string }) {
+function TrendChange({
+  comparison,
+  locale,
+}: {
+  comparison: AnalyticsTrendComparison
+  locale: string
+}) {
   const t = useTranslations("analytics")
-  const isPositive = typeof value === "number" && value > 0
-  const isNegative = typeof value === "number" && value < 0
+  const isPositive = comparison.status === "started"
+    || (comparison.status === "percentage" && comparison.percent > 0)
+  const isNegative = comparison.status === "percentage" && comparison.percent < 0
+
+  let content: string
+  switch (comparison.status) {
+    case "percentage":
+      content = t("ranking.changeCompared", {
+        value: formatChangeRate(comparison.percent / 100, locale),
+      })
+      break
+    case "started":
+      content = t("ranking.started", {
+        count: formatCount(comparison.currentValue, locale),
+      })
+      break
+    case "unchanged":
+      content = t("ranking.unchanged")
+      break
+    default:
+      content = t("ranking.noComparison")
+  }
 
   return (
     <span
@@ -38,9 +66,7 @@ function TrendChange({ value, locale }: { value?: number | null; locale: string 
         isPositive ? "text-emerald-700" : isNegative ? "text-rose-700" : "text-muted"
       }`}
     >
-      {typeof value === "number" && Number.isFinite(value)
-        ? t("ranking.changeCompared", { value: formatChangeRate(value, locale) })
-        : t("ranking.noComparison")}
+      {content}
     </span>
   )
 }
@@ -113,7 +139,7 @@ export function LinkRanking({
                       count: formatCount(link.totalRequests, locale),
                     })}
                   </span>
-                  <TrendChange value={link.changeRate} locale={locale} />
+                  <TrendChange comparison={link.trend} locale={locale} />
                 </div>
               </article>
             ))}
@@ -155,7 +181,7 @@ export function LinkRanking({
                       {formatCount(link.totalRequests, locale)}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <TrendChange value={link.changeRate} locale={locale} />
+                      <TrendChange comparison={link.trend} locale={locale} />
                     </td>
                   </tr>
                 ))}

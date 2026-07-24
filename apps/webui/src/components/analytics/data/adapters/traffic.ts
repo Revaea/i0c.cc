@@ -4,6 +4,7 @@ import type {
   AnalyticsDimensionPoint,
   AnalyticsLinkSummary,
   AnalyticsOverview,
+  AnalyticsTrendComparison,
 } from "@/lib/analytics/types"
 
 import {
@@ -21,14 +22,6 @@ import type {
   AnalyticsRankedLink,
   AnalyticsTrendPoint,
 } from "../types"
-
-function toRatio(value: number) {
-  if (!Number.isFinite(value)) {
-    return 0
-  }
-
-  return Math.min(1, Math.max(-1, value / 100))
-}
 
 function mapBreakdown(
   items: AnalyticsDimensionPoint[],
@@ -120,8 +113,24 @@ function toRankedLinks(links: AnalyticsLinkSummary[]): AnalyticsRankedLink[] {
     estimatedEntryNavigations: link.entryClicks,
     totalRequests: link.requests,
     entryRequests: link.entryRequests,
-    changeRate: link.trendPercent === null ? null : toRatio(link.trendPercent),
+    trend: resolveLinkTrend(link),
   }))
+}
+
+export function resolveLinkTrend(
+  link: Pick<AnalyticsLinkSummary, "trend" | "trendPercent">,
+): AnalyticsTrendComparison {
+  if (link.trend) {
+    return link.trend
+  }
+
+  if (typeof link.trendPercent === "number") {
+    return link.trendPercent === 0
+      ? { status: "unchanged" }
+      : { status: "percentage", percent: link.trendPercent }
+  }
+
+  return { status: "unavailable" }
 }
 
 export function toDetailViewModel(data: AnalyticsDetail): AnalyticsDetailViewModel {

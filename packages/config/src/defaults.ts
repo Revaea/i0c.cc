@@ -32,6 +32,7 @@ export const defaultDataConfig = {
     access: {
       mode: "public-readonly",
       managerGitHubUserIds: ["59095086", "186124801", "186082640"],
+      blockedGitHubUserIds: [],
     },
   },
   plugins: {

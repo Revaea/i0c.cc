@@ -5,7 +5,7 @@ import { bootstrapConfig } from "@i0c/config";
 import {
   applyWebUiTokenAuthorization,
   canGitHubUserSignIn,
-  isWebUiTokenAuthorized,
+  getWebUiTokenAuthorization,
 } from "./access-policy";
 
 function requireEnv(key: string): string {
@@ -32,11 +32,17 @@ export const authOptions = {
           // Use the narrowest scope possible for your use case.
           scope: bootstrapConfig.webui.githubOAuthScope
         }
+      },
+      httpOptions: {
+        timeout: 10_000,
       }
     })
   ],
   session: {
     strategy: "jwt" as const
+  },
+  pages: {
+    error: "/",
   },
   callbacks: {
     async signIn({ account }) {
@@ -65,9 +71,10 @@ export const authOptions = {
     async session({ session, token }) {
       // IMPORTANT: Never expose OAuth access tokens to the browser.
       // Keep tokens only in the server-side JWT and read them in API routes via getToken().
-      const isAuthorized = await isWebUiTokenAuthorized(token);
-      session.hasAccessToken = isAuthorized;
-      session.isAuthorized = isAuthorized;
+      const authorization = await getWebUiTokenAuthorization(token);
+      session.hasAccessToken = authorization.isAuthorized;
+      session.isAuthorized = authorization.isAuthorized;
+      session.isBlocked = authorization.isBlocked;
       return session;
     }
   }

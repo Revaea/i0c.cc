@@ -86,8 +86,15 @@ export interface AnalyticsLinkSummary {
   declaredBots: number;
   suspectedAutomation: number;
   errors: number;
-  trendPercent: number | null;
+  trend?: AnalyticsTrendComparison;
+  trendPercent?: number | null;
 }
+
+export type AnalyticsTrendComparison =
+  | { status: "unavailable" }
+  | { status: "unchanged" }
+  | { status: "started"; currentValue: number }
+  | { status: "percentage"; percent: number };
 
 export interface AnalyticsOverview {
   range: AnalyticsDateRange;

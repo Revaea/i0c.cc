@@ -6,6 +6,7 @@
   "auth": {
     "signInTitle": "Sign in to the config console",
     "signInWithGithub": "Sign in with GitHub",
+    "signInError": "GitHub sign-in could not be completed. Check the connection and try again.",
     "accessDeniedTitle": "Access denied",
     "accessDeniedDescription": "This GitHub account is not allowed to access this deployment.",
     "signOutAndReturn": "Sign out and return"
