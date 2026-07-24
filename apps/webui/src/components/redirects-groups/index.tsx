@@ -18,16 +18,21 @@ import {
   SidebarSkeletonCatalog,
   SidebarSettingsSkeleton,
 } from "@/components/ui/feedback/skeletons";
+import { ConfirmationDialog } from "@/components/ui/feedback/confirmation-dialog";
 import { SaveNotification } from "@/components/ui/feedback/save-notification";
 import { GroupEntriesEditor } from "@/components/editor/group-entries-editor";
 import { JsonEditor } from "@/components/editor/json-editor";
+import { NewRouteEntryDialog } from "@/components/editor/new-route-entry-dialog";
 import { RightPanel, type EditorMode } from "@/components/editor/right-panel";
 import { UnsavedChangesDialog } from "@/components/editor/unsaved-changes-dialog";
 import { useRedirectsGroups } from "@/composables/redirects-groups";
+import type {
+  RedirectEntryDraft,
+  RedirectGroup,
+} from "@/composables/redirects-groups/model";
 import { useDataConfigFile } from "@/composables/data-config/use-data-config-file";
 import { RouteEntriesCatalog } from "@/components/redirects-groups/manager-sidebar/manager-sidebar-catalog";
 import { RuntimeSettingsProvider } from "@/components/redirects-groups/runtime-settings-context";
-import { PluginStatusPanel } from "@/components/plugins/plugin-status-panel";
 import { InstanceSettingsEditor } from "@/components/settings/instance-settings-editor";
 import { validateInstanceDataConfig } from "@/lib/configuration/validation";
 import { useRouter } from "@/i18n/navigation";
@@ -111,6 +116,8 @@ export function RedirectsGroupsManager({
   const [saveAttempt, setSaveAttempt] = useState(0);
   const [pendingLeave, setPendingLeave] = useState<PendingLeave | null>(null);
   const [isResolvingLeave, setIsResolvingLeave] = useState(false);
+  const [newEntryGroupId, setNewEntryGroupId] = useState<string | null>(null);
+  const [pendingDeleteGroupId, setPendingDeleteGroupId] = useState<string | null>(null);
   const dataConfigFile = useDataConfigFile({
     fallbackLoadErrorText: tConfig("loadFail"),
     fallbackSaveErrorText: tConfig("saveFail"),
@@ -342,10 +349,39 @@ export function RedirectsGroupsManager({
     (groupId: string) => {
       runRulesAction(() => {
         enterRulesMode();
-        addEntry(groupId);
+        setNewEntryGroupId(groupId);
       });
     },
-    [addEntry, enterRulesMode, runRulesAction],
+    [enterRulesMode, runRulesAction],
+  );
+
+  const handleRemoveGroup = useCallback(
+    (groupId: string) => {
+      runRulesAction(() => {
+        enterRulesMode();
+        setPendingDeleteGroupId(groupId);
+      });
+    },
+    [enterRulesMode, runRulesAction],
+  );
+
+  const handleConfirmRemoveGroup = useCallback(() => {
+    if (!pendingDeleteGroupId) {
+      return;
+    }
+    removeGroup(pendingDeleteGroupId);
+    setPendingDeleteGroupId(null);
+  }, [pendingDeleteGroupId, removeGroup]);
+
+  const handleCreateEntry = useCallback(
+    (draft: RedirectEntryDraft) => {
+      if (!newEntryGroupId) {
+        return;
+      }
+      addEntry(newEntryGroupId, draft);
+      setNewEntryGroupId(null);
+    },
+    [addEntry, newEntryGroupId],
   );
 
   const handleLocateEntry = useCallback(
@@ -547,7 +583,7 @@ export function RedirectsGroupsManager({
       onEditingNameChange={setEditingName}
       onCommitRename={commitRename}
       onCancelRename={cancelRename}
-      onRemoveGroup={removeGroup}
+      onRemoveGroup={handleRemoveGroup}
     />
   );
 
@@ -607,6 +643,12 @@ export function RedirectsGroupsManager({
     : lastSaveTarget === "settings"
       ? dataConfigFile.lastCommitUrl
       : lastCommitUrl;
+  const newEntryGroup = newEntryGroupId
+    ? findGroupById(rootGroup, newEntryGroupId)
+    : null;
+  const pendingDeleteGroup = pendingDeleteGroupId
+    ? findGroupById(rootGroup, pendingDeleteGroupId)
+    : null;
 
   return (
     <RuntimeSettingsProvider canonicalOrigin={canonicalOrigin}>
@@ -641,7 +683,6 @@ export function RedirectsGroupsManager({
                       <InstanceSettingsEditor
                         value={configValue}
                         isReadOnly={isReadOnly}
-                        pluginStatusContent={<PluginStatusPanel />}
                         onChange={(nextConfig) => {
                           setConfigValue(nextConfig);
                           setConfigDraft(JSON.stringify(nextConfig, null, 2));
@@ -669,7 +710,7 @@ export function RedirectsGroupsManager({
                   selectedGroup ? (
                     <GroupEntriesEditor
                       group={selectedGroup}
-                      onAddEntry={addEntry}
+                      onAddEntry={handleAddEntry}
                       onRemoveEntry={removeEntry}
                       onUpdateEntryKey={updateEntryKey}
                       onUpdateEntryValue={updateEntryValue}
@@ -691,6 +732,14 @@ export function RedirectsGroupsManager({
           message={notificationMessage}
           commitUrl={notificationCommitUrl}
         />
+        {newEntryGroup ? (
+          <NewRouteEntryDialog
+            groupName={newEntryGroup.name}
+            isOpen
+            onClose={() => setNewEntryGroupId(null)}
+            onCreate={handleCreateEntry}
+          />
+        ) : null}
         <UnsavedChangesDialog
           isOpen={pendingLeave !== null}
           isSaving={isResolvingLeave}
@@ -698,6 +747,18 @@ export function RedirectsGroupsManager({
           onCancel={handlePendingCancel}
           onDiscard={() => void handlePendingDiscard()}
           onSave={() => void handlePendingSave()}
+        />
+        <ConfirmationDialog
+          isOpen={pendingDeleteGroup !== null}
+          title={tGroups("deleteGroupTitle")}
+          description={tGroups("confirmDelete", {
+            label: pendingDeleteGroup?.name?.trim() || tGroups("unnamed"),
+          })}
+          cancelLabel={tGroups("cancelDelete")}
+          confirmLabel={tGroups("delete")}
+          tone="danger"
+          onCancel={() => setPendingDeleteGroupId(null)}
+          onConfirm={handleConfirmRemoveGroup}
         />
       </>
     </RuntimeSettingsProvider>
@@ -713,6 +774,19 @@ function createJsonFingerprint(content: string | null): string | null {
   } catch {
     return content.trim();
   }
+}
+
+function findGroupById(group: RedirectGroup, groupId: string): RedirectGroup | null {
+  if (group.id === groupId) {
+    return group;
+  }
+  for (const child of group.children) {
+    const match = findGroupById(child, groupId);
+    if (match) {
+      return match;
+    }
+  }
+  return null;
 }
 
 function replaceBrowserView(view: "settings" | null) {

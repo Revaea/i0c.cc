@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/controls/button";
+import { AppDialog } from "@/components/ui/feedback/app-dialog";
 
 interface UnsavedChangesDialogProps {
   isOpen: boolean;
@@ -23,35 +23,12 @@ export function UnsavedChangesDialog({
   onSave,
 }: UnsavedChangesDialogProps) {
   const t = useTranslations("unsavedChanges");
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) {
-      return;
-    }
-    if (isOpen && !dialog.open) {
-      dialog.showModal();
-    } else if (!isOpen && dialog.open) {
-      dialog.close();
-    }
-  }, [isOpen]);
 
   return (
-    <dialog
-      ref={dialogRef}
-      onCancel={(event) => {
-        event.preventDefault();
-        if (!isSaving) {
-          onCancel();
-        }
-      }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget && !isSaving) {
-          onCancel();
-        }
-      }}
-      className="m-auto w-[calc(100%_-_2rem)] max-w-md rounded-2xl border border-line bg-panel p-0 text-ink backdrop:bg-ink/30 backdrop:backdrop-blur-[2px]"
+    <AppDialog
+      isOpen={isOpen}
+      onClose={onCancel}
+      preventClose={isSaving}
     >
       <div className="p-5 sm:p-6">
         <h2 className="text-lg font-semibold text-ink">
@@ -85,6 +62,6 @@ export function UnsavedChangesDialog({
           </Button>
         </div>
       </div>
-    </dialog>
+    </AppDialog>
   );
 }

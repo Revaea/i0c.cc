@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from "react";
 import type { ComponentType } from "react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/controls/button";
 import { Card } from "@/components/ui/surfaces/card";
+import { ConfirmationDialog } from "@/components/ui/feedback/confirmation-dialog";
 import { fieldLabelClassName } from "@/components/ui/controls/form-control";
 
 interface NestedRouteEntryEditorProps {
@@ -34,6 +36,23 @@ export function RouteArrayEditor({
   EntryEditor,
 }: RouteArrayEditorProps) {
   const t = useTranslations("routeEntry");
+  const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(null);
+
+  function confirmDeleteItem() {
+    if (pendingDeleteIndex === null) {
+      return;
+    }
+    const next = value.slice();
+    if (next.length <= 1) {
+      next[0] = "";
+      onChange(next);
+      setPendingDeleteIndex(null);
+      return;
+    }
+    next.splice(pendingDeleteIndex, 1);
+    onChange(next);
+    setPendingDeleteIndex(null);
+  }
 
   return (
     <div className="mt-4 space-y-3">
@@ -49,17 +68,7 @@ export function RouteArrayEditor({
             <p className={fieldLabelClassName}>{t("ruleItem", { index: index + 1 })}</p>
             {isReadOnly ? null : (
               <Button
-                onClick={() => {
-                  if (!window.confirm(t("confirmDeleteRule"))) return;
-                  const next = value.slice();
-                  if (next.length <= 1) {
-                    next[0] = "";
-                    onChange(next);
-                    return;
-                  }
-                  next.splice(index, 1);
-                  onChange(next);
-                }}
+                onClick={() => setPendingDeleteIndex(index)}
                 size="icon"
                 variant="danger"
                 title={t("deleteRule")}
@@ -106,6 +115,16 @@ export function RouteArrayEditor({
           {t("addRuleItem")}
         </Button>
       )}
+      <ConfirmationDialog
+        isOpen={pendingDeleteIndex !== null}
+        title={t("deleteRuleTitle")}
+        description={t("confirmDeleteRule")}
+        cancelLabel={t("cancelDelete")}
+        confirmLabel={t("deleteRule")}
+        tone="danger"
+        onCancel={() => setPendingDeleteIndex(null)}
+        onConfirm={confirmDeleteItem}
+      />
     </div>
   );
 }

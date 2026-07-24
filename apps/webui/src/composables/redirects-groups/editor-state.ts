@@ -1,6 +1,11 @@
 'use client';
 
-import { createEmptyEntry, createEmptyGroup, type RedirectGroup } from "./model";
+import {
+  createEmptyEntry,
+  createEmptyGroup,
+  type RedirectEntryDraft,
+  type RedirectGroup,
+} from "./model";
 import type { ParsedRedirectConfig } from "./serialization";
 import {
   ensureUniqueGroupName,
@@ -159,10 +164,14 @@ export function addGroup(
   };
 }
 
-export function addEntry(state: GroupsEditorState, groupId: string): GroupsEditorState {
+export function addEntry(
+  state: GroupsEditorState,
+  groupId: string,
+  draft?: RedirectEntryDraft,
+): GroupsEditorState {
   const [nextRoot] = updateGroupById(state.rootGroup, groupId, (group) => ({
     ...group,
-    entries: [...group.entries, createEmptyEntry()],
+    entries: [...group.entries, createEmptyEntry(draft)],
   }));
   return { ...state, rootGroup: nextRoot };
 }

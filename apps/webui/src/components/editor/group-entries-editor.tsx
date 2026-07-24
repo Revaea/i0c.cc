@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/controls/button";
 import { WebUiPluginSlot } from "@/components/plugins/plugin-slot";
 import { fieldLabelClassName, formControlClassName } from "@/components/ui/controls/form-control";
+import { ConfirmationDialog } from "@/components/ui/feedback/confirmation-dialog";
 import type { RedirectGroup } from "@/composables/redirects-groups/model";
 
 import { RouteEntryEditor } from "@/components/editor/route-entry/route-entry-editor";
@@ -27,6 +29,15 @@ export function GroupEntriesEditor({
   onUpdateEntryValue,
 }: GroupEntriesEditorProps) {
   const t = useTranslations("entries");
+  const [pendingDeleteEntryId, setPendingDeleteEntryId] = useState<string | null>(null);
+
+  function confirmDeleteEntry() {
+    if (!pendingDeleteEntryId) {
+      return;
+    }
+    onRemoveEntry(group.id, pendingDeleteEntryId);
+    setPendingDeleteEntryId(null);
+  }
 
   return (
     <div>
@@ -94,11 +105,7 @@ export function GroupEntriesEditor({
 
               {isReadOnly ? null : (
                 <Button
-                  onClick={() => {
-                    if (window.confirm(t("confirmDeleteRule"))) {
-                      onRemoveEntry(group.id, entry.id);
-                    }
-                  }}
+                  onClick={() => setPendingDeleteEntryId(entry.id)}
                   size="icon-lg"
                   variant="danger"
                   title={t("deleteRule")}
@@ -132,6 +139,16 @@ export function GroupEntriesEditor({
           </section>
         ))}
       </div>
+      <ConfirmationDialog
+        isOpen={pendingDeleteEntryId !== null}
+        title={t("deleteRuleTitle")}
+        description={t("confirmDeleteRule")}
+        cancelLabel={t("cancelDelete")}
+        confirmLabel={t("deleteRule")}
+        tone="danger"
+        onCancel={() => setPendingDeleteEntryId(null)}
+        onConfirm={confirmDeleteEntry}
+      />
     </div>
   );
 }
