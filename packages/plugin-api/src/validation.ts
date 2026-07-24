@@ -15,6 +15,7 @@ const manifestKeys = new Set([
   "apiVersion",
   "capabilities",
   "config",
+  "description",
   "hosts",
   "id",
   "kind",
@@ -24,10 +25,29 @@ const manifestKeys = new Set([
   "slot",
   "version",
 ])
-const configKeys = new Set(["required", "schema", "version"])
+const configKeys = new Set(["required", "schema", "ui", "version"])
+const descriptionKeys = new Set(["summary"])
+const configUiKeys = new Set(["fields"])
+const configFieldUiControls = new Set([
+  "number",
+  "secret-binding",
+  "select",
+  "switch",
+  "text",
+])
+const configFieldUiKeys = new Set([
+  "control",
+  "help",
+  "label",
+  "order",
+  "placeholder",
+])
 const secretRequirementKeys = new Set([
   "defaultBinding",
   "description",
+  "help",
+  "label",
+  "order",
   "required",
   "sensitive",
 ])
@@ -118,6 +138,21 @@ export function validatePluginManifest(manifest: unknown): PluginManifestValidat
   }
 
   const config = isRecord(manifest.config) ? manifest.config : undefined
+  if (manifest.description !== undefined) {
+    const description = isRecord(manifest.description)
+      ? manifest.description
+      : undefined
+    if (!description) {
+      issues.push("description must be an object")
+    } else {
+      validateKnownKeys(description, descriptionKeys, "description", issues)
+      if (description.summary === undefined) {
+        issues.push("description.summary is required")
+      }
+      validateLocalizedText(description.summary, "description.summary", issues)
+    }
+  }
+
   if (!config) {
     issues.push("config must be an object")
   } else {
@@ -139,6 +174,10 @@ export function validatePluginManifest(manifest: unknown): PluginManifestValidat
       config.schema,
       "/config/schema",
     ).map((issue) => `${issue.path}: ${issue.message}`))
+  }
+
+  if (config?.ui !== undefined) {
+    validateConfigUi(config.ui, issues)
   }
 
   if (manifest.kind === "runtime-platform") {
@@ -190,6 +229,16 @@ export function validatePluginManifest(manifest: unknown): PluginManifestValidat
       issues.push(`secret ${name} description must be a string`)
     }
 
+    validateLocalizedText(requirement.help, `secret ${name} help`, issues)
+    validateLocalizedText(requirement.label, `secret ${name} label`, issues)
+
+    if (
+      requirement.order !== undefined
+      && (!Number.isSafeInteger(requirement.order) || Number(requirement.order) < 0)
+    ) {
+      issues.push(`secret ${name} order must be a non-negative integer`)
+    }
+
     if (
       requirement.defaultBinding !== undefined
       && (
@@ -224,6 +273,83 @@ function validateKnownKeys(
   for (const key of Object.keys(value)) {
     if (!allowedKeys.has(key)) {
       issues.push(`${path}.${key} is not supported`)
+    }
+  }
+}
+
+function validateConfigUi(value: unknown, issues: string[]): void {
+  if (!isRecord(value)) {
+    issues.push("config.ui must be an object")
+    return
+  }
+
+  validateKnownKeys(value, configUiKeys, "config.ui", issues)
+  if (value.fields === undefined) {
+    return
+  }
+
+  if (!isRecord(value.fields)) {
+    issues.push("config.ui.fields must be an object")
+    return
+  }
+
+  for (const [fieldName, field] of Object.entries(value.fields)) {
+    const path = `config.ui.fields.${fieldName}`
+    if (!isRecord(field)) {
+      issues.push(`${path} must be an object`)
+      continue
+    }
+
+    validateKnownKeys(field, configFieldUiKeys, path, issues)
+    if (
+      field.control !== undefined
+      && (
+        typeof field.control !== "string"
+        || !configFieldUiControls.has(field.control)
+      )
+    ) {
+      issues.push(`${path}.control is not supported`)
+    }
+    if (
+      field.order !== undefined
+      && (!Number.isSafeInteger(field.order) || Number(field.order) < 0)
+    ) {
+      issues.push(`${path}.order must be a non-negative integer`)
+    }
+    validateLocalizedText(field.label, `${path}.label`, issues)
+    validateLocalizedText(field.help, `${path}.help`, issues)
+    validateLocalizedText(field.placeholder, `${path}.placeholder`, issues)
+  }
+}
+
+function validateLocalizedText(
+  value: unknown,
+  path: string,
+  issues: string[],
+): void {
+  if (value === undefined) {
+    return
+  }
+  if (typeof value === "string") {
+    if (!value.trim()) {
+      issues.push(`${path} must not be empty`)
+    }
+    return
+  }
+  if (!isRecord(value)) {
+    issues.push(`${path} must be a string or locale map`)
+    return
+  }
+
+  const entries = Object.entries(value)
+  if (entries.length === 0) {
+    issues.push(`${path} must not be empty`)
+    return
+  }
+
+  for (const [locale, text] of entries) {
+    if (!locale.trim() || typeof text !== "string" || !text.trim()) {
+      issues.push(`${path}.${locale} must be a non-empty string`)
     }
   }
 }

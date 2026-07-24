@@ -15,6 +15,12 @@ export const cloudflareRuntimeManifest = {
   slot: "runtime-platform",
   hosts: ["runtime"],
   capabilities: ["edge", "cache-api", "country", "wait-until"],
+  description: {
+    summary: {
+      en: "Runs the redirect Runtime on Cloudflare Workers.",
+      "zh-CN": "在 Cloudflare Workers 上运行重定向 Runtime。",
+    },
+  },
   config: {
     version: 1,
     schema: cloudflareRuntimePluginConfigSchema,

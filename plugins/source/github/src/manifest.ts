@@ -22,6 +22,12 @@ export const githubRawSourceManifest = {
     "http:etag",
     "cache:last-valid",
   ],
+  description: {
+    summary: {
+      en: "Reads published Runtime configuration and redirect rules from GitHub raw URLs.",
+      "zh-CN": "从 GitHub Raw 地址读取已发布的 Runtime 配置和重定向规则。",
+    },
+  },
   config: {
     version: 1,
     schema: githubRawSourcePluginConfigSchema,
@@ -44,6 +50,12 @@ export const githubContentsRepositoryManifest = {
     "redirects:write",
     "version:optimistic",
   ],
+  description: {
+    summary: {
+      en: "Lets the WebUI read and update configuration files through the GitHub Contents API.",
+      "zh-CN": "让 WebUI 通过 GitHub Contents API 读取和更新配置文件。",
+    },
+  },
   config: {
     version: 1,
     schema: githubContentsRepositoryPluginConfigSchema,

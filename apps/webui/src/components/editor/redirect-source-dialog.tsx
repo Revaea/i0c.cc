@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/controls/button";
+import { AppDialog } from "@/components/ui/feedback/app-dialog";
 import {
   fieldLabelClassName,
   fieldLabelRowClassName,
@@ -22,7 +23,7 @@ export function RedirectSourceDialog({
   sourceUrl,
 }: RedirectSourceDialogProps) {
   const t = useTranslations("groups");
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
   const [sourceUrlDraft, setSourceUrlDraft] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const normalizedSourceUrl = sourceUrlDraft.trim();
@@ -44,12 +45,12 @@ export function RedirectSourceDialog({
 
   function openDialog() {
     setSourceUrlDraft(sourceUrl ?? "");
-    dialogRef.current?.showModal();
+    setIsOpen(true);
   }
 
   function closeDialog() {
     if (!isLoading) {
-      dialogRef.current?.close();
+      setIsOpen(false);
     }
   }
 
@@ -61,7 +62,7 @@ export function RedirectSourceDialog({
     setIsLoading(true);
     try {
       await onLoad(normalizedSourceUrl);
-      dialogRef.current?.close();
+      setIsOpen(false);
     } catch {
       return;
     } finally {
@@ -94,19 +95,11 @@ export function RedirectSourceDialog({
         {t("sourceButton")}
       </Button>
 
-      <dialog
-        ref={dialogRef}
-        onCancel={(event) => {
-          if (isLoading) {
-            event.preventDefault();
-          }
-        }}
-        onClick={(event) => {
-          if (event.target === event.currentTarget) {
-            closeDialog();
-          }
-        }}
-        className="m-auto w-[calc(100%_-_2rem)] max-w-lg rounded-2xl border border-line bg-panel p-0 text-ink backdrop:bg-ink/30 backdrop:backdrop-blur-[2px]"
+      <AppDialog
+        isOpen={isOpen}
+        onClose={closeDialog}
+        preventClose={isLoading}
+        widthClassName="max-w-lg"
       >
         <form
           method="dialog"
@@ -190,7 +183,7 @@ export function RedirectSourceDialog({
             </Button>
           </div>
         </form>
-      </dialog>
+      </AppDialog>
     </>
   );
 }

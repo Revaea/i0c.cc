@@ -12,7 +12,6 @@ import {
   cancelRename as cancelRenameState,
   commitRename as commitRenameState,
   createInitialGroupsEditorState,
-  getGroupById,
   getSelectedGroup,
   removeEntry as removeEntryState,
   removeGroupConfirmed,
@@ -22,6 +21,7 @@ import {
   updateEntryValue as updateEntryValueState,
   type GroupsSnapshot,
 } from "./editor-state";
+import type { RedirectEntryDraft } from "./model";
 import { useRedirectsConfigFile } from "./config-file";
 import { useUndoRedo } from "./history";
 import {
@@ -159,9 +159,9 @@ export function useRedirectsGroups() {
     setEditorState((prev) => addGroupState(prev, parentId, tGroups("newGroup")));
   }, [pushCurrentSnapshot, tGroups]);
 
-  const addEntry = useCallback((groupId: string) => {
+  const addEntry = useCallback((groupId: string, draft?: RedirectEntryDraft) => {
     pushCurrentSnapshot();
-    setEditorState((prev) => addEntryState(prev, groupId));
+    setEditorState((prev) => addEntryState(prev, groupId, draft));
   }, [pushCurrentSnapshot]);
 
   const removeEntry = useCallback((groupId: string, entryId: string) => {
@@ -185,18 +185,10 @@ export function useRedirectsGroups() {
         return;
       }
 
-      const target = getGroupById(editorState, groupId);
-      const label = target?.name?.trim() || tGroups("unnamed");
-
-      const ok = window.confirm(tGroups("confirmDelete", { label }));
-      if (!ok) {
-        return;
-      }
-
       pushCurrentSnapshot();
       setEditorState((prev) => removeGroupConfirmed(prev, groupId));
     },
-    [editorState, pushCurrentSnapshot, rootGroup, tGroups]
+    [pushCurrentSnapshot, rootGroup]
   );
 
   const applyJson = useCallback(

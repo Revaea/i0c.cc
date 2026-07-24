@@ -4,6 +4,8 @@
   "refresh": "Refresh status",
   "loading": "Loading plugin status",
   "loadError": "Plugin status could not be loaded.",
+  "configurationTab": "Configuration",
+  "statusTab": "Status details",
   "configuration": "Version",
   "apiVersion": "Plugin API",
   "hosts": "Hosts",

@@ -25,9 +25,31 @@ export const d1AnalyticsStoreManifest = {
     "retention:181-days",
     "migrations",
   ],
+  description: {
+    summary: {
+      en: "Stores analytics events and rollups in Cloudflare D1.",
+      "zh-CN": "将统计事件与聚合数据存储到 Cloudflare D1。",
+    },
+  },
   config: {
     version: 1,
     schema: d1AnalyticsStoreConfigSchema,
+    ui: {
+      fields: {
+        retentionDays: {
+          control: "number",
+          label: {
+            en: "Raw event retention",
+            "zh-CN": "原始事件保留期",
+          },
+          help: {
+            en: "Fixed retention window for raw analytics events.",
+            "zh-CN": "原始统计事件的固定保留窗口。",
+          },
+          order: 10,
+        },
+      },
+    },
   },
   secrets: {},
 } as const satisfies PluginManifest

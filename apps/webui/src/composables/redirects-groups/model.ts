@@ -6,6 +6,8 @@ export type RedirectEntry = {
   value: unknown;
 };
 
+export type RedirectEntryDraft = Pick<RedirectEntry, "key" | "value">;
+
 export type RedirectGroup = {
   id: string;
   name: string;
@@ -31,8 +33,12 @@ export function isRedirectGroupEntry(
   return !key.startsWith('/') && isRecord(value);
 }
 
-export function createEmptyEntry(): RedirectEntry {
-  return { id: uniqueId(), key: '', value: '' };
+export function createEmptyEntry(draft?: Partial<RedirectEntryDraft>): RedirectEntry {
+  return {
+    id: uniqueId(),
+    key: draft?.key ?? '',
+    value: draft?.value ?? '',
+  };
 }
 
 export function createEmptyGroup(name = 'New group'): RedirectGroup {

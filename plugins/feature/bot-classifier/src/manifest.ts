@@ -16,9 +16,31 @@ export const botClassifierManifest = {
   slot: "feature:bot-classifier",
   hosts: ["runtime"],
   capabilities: ["hook:on-analytics-event", "classification:privacy-safe"],
+  description: {
+    summary: {
+      en: "Classifies analytics events as browser traffic, declared bots, or suspected automation without storing personal identifiers.",
+      "zh-CN": "在不保存个人标识的前提下，将统计事件分类为浏览器流量、已声明机器人或疑似自动化。",
+    },
+  },
   config: {
     version: 1,
     schema: botClassifierConfigSchema,
+    ui: {
+      fields: {
+        hookTimeoutMs: {
+          control: "number",
+          label: {
+            en: "Hook timeout",
+            "zh-CN": "钩子超时",
+          },
+          help: {
+            en: "Maximum time each classification hook may spend.",
+            "zh-CN": "单次分类钩子允许占用的最长时间。",
+          },
+          order: 10,
+        },
+      },
+    },
   },
   secrets: {},
 } as const satisfies PluginManifest

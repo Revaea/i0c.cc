@@ -4,6 +4,8 @@
   "refresh": "刷新状态",
   "loading": "正在加载插件状态",
   "loadError": "无法加载插件状态。",
+  "configurationTab": "配置",
+  "statusTab": "状态详情",
   "configuration": "版本",
   "apiVersion": "插件 API",
   "hosts": "宿主",

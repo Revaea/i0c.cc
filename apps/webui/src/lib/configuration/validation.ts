@@ -27,6 +27,18 @@ export const installedInstancePluginManifests = [
 export const requiredInstancePluginIds: ReadonlySet<string> = new Set([
   runtimePluginDescriptors.dataSource.manifest.id,
   webUiPluginDescriptors.dataRepository.manifest.id,
+]);
+
+export const compatibilityEnabledInstancePluginIds: ReadonlySet<string> = new Set([
+  ...[
+    runtimePluginDescriptors.dataSource,
+    ...runtimePluginDescriptors.analyticsSinks,
+    ...runtimePluginDescriptors.features,
+    webUiPluginDescriptors.dataRepository,
+    ...webUiPluginDescriptors.analyticsStores,
+  ]
+    .filter((descriptor) => descriptor.enabledByDefault)
+    .map((descriptor) => descriptor.manifest.id),
   ...runtimePlatformManifests.map((manifest) => manifest.id),
 ]);
 
@@ -44,7 +56,7 @@ export function validateInstanceDataConfig(value: unknown): DataConfigValidation
     coreResult.config.plugins,
     {
       dataSourcePluginId: runtimePluginDescriptors.dataSource.manifest.id,
-      runtimePlatformManifests,
+      runtimePlatformManifests: [],
     }
   );
   const webUiRequirementIssues = validateWebUiRequiredPluginDeclarations(

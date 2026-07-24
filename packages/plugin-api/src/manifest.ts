@@ -18,10 +18,38 @@ export type PluginHost = (typeof pluginHosts)[number]
 export type PluginKind = (typeof pluginKinds)[number]
 export type PluginSlot = PluginKind | `feature:${string}`
 
+export type PluginLocalizedText =
+  | string
+  | Readonly<Record<string, string>>
+
+export type PluginConfigurationFieldControl =
+  | "number"
+  | "secret-binding"
+  | "select"
+  | "switch"
+  | "text"
+
+export interface PluginConfigurationFieldUi {
+  control?: PluginConfigurationFieldControl
+  help?: PluginLocalizedText
+  label?: PluginLocalizedText
+  order?: number
+  placeholder?: PluginLocalizedText
+}
+
+export interface PluginConfigurationUiManifest {
+  fields?: Readonly<Record<string, PluginConfigurationFieldUi>>
+}
+
 export interface PluginConfigurationManifest {
   required?: boolean
   version: number
   schema?: JsonObject
+  ui?: PluginConfigurationUiManifest
+}
+
+export interface PluginDescriptionManifest {
+  summary: PluginLocalizedText
 }
 
 export interface PluginSecretRequirement {
@@ -29,6 +57,9 @@ export interface PluginSecretRequirement {
   sensitive: true
   defaultBinding?: string
   description?: string
+  help?: PluginLocalizedText
+  label?: PluginLocalizedText
+  order?: number
 }
 
 export interface PluginManifest<
@@ -44,6 +75,7 @@ export interface PluginManifest<
   slot: PluginSlot
   hosts: readonly THost[]
   capabilities: readonly TCapability[]
+  description?: PluginDescriptionManifest
   config: PluginConfigurationManifest
   secrets: Readonly<Record<string, PluginSecretRequirement>>
 }

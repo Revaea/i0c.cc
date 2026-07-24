@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/controls/button";
+import { ConfirmationDialog } from "@/components/ui/feedback/confirmation-dialog";
 import type { RedirectEntry } from "@/composables/redirects-groups/model";
 
 export type RouteEntriesCatalogProps = {
@@ -31,6 +32,7 @@ export function RouteEntriesCatalog({
 }: RouteEntriesCatalogProps) {
   const tEntries = useTranslations("entries");
   const [entriesExpanded, setEntriesExpanded] = useState(true);
+  const [pendingDeleteEntryId, setPendingDeleteEntryId] = useState<string | null>(null);
 
   if (!entries.length) {
     return null;
@@ -195,11 +197,7 @@ export function RouteEntriesCatalog({
                     onClick={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
-                      const ok = window.confirm(tEntries("confirmDeleteRule"));
-                      if (!ok) {
-                        return;
-                      }
-                      onRemoveEntry(entry.id);
+                      setPendingDeleteEntryId(entry.id);
                     }}
                     size="icon-sm"
                     variant="danger"
@@ -224,5 +222,25 @@ export function RouteEntriesCatalog({
     </div>
   );
 
-  return list;
+  return (
+    <>
+      {list}
+      <ConfirmationDialog
+        isOpen={pendingDeleteEntryId !== null}
+        title={tEntries("deleteRuleTitle")}
+        description={tEntries("confirmDeleteRule")}
+        cancelLabel={tEntries("cancelDelete")}
+        confirmLabel={tEntries("deleteRule")}
+        tone="danger"
+        onCancel={() => setPendingDeleteEntryId(null)}
+        onConfirm={() => {
+          if (!pendingDeleteEntryId || !onRemoveEntry) {
+            return;
+          }
+          onRemoveEntry(pendingDeleteEntryId);
+          setPendingDeleteEntryId(null);
+        }}
+      />
+    </>
+  );
 }

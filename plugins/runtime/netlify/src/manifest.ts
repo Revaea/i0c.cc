@@ -15,6 +15,12 @@ export const netlifyRuntimeManifest = {
   slot: "runtime-platform",
   hosts: ["runtime"],
   capabilities: ["edge", "country", "environment-bindings", "wait-until"],
+  description: {
+    summary: {
+      en: "Runs the redirect Runtime on Netlify Edge Functions.",
+      "zh-CN": "在 Netlify Edge Functions 上运行重定向 Runtime。",
+    },
+  },
   config: {
     version: 1,
     schema: netlifyRuntimePluginConfigSchema,

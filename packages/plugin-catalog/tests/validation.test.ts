@@ -23,6 +23,14 @@ test("keeps the recognized plugin ID list synchronized with manifests", () => {
   )
 })
 
+test("keeps installed plugin descriptions available for the WebUI", () => {
+  for (const manifest of installedPluginManifests) {
+    assert.equal(typeof manifest.description?.summary, "object")
+    assert.equal(typeof manifest.description?.summary.en, "string")
+    assert.equal(typeof manifest.description?.summary["zh-CN"], "string")
+  }
+})
+
 test("allows all Runtime platform declarations across separate deployment hosts", () => {
   assert.deepEqual(validateInstalledPluginDeclarations({
     "@i0c/runtime-cloudflare": { enabled: true },
@@ -105,6 +113,61 @@ test("validates plugin-owned configuration schemas", () => {
   })
 
   assert.match(issues.map((issue) => issue.message).join("\n"), /at least 1/)
+})
+
+test("validates plugin-owned configuration UI metadata", () => {
+  const manifest = {
+    id: "@example/config-ui",
+    name: "Config UI",
+    version: "1.0.0",
+    apiVersion: 1,
+    kind: "feature",
+    slot: "feature:config-ui",
+    hosts: ["runtime"],
+    capabilities: [],
+    config: {
+      version: 1,
+      schema: {
+        type: "object",
+        properties: { mode: { type: "string" } },
+      },
+      ui: {
+        fields: {
+          mode: {
+            control: "textarea",
+            label: { en: "Mode" },
+          },
+        },
+      },
+    },
+    secrets: {},
+  } as unknown as PluginManifest
+
+  assert.throws(
+    () => new StaticPluginRegistry([manifest]),
+    /config\.ui\.fields\.mode\.control is not supported/,
+  )
+})
+
+test("rejects empty plugin localized text metadata", () => {
+  const manifest = {
+    id: "@example/empty-description",
+    name: "Empty description",
+    version: "1.0.0",
+    apiVersion: 1,
+    kind: "feature",
+    slot: "feature:empty-description",
+    hosts: ["runtime"],
+    capabilities: [],
+    description: { summary: {} },
+    config: { version: 1 },
+    secrets: {},
+  } as unknown as PluginManifest
+
+  assert.throws(
+    () => new StaticPluginRegistry([manifest]),
+    /description\.summary must not be empty/,
+  )
 })
 
 test("rejects bootstrap-only settings in remote plugin configuration", () => {
