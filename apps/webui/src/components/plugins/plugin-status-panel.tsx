@@ -195,7 +195,7 @@ function PluginStatusContent({
 
           return (
             <article key={plugin.id} className="py-4">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-sm font-semibold text-ink">
@@ -221,7 +221,7 @@ function PluginStatusContent({
                     </p>
                   ) : null}
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-nowrap items-center gap-2 md:justify-self-end">
                   <button
                     type="button"
                     disabled={!canEditConfig}
@@ -232,7 +232,7 @@ function PluginStatusContent({
                       onDetailViewChange("configuration");
                     }}
                     className={[
-                      "rounded-lg px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+                      "shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
                       isConfigurationSelected
                         ? "bg-accent text-white"
                         : "bg-panel-muted text-muted hover:text-ink",
@@ -250,7 +250,7 @@ function PluginStatusContent({
                       onDetailViewChange("status");
                     }}
                     className={[
-                      "rounded-lg px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+                      "shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
                       isStatusSelected
                         ? "bg-accent text-white"
                         : "bg-panel-muted text-muted hover:text-ink",
