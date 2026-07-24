@@ -3,7 +3,7 @@
     "navigation": {
       "analysis": "分析视图",
       "overview": "流量概览",
-      "automation": "自动化"
+      "automation": "机器人"
     },
     "page": {
       "title": "短链接统计",
@@ -50,7 +50,7 @@
       "trafficClasses": {
         "browserLike": "浏览器流量",
         "declaredBot": "已声明机器人",
-        "suspectedAutomation": "疑似自动化"
+        "suspectedAutomation": "疑似机器人"
       },
       "botCategories": {
         "none": "无",
@@ -58,7 +58,7 @@
         "aiCrawler": "AI 爬虫",
         "socialPreview": "社交链接预览",
         "monitor": "监控服务",
-        "automation": "自动化工具",
+        "automation": "机器人工具",
         "securityProbe": "安全探测"
       },
       "botConfidences": {
@@ -109,13 +109,13 @@
       "entryHumanClicks": "估算的入口导航",
       "entryHumanClicksDescription": "排除受控短链接续跳后的估算浏览器导航",
       "totalRequests": "已匹配请求",
-      "totalRequestsDescription": "所有命中已跟踪路由的精确请求计数，包含自动化流量",
+      "totalRequestsDescription": "所有命中已跟踪路由的精确请求计数，包含机器人流量",
       "entryRequests": "入口请求",
       "entryRequestsDescription": "排除已验证短链接续跳后的请求",
       "declaredBotShare": "已声明机器人占比",
       "declaredBotShareDescription": "客户端主动声明为机器人或链接预览器的请求",
-      "suspectedAutomationShare": "疑似自动化占比",
-      "suspectedAutomationShareDescription": "被分类为可能自动化但未确认为机器人的请求",
+      "suspectedAutomationShare": "疑似机器人占比",
+      "suspectedAutomationShareDescription": "被分类为可能是机器人但未确认为机器人的请求",
       "botPreviewShare": "机器人与预览占比",
       "botPreviewShareDescription": "检测到的机器人与链接预览请求",
       "errors": "处理错误",
@@ -133,7 +133,7 @@
     },
     "ranking": {
       "title": "热门路由",
-      "description": "按所选周期内的有效访问排序，点击可查看单独统计。",
+      "description": "按所选周期内的有效访问排序；变化对比前一等长周期，上一周期无请求时不计算。",
       "empty": "所选周期内没有路由统计数据。",
       "requestCount": "{count} 次请求",
       "tableCaption": "按有效访问排列的路由",
@@ -142,7 +142,9 @@
       "type": "类型",
       "change": "变化",
       "changeCompared": "较上一周期 {value}",
-      "noComparison": "暂无对比"
+      "started": "较上一周期新增 {count}",
+      "unchanged": "较上一周期持平",
+      "noComparison": "上一周期无请求"
     },
     "breakdowns": {
       "title": "受众与交付",
@@ -173,7 +175,7 @@
       "rawEventRetention": "原始事件保留期",
       "databasePolicy": "由运维策略决定",
       "days": "{count} 天",
-      "humanClickNote": "有效访问会排除已声明机器人、疑似自动化、链接预览和受控短链接续跳。",
+      "humanClickNote": "有效访问会排除已声明机器人、疑似机器人流量、链接预览和受控短链接续跳。",
       "cacheNote": "浏览器缓存永久重定向后，后续访问可能不会再次到达边缘运行时。",
       "refreshNote": "统计查询会短暂缓存 15 秒以加快筛选切换；需要立即查看新数据时可手动刷新。"
     },
@@ -197,32 +199,32 @@
       "estimated": "估算参考",
       "estimatedValue": "估算总量约 {count}",
       "metrics": {
-        "title": "自动化指标",
+        "title": "机器人指标",
         "description": "大号数字是实际写入的观测样本；下方估算值按采样率推算，仅供参考。",
         "requests": "运行时请求",
         "declaredBots": "已声明机器人",
-        "suspectedAutomation": "疑似自动化",
+        "suspectedAutomation": "疑似机器人",
         "unmatched": "未匹配路由",
         "errors": "处理错误"
       },
       "trend": {
-        "title": "自动化趋势",
-        "description": "按时间对比实际写入的已声明机器人和疑似自动化样本。",
-        "accessibleTitle": "已声明机器人与疑似自动化观测样本趋势"
+        "title": "机器人趋势",
+        "description": "按时间对比实际写入的已声明机器人和疑似机器人样本。",
+        "accessibleTitle": "已声明机器人与疑似机器人观测样本趋势"
       },
       "ranking": {
-        "title": "自动化访问最多的短链接",
-        "description": "按已声明机器人和疑似自动化的观测样本排序。",
-        "empty": "所选周期内尚未观测到自动化访问短链接。",
-        "tableCaption": "按自动化请求排序的短链接"
+        "title": "机器人访问最多的短链接",
+        "description": "按已声明机器人和疑似机器人的观测样本排序。",
+        "empty": "所选周期内尚未观测到机器人访问短链接。",
+        "tableCaption": "按机器人请求排序的短链接"
       },
       "breakdowns": {
-        "title": "自动化分类",
-        "description": "条形图使用观测样本，并在下方显示估算参考；疑似自动化不代表已确认机器人。",
+        "title": "机器人分类",
+        "description": "条形图使用观测样本，并在下方显示估算参考；疑似机器人不代表已确认机器人。",
         "detectionTitle": "识别结果",
-        "detectionDescription": "说明流量为何被判断为机器人、疑似自动化或安全探测；疑似不等于确认。",
+        "detectionDescription": "说明流量为何被判断为机器人、疑似机器人或安全探测；疑似不等于确认。",
         "handlingTitle": "请求处理",
-        "handlingDescription": "说明自动化请求访问了什么资源、是否命中路由以及最终处理结果。",
+        "handlingDescription": "说明机器人请求访问了什么资源、是否命中路由以及最终处理结果。",
         "entryDomains": "入口域名",
         "trafficClasses": "流量类别",
         "categories": "机器人类别",
@@ -234,8 +236,8 @@
         "probes": "探测类别"
       },
       "states": {
-        "emptyTitle": "暂无自动化分析数据",
-        "emptyDescription": "运行时上报已声明机器人、疑似自动化或未匹配请求后，数据会显示在这里。"
+        "emptyTitle": "暂无机器人分析数据",
+        "emptyDescription": "运行时上报已声明机器人、疑似机器人或未匹配请求后，数据会显示在这里。"
       }
     }
   }

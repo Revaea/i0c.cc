@@ -133,7 +133,7 @@
     },
     "ranking": {
       "title": "Top routes",
-      "description": "Ranked by effective visits in the selected period. Select a route for its details.",
+      "description": "Ranked by effective visits. Changes compare the preceding equal period and require previous-period requests.",
       "empty": "No tracked routes have data for this period.",
       "requestCount": "{count} requests",
       "tableCaption": "Routes ranked by effective visits",
@@ -142,7 +142,9 @@
       "type": "Type",
       "change": "Change",
       "changeCompared": "{value} vs previous period",
-      "noComparison": "No comparison"
+      "started": "{count} new vs previous period",
+      "unchanged": "Unchanged vs previous period",
+      "noComparison": "No requests in previous period"
     },
     "breakdowns": {
       "title": "Audience and delivery",

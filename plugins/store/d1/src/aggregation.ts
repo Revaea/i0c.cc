@@ -2,6 +2,7 @@ import {
   resolveSeriesBucket,
   type QueryRange,
 } from "@i0c/analytics-domain/range"
+import { createTrendComparison } from "@i0c/analytics-domain/trend"
 import type {
   AnalyticsAutomationDimensionPoint,
   AnalyticsAutomationLinkSummary,
@@ -169,7 +170,8 @@ export function createLinkSummaries(
     .filter((link) => includeEmpty || current.has(link.analyticsId))
     .map((link) => {
       const events = current.get(link.analyticsId) ?? []
-      const previousEntryClicks = (previous.get(link.analyticsId) ?? [])
+      const previousEvents = previous.get(link.analyticsId) ?? []
+      const previousEntryClicks = previousEvents
         .filter((event) => event.isEntry && isHuman(event)).length
       const totals = createTrafficTotals(events)
       return {
@@ -177,9 +179,11 @@ export function createLinkSummaries(
         path: link.routePath,
         linkType: link.linkType,
         ...withoutAverageLatency(totals),
-        trendPercent: previousEntryClicks > 0
-          ? ((totals.entryClicks - previousEntryClicks) / previousEntryClicks) * 100
-          : null,
+        trend: createTrendComparison(
+          totals.entryClicks,
+          previousEntryClicks,
+          previousEvents.length > 0,
+        ),
       }
     })
     .sort((left, right) =>

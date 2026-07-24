@@ -1,3 +1,5 @@
+import type { AnalyticsTrendComparison } from "@i0c/analytics-domain/types"
+
 export const analyticsRanges = [1, 7, 30, 90] as const
 
 export type AnalyticsRange = (typeof analyticsRanges)[number]
@@ -38,7 +40,7 @@ export interface AnalyticsRankedLink {
   estimatedEntryNavigations: number
   totalRequests: number
   entryRequests: number
-  changeRate?: number | null
+  trend: AnalyticsTrendComparison
 }
 
 export interface AnalyticsBreakdownItem {

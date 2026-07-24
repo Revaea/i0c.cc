@@ -10,6 +10,7 @@
     "./events": "./src/events.ts",
     "./range": "./src/range.ts",
     "./store": "./src/store.ts",
+    "./trend": "./src/trend.ts",
     "./types": "./src/types.ts"
   },
   "sideEffects": false,
