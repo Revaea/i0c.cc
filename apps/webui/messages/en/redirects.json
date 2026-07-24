@@ -101,6 +101,44 @@
     "saveOk": "Settings saved",
     "validationFail": "Settings validation failed: {details}",
     "validationSummary": "Some settings need attention before they can be saved.",
+    "validationIssue": "{field}: {reason}",
+    "validationPluginField": "Configuration for plugin {plugin}",
+    "validationFields": {
+      "schema": "Configuration schema",
+      "schemaVersion": "Configuration version",
+      "configuration": "Related setting"
+    },
+    "validationReasons": {
+      "githubNumericUserIds": "Enter a GitHub user ID containing digits only.",
+      "duplicateIds": "The same GitHub user ID cannot be listed more than once.",
+      "managerBlockedOverlap": "A GitHub user cannot be both a manager and a blocked user.",
+      "managerRequired": "Manager-only mode requires at least one manager GitHub user ID.",
+      "httpsUrl": "Enter an HTTPS URL without a username or password.",
+      "httpsOrigin": "Enter an HTTPS origin without credentials, a path, query parameters, or a fragment.",
+      "lowercaseHostname": "Enter a valid lowercase hostname.",
+      "robotsPolicy": "Choose whether indexing is allowed or blocked.",
+      "accessMode": "Choose a valid access mode.",
+      "list": "This list is malformed. Remove the item and add it again.",
+      "object": "This configuration section is malformed. Restore its default settings.",
+      "pluginDeclaration": "The plugin state is malformed. Select enabled or disabled again.",
+      "positiveInteger": "Enter an integer greater than zero.",
+      "jsonObject": "Enter a valid JSON object.",
+      "environmentVariable": "Enter a valid environment variable name, not its secret value.",
+      "boolean": "Choose enabled or disabled.",
+      "number": "Enter a valid number.",
+      "string": "Enter text.",
+      "stringList": "Enter a valid list of text values.",
+      "required": "This setting is required.",
+      "notAllowed": "This setting is not supported here.",
+      "pluginNotInstalled": "This plugin is not installed, so its settings cannot be saved.",
+      "secretBindingRequired": "Bind the environment variable required by this plugin.",
+      "runtimePluginRequired": "The current Runtime deployment requires this plugin, so it cannot be disabled.",
+      "webUiRepositoryRequired": "The WebUI requires this plugin to read and save configuration, so it cannot be disabled.",
+      "minimum": "The value cannot be less than {value}.",
+      "maximum": "The value cannot be greater than {value}.",
+      "integerRange": "Enter an integer from {minimum} through {maximum}.",
+      "invalid": "This value is not valid. Check the input and try again."
+    },
     "visualUnavailable": "The current config.json cannot be represented safely as a form. Use the recovery editor below to repair it.",
     "recoveryTip": "Recovery mode is only shown when config.json cannot be opened in the visual settings editor.",
     "required": "Required",
@@ -120,9 +158,12 @@
     "secretBindingHint": "Enter the environment variable name, not its secret value.",
     "addManager": "Add manager",
     "removeManager": "Remove manager",
-      "managerIdLabel": "Manager GitHub user ID {index}",
-      "categoryNavigation": "Settings categories",
-      "sections": {
+    "addBlockedUser": "Add blocked user",
+    "removeBlockedUser": "Remove blocked user",
+    "managerIdLabel": "Manager GitHub user ID {index}",
+    "blockedIdLabel": "Blocked GitHub user ID {index}",
+    "categoryNavigation": "Settings categories",
+    "sections": {
       "runtime": {
         "title": "Runtime",
         "description": "Configure the public Runtime origin, crawler policy, and remote-document cache lifetimes."
@@ -152,6 +193,7 @@
       "sourceId": "Analytics source ID",
       "accessMode": "Access mode",
       "managerGitHubUserIds": "Manager GitHub user IDs",
+      "blockedGitHubUserIds": "Blocked GitHub user IDs",
       "maximumDeliveryAttempts": "Maximum delivery attempts",
       "requestTimeoutMs": "Request timeout",
       "hookTimeoutMs": "Classifier hook timeout",
@@ -169,7 +211,8 @@
       "ingestEndpoint": "HTTPS endpoint that receives signed analytics events.",
       "sourceId": "Lowercase base hostname shared by all Runtime deployments.",
       "accessMode": "Public read-only still requires GitHub sign-in; listed managers may edit.",
-      "managerGitHubUserIds": "Use numeric GitHub account IDs. Allowlist mode requires at least one manager."
+      "managerGitHubUserIds": "Use numeric GitHub account IDs. Allowlist mode requires at least one manager.",
+      "blockedGitHubUserIds": "These GitHub accounts cannot sign in. A blocked ID cannot also be a manager ID."
     },
     "options": {
       "robotsAllow": "Allow indexing",

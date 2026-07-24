@@ -9,6 +9,7 @@ declare module "next-auth" {
      */
     hasAccessToken?: boolean;
     isAuthorized?: boolean;
+    isBlocked?: boolean;
   }
 }
 

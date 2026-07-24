@@ -101,6 +101,44 @@
     "saveOk": "设置已保存",
     "validationFail": "设置校验失败：{details}",
     "validationSummary": "部分设置仍需修正，完成后才能保存。",
+    "validationIssue": "{field}：{reason}",
+    "validationPluginField": "插件 {plugin} 的配置",
+    "validationFields": {
+      "schema": "配置格式声明",
+      "schemaVersion": "配置版本",
+      "configuration": "相关配置项"
+    },
+    "validationReasons": {
+      "githubNumericUserIds": "只能填写只包含数字的 GitHub 用户 ID。",
+      "duplicateIds": "同一个 GitHub 用户 ID 不能重复填写。",
+      "managerBlockedOverlap": "同一个 GitHub 用户不能同时出现在管理者名单和黑名单中。",
+      "managerRequired": "仅限管理者模式至少需要填写一个管理者 GitHub 用户 ID。",
+      "httpsUrl": "必须填写不含账号或密码的 HTTPS 地址。",
+      "httpsOrigin": "必须填写不含账号、密码、路径、查询参数或锚点的 HTTPS 源站地址。",
+      "lowercaseHostname": "必须填写全小写的有效主机名。",
+      "robotsPolicy": "请选择允许索引或禁止索引。",
+      "accessMode": "请选择一个有效的访问模式。",
+      "list": "列表格式无效，请删除该项后重新添加。",
+      "object": "配置结构无效，请恢复该区域的默认设置。",
+      "pluginDeclaration": "插件状态配置无效，请重新选择启用或停用。",
+      "positiveInteger": "必须填写大于 0 的整数。",
+      "jsonObject": "必须填写有效的 JSON 对象。",
+      "environmentVariable": "必须填写有效的环境变量名称，而不是密钥值。",
+      "boolean": "必须选择启用或停用。",
+      "number": "必须填写有效数字。",
+      "string": "必须填写文本。",
+      "stringList": "必须填写有效的文本列表。",
+      "required": "此项为必填项。",
+      "notAllowed": "当前设置不支持此项。",
+      "pluginNotInstalled": "该插件未安装，不能保存它的配置。",
+      "secretBindingRequired": "必须绑定插件要求的环境变量。",
+      "runtimePluginRequired": "当前 Runtime 部署依赖此插件，不能停用。",
+      "webUiRepositoryRequired": "WebUI 读取和保存配置依赖此插件，不能停用。",
+      "minimum": "不能小于 {value}。",
+      "maximum": "不能大于 {value}。",
+      "integerRange": "必须填写 {minimum} 到 {maximum} 之间的整数。",
+      "invalid": "该值不符合要求，请检查输入后重试。"
+    },
     "visualUnavailable": "当前 config.json 无法安全转换为表单，请使用下方的恢复编辑器修复。",
     "recoveryTip": "只有 config.json 无法在可视化设置中打开时，才会显示恢复编辑器。",
     "required": "必需",
@@ -120,9 +158,12 @@
     "secretBindingHint": "这里填写环境变量名称，不填写密钥值。",
     "addManager": "新增管理者",
     "removeManager": "移除管理者",
-      "managerIdLabel": "管理者 GitHub 用户 ID {index}",
-      "categoryNavigation": "设置分类",
-      "sections": {
+    "addBlockedUser": "新增黑名单用户",
+    "removeBlockedUser": "移除黑名单用户",
+    "managerIdLabel": "管理者 GitHub 用户 ID {index}",
+    "blockedIdLabel": "黑名单 GitHub 用户 ID {index}",
+    "categoryNavigation": "设置分类",
+    "sections": {
       "runtime": {
         "title": "Runtime",
         "description": "配置公开 Runtime 地址、爬虫策略和远程配置的缓存时间。"
@@ -152,6 +193,7 @@
       "sourceId": "统计来源 ID",
       "accessMode": "访问模式",
       "managerGitHubUserIds": "管理者 GitHub 用户 ID",
+      "blockedGitHubUserIds": "GitHub 用户黑名单",
       "maximumDeliveryAttempts": "最大投递次数",
       "requestTimeoutMs": "请求超时",
       "hookTimeoutMs": "分类钩子超时",
@@ -169,7 +211,8 @@
       "ingestEndpoint": "接收签名统计事件的 HTTPS 端点。",
       "sourceId": "所有 Runtime 部署共用的小写基础域名。",
       "accessMode": "公开只读仍需登录 GitHub；名单内管理者可以编辑。",
-      "managerGitHubUserIds": "填写 GitHub 数字账号 ID；白名单模式至少需要一名管理者。"
+      "managerGitHubUserIds": "填写 GitHub 数字账号 ID；白名单模式至少需要一名管理者。",
+      "blockedGitHubUserIds": "这些 GitHub 账号无法登录。黑名单 ID 不能同时作为管理者 ID。"
     },
     "options": {
       "robotsAllow": "允许索引",

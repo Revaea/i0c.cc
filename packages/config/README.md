@@ -10,6 +10,8 @@ Redirect rules live beside it in `redirects.json` and are described by [redirect
 
 Secrets and deployment bindings remain in each application's environment variables. This package must never contain credentials, database URLs, signing keys, or authentication secrets.
 
+The `webui.access` contract stores the access mode, manager GitHub numeric IDs, and an optional blocked-user list for the non-allowlist modes.
+
 Plugin settings are namespaced under `plugins`. Public JSON values may be stored there, while `secrets` contains environment-variable binding names rather than secret values. Consumers bundle the TypeScript source directly, so the package build validates the source without producing a checked-in artifact.
 
 Run the package check from the repository root:

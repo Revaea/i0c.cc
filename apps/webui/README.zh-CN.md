@@ -31,7 +31,9 @@ i0c.cc WebUI 是一个基于 Next.js 16 的管理面板，用于通过 GitHub OA
    `read:user user:email public_repo`，私有目标仓库则将 `public_repo` 改为 `repo`。
    访问模式和管理者 GitHub 数字用户 ID 配置在 `data/config.json` 的 `webui.access` 中。
    可以使用 `gh api user --jq .id` 查询自己的数字 ID。`access.mode` 可设为 `authenticated`、`allowlist`
-   或 `public-readonly`；`allowlist` 必须配置管理者 ID，`public-readonly` 可按需配置。`public-readonly` 为只读账号通过 GitHub 未认证 API 加载指定规则，
+   或 `public-readonly`；`allowlist` 必须配置管理者 ID，`public-readonly` 可按需配置。
+   `blockedGitHubUserIds` 可在 `authenticated` 和 `public-readonly` 模式中按 GitHub 数字账号 ID 拒绝登录；
+   `allowlist` 模式会忽略该名单，同一 ID 不能同时属于管理者和黑名单。`public-readonly` 为只读账号通过 GitHub 未认证 API 加载指定规则，
    因此目标仓库必须公开；任意 GitHub 用户登录后都可以查看规则和统计，名单内用户可以编辑配置、
    生成渠道链接并手动刷新统计。如果未配置名单，则任何人都不能管理。
 
@@ -116,7 +118,7 @@ WebUI 不会把原有非敏感环境变量作为覆盖值或回退值读取。Ve
 
 ## 功能概览
 
-- 通过版本化配置选择任意已登录用户、数字用户 ID 白名单或带指定管理员的 GitHub 全员只读模式。
+- 通过版本化配置选择任意已登录用户、数字用户 ID 白名单或带指定管理员与可选黑名单的 GitHub 全员只读模式。
 - 可视化编辑 `redirects.json`：分组树管理 + 规则表单编辑。
 - 规则 JSON 编辑器：行号、当前行高亮、JSON 语法校验（格式错误提示）。
 - 可视化并校验 `config.json`；只有当前文档无法安全转换为表单时，才显示原始内容恢复编辑器。

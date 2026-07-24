@@ -35,6 +35,9 @@ This project provides two rule-editing modes and a separate settings surface:
    user IDs in the `webui.access` section of `data/config.json`. Find a numeric user ID with `gh api user --jq .id`.
    `access.mode` accepts `authenticated`, `allowlist`, or `public-readonly`. Manager IDs are
    required by `allowlist` and optional for `public-readonly`.
+   `blockedGitHubUserIds` optionally rejects selected numeric account IDs in `authenticated`
+   and `public-readonly` modes. It is ignored in `allowlist` mode, and an ID cannot be both a
+   manager and blocked.
    `public-readonly` loads the configured rules through GitHub's
    unauthenticated API for read-only accounts, so the target repository must be public.
    Any GitHub user may sign in to inspect rules and analytics, while listed users may edit
@@ -126,7 +129,7 @@ The WebUI does not read former non-sensitive environment variables as overrides 
 
 ## Features Overview
 
-- Versioned authenticated, numeric-ID allowlist, or GitHub-wide read-only access with configured managers.
+- Versioned authenticated, numeric-ID allowlist, or GitHub-wide read-only access with configured managers and optional blocked users.
 - Visual editing of `redirects.json`: group tree management + rule form editing.
 - Rules JSON editor: line numbers, current line highlighting, JSON syntax validation (error prompts for formatting issues).
 - Visual, validated `config.json` settings with a raw recovery editor only when the current document cannot be represented safely.

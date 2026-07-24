@@ -54,11 +54,51 @@ const invalidCases = [
       },
     },
   },
+  {
+    name: "non-numeric blocked GitHub user ID",
+    config: {
+      ...defaultDataConfig,
+      webui: {
+        access: {
+          ...defaultDataConfig.webui.access,
+          blockedGitHubUserIds: ["not-a-github-id"],
+        },
+      },
+    },
+  },
+  {
+    name: "duplicate blocked GitHub user IDs",
+    config: {
+      ...defaultDataConfig,
+      webui: {
+        access: {
+          ...defaultDataConfig.webui.access,
+          blockedGitHubUserIds: ["99999999", "99999999"],
+        },
+      },
+    },
+  },
 ] as const
 
 test("accepts the default data config in both validators", () => {
   assert.equal(validateSchema(defaultDataConfig), true)
   assert.equal(validateDataConfig(defaultDataConfig).status, "valid")
+})
+
+test("accepts an existing config without a blocked user list", () => {
+  const config = {
+    ...defaultDataConfig,
+    webui: {
+      access: {
+        mode: defaultDataConfig.webui.access.mode,
+        managerGitHubUserIds:
+          defaultDataConfig.webui.access.managerGitHubUserIds,
+      },
+    },
+  }
+
+  assert.equal(validateSchema(config), true)
+  assert.equal(validateDataConfig(config).status, "valid")
 })
 
 for (const invalidCase of invalidCases) {

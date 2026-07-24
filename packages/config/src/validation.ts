@@ -103,31 +103,62 @@ function validateWebUi(value: unknown, issues: DataConfigValidationIssue[]): voi
   validateKnownKeys(value, new Set(["access"]), "/webui", issues)
   validateKnownKeys(
     value.access,
-    new Set(["mode", "managerGitHubUserIds"]),
+    new Set(["mode", "managerGitHubUserIds", "blockedGitHubUserIds"]),
     "/webui/access",
     issues,
   )
 
-  const { mode, managerGitHubUserIds } = value.access
+  const { mode, managerGitHubUserIds, blockedGitHubUserIds } = value.access
   if (!isWebUiAccessMode(mode)) {
     issues.push(issue("/webui/access/mode", "must be authenticated, allowlist, or public-readonly"))
   }
 
-  if (!Array.isArray(managerGitHubUserIds)) {
-    issues.push(issue("/webui/access/managerGitHubUserIds", "must be an array"))
-    return
-  }
+  const managerIds = validateGitHubUserIds(
+    managerGitHubUserIds,
+    "/webui/access/managerGitHubUserIds",
+    issues,
+  )
+  const blockedIds = blockedGitHubUserIds === undefined
+    ? []
+    : validateGitHubUserIds(
+      blockedGitHubUserIds,
+      "/webui/access/blockedGitHubUserIds",
+      issues,
+    )
 
-  const ids = managerGitHubUserIds.filter((item): item is string => typeof item === "string")
-  if (ids.length !== managerGitHubUserIds.length || ids.some((id) => !githubUserIdPattern.test(id))) {
-    issues.push(issue("/webui/access/managerGitHubUserIds", "must contain GitHub numeric user IDs"))
-  }
-  if (new Set(ids).size !== ids.length) {
-    issues.push(issue("/webui/access/managerGitHubUserIds", "must not contain duplicate IDs"))
-  }
-  if (mode === "allowlist" && ids.length === 0) {
+  if (mode === "allowlist" && managerIds.length === 0) {
     issues.push(issue("/webui/access/managerGitHubUserIds", "must not be empty in allowlist mode"))
   }
+  if (
+    mode !== "allowlist"
+    && blockedIds.some((id) => managerIds.includes(id))
+  ) {
+    issues.push(issue(
+      "/webui/access/blockedGitHubUserIds",
+      "must not contain manager GitHub user IDs",
+    ))
+  }
+}
+
+function validateGitHubUserIds(
+  value: unknown,
+  path: string,
+  issues: DataConfigValidationIssue[],
+): string[] {
+  if (!Array.isArray(value)) {
+    issues.push(issue(path, "must be an array"))
+    return []
+  }
+
+  const ids = value.filter((item): item is string => typeof item === "string")
+  if (ids.length !== value.length || ids.some((id) => !githubUserIdPattern.test(id))) {
+    issues.push(issue(path, "must contain GitHub numeric user IDs"))
+  }
+  if (new Set(ids).size !== ids.length) {
+    issues.push(issue(path, "must not contain duplicate IDs"))
+  }
+
+  return ids
 }
 
 function validatePlugins(value: unknown, issues: DataConfigValidationIssue[]): void {

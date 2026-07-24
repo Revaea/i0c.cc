@@ -6,6 +6,7 @@ import { RedirectsGroupsPage } from "@/components/redirects-groups/redirects-gro
 
 interface HomeProps {
   searchParams: Promise<{
+    error?: string | string[];
     view?: string | string[];
   }>;
 }
@@ -17,9 +18,10 @@ export default async function Home({ searchParams }: HomeProps) {
   ]);
 
   if (authorization.status === "unauthenticated") {
+    const error = Array.isArray(query.error) ? query.error[0] : query.error;
     return (
       <main className="flex min-h-screen items-center justify-center bg-canvas px-6">
-        <SignInPanel />
+        <SignInPanel hasError={Boolean(error)} />
       </main>
     );
   }

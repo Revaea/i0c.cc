@@ -40,8 +40,16 @@ export function canGitHubUserSignInForAccessMode(
   githubUserId: string | null | undefined,
   mode: WebUiAccessMode,
   managerGitHubUserIds: ReadonlySet<string>,
+  blockedGitHubUserIds: ReadonlySet<string>,
 ): boolean {
   if (!isValidGitHubUserId(githubUserId)) {
+    return false;
+  }
+
+  if (
+    mode !== "allowlist"
+    && blockedGitHubUserIds.has(githubUserId)
+  ) {
     return false;
   }
 
@@ -54,31 +62,56 @@ export function isGitHubUserManagerForAccessMode(
   githubUserId: string | null | undefined,
   mode: WebUiAccessMode,
   managerGitHubUserIds: ReadonlySet<string>,
+  blockedGitHubUserIds: ReadonlySet<string>,
 ): boolean {
   if (!isValidGitHubUserId(githubUserId)) {
+    return false;
+  }
+
+  if (
+    mode !== "allowlist"
+    && blockedGitHubUserIds.has(githubUserId)
+  ) {
     return false;
   }
 
   return mode === "authenticated" || managerGitHubUserIds.has(githubUserId);
 }
 
+export function isTokenBlockedForAccessMode(
+  token: JWT | null,
+  mode: WebUiAccessMode,
+  blockedGitHubUserIds: ReadonlySet<string>,
+): boolean {
+  const githubUserId = resolveTokenGitHubUserId(token);
+  return mode !== "allowlist"
+    && githubUserId !== undefined
+    && blockedGitHubUserIds.has(githubUserId);
+}
+
 export function isTokenAuthorizedForAccessMode(
   token: JWT | null,
   mode: WebUiAccessMode,
   managerGitHubUserIds: ReadonlySet<string>,
+  blockedGitHubUserIds: ReadonlySet<string>,
 ): token is AuthorizedWebUiToken {
   if (!hasWebUiAccessToken(token)) {
     return false;
   }
 
+  if (isTokenBlockedForAccessMode(token, mode, blockedGitHubUserIds)) {
+    return false;
+  }
+
   if (mode === "authenticated") {
-    return true;
+    return resolveTokenGitHubUserId(token) !== undefined;
   }
 
   return isGitHubUserManagerForAccessMode(
     resolveTokenGitHubUserId(token),
     mode,
     managerGitHubUserIds,
+    blockedGitHubUserIds,
   );
 }
 
@@ -86,12 +119,14 @@ export function applyWebUiTokenAuthorization(
   token: JWT,
   mode: WebUiAccessMode,
   managerGitHubUserIds: ReadonlySet<string>,
+  blockedGitHubUserIds: ReadonlySet<string>,
 ): boolean {
   migrateTokenGitHubUserId(token);
   const isAuthorized = isTokenAuthorizedForAccessMode(
     token,
     mode,
     managerGitHubUserIds,
+    blockedGitHubUserIds,
   );
 
   if (!isAuthorized) {

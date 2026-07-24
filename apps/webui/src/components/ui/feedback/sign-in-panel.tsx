@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/controls/button";
 import { CenteredPanel } from "@/components/ui/layout/centered-panel";
 import { LanguageSwitcher } from "@/components/ui/controls/language-switcher";
 
-export function SignInPanel() {
+export function SignInPanel({ hasError = false }: { hasError?: boolean }) {
   const t = useTranslations("auth");
 
   return (
@@ -15,6 +15,15 @@ export function SignInPanel() {
       <h1 className="mt-6 text-3xl font-semibold text-ink">
         {t("signInTitle")}
       </h1>
+
+      {hasError ? (
+        <p
+          role="alert"
+          className="mt-5 rounded-xl border border-danger/25 bg-danger/5 px-4 py-3 text-sm leading-6 text-danger"
+        >
+          {t("signInError")}
+        </p>
+      ) : null}
 
       <Button
         onClick={() => signIn("github")}

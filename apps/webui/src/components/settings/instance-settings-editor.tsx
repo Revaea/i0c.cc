@@ -44,6 +44,108 @@ export function InstanceSettingsEditor({
     useState<SettingsCategory>("runtime");
   const validation = useMemo(() => validateInstanceDataConfig(value), [value]);
   const issues = validation.status === "invalid" ? validation.issues : [];
+  const validationFieldLabels: Readonly<Record<string, string>> = {
+    "/$schema": t("validationFields.schema"),
+    "/schemaVersion": t("validationFields.schemaVersion"),
+    "/runtime": t("sections.runtime.title"),
+    "/runtime/canonicalOrigin": t("fields.canonicalOrigin"),
+    "/runtime/robotsPolicy": t("fields.robotsPolicy"),
+    "/analytics": t("sections.analytics.title"),
+    "/analytics/ingestEndpoint": t("fields.ingestEndpoint"),
+    "/analytics/sourceId": t("fields.sourceId"),
+    "/webui/access": t("sections.access.title"),
+    "/webui/access/mode": t("fields.accessMode"),
+    "/webui/access/managerGitHubUserIds": t(
+      "fields.managerGitHubUserIds",
+    ),
+    "/webui/access/blockedGitHubUserIds": t(
+      "fields.blockedGitHubUserIds",
+    ),
+    "/plugins": t("sections.installedPlugins.title"),
+  };
+  const validationReasonLabels: Readonly<Record<string, string>> = {
+    "must contain GitHub numeric user IDs": t(
+      "validationReasons.githubNumericUserIds",
+    ),
+    "must not contain duplicate IDs": t("validationReasons.duplicateIds"),
+    "must not contain manager GitHub user IDs": t(
+      "validationReasons.managerBlockedOverlap",
+    ),
+    "must not be empty in allowlist mode": t(
+      "validationReasons.managerRequired",
+    ),
+    "must be an HTTPS URL without credentials": t(
+      "validationReasons.httpsUrl",
+    ),
+    "must be an HTTPS origin without credentials, path, query, or hash": t(
+      "validationReasons.httpsOrigin",
+    ),
+    "must be a lowercase hostname": t(
+      "validationReasons.lowercaseHostname",
+    ),
+    "must be allow or disallow": t("validationReasons.robotsPolicy"),
+    "must be authenticated, allowlist, or public-readonly": t(
+      "validationReasons.accessMode",
+    ),
+    "must be an array": t("validationReasons.list"),
+    "must be an object": t("validationReasons.object"),
+    "must be an object with an enabled boolean": t(
+      "validationReasons.pluginDeclaration",
+    ),
+    "must be a positive integer": t("validationReasons.positiveInteger"),
+    "must be a JSON object": t("validationReasons.jsonObject"),
+    "must name an environment variable": t(
+      "validationReasons.environmentVariable",
+    ),
+    "must be a boolean": t("validationReasons.boolean"),
+    "must be a finite number": t("validationReasons.number"),
+    "must be a string": t("validationReasons.string"),
+    "must be a string array": t("validationReasons.stringList"),
+    "is required": t("validationReasons.required"),
+    "is not allowed": t("validationReasons.notAllowed"),
+    "plugin is not installed in this host": t(
+      "validationReasons.pluginNotInstalled",
+    ),
+    "required secret binding is missing": t(
+      "validationReasons.secretBindingRequired",
+    ),
+    "must be enabled for the installed Runtime deployment": t(
+      "validationReasons.runtimePluginRequired",
+    ),
+    "must be enabled for the WebUI data repository": t(
+      "validationReasons.webUiRepositoryRequired",
+    ),
+  };
+
+  function formatValidationIssue(issue: { path: string; message: string }) {
+    const pluginId = resolveValidationPluginId(issue.path);
+    const field = validationFieldLabels[issue.path]
+      ?? (pluginId
+        ? t("validationPluginField", { plugin: pluginId })
+        : t("validationFields.configuration"));
+    let reason = validationReasonLabels[issue.message];
+
+    const minimum = /^must be at least (.+)$/.exec(issue.message)?.[1];
+    const maximum = /^must be at most (.+)$/.exec(issue.message)?.[1];
+    const range = /^must be an integer from (.+) through (.+)$/.exec(
+      issue.message,
+    );
+    if (!reason && minimum) {
+      reason = t("validationReasons.minimum", { value: minimum });
+    } else if (!reason && maximum) {
+      reason = t("validationReasons.maximum", { value: maximum });
+    } else if (!reason && range?.[1] && range[2]) {
+      reason = t("validationReasons.integerRange", {
+        minimum: range[1],
+        maximum: range[2],
+      });
+    }
+
+    return t("validationIssue", {
+      field,
+      reason: reason ?? t("validationReasons.invalid"),
+    });
+  }
 
   function updateRuntime(next: Partial<DataConfig["runtime"]>) {
     onChange({
@@ -86,7 +188,7 @@ export function InstanceSettingsEditor({
           <ul className="mt-2 space-y-1 text-xs">
             {issues.slice(0, 5).map((issue) => (
               <li key={`${issue.path}:${issue.message}`}>
-                <code>{issue.path}</code>: {issue.message}
+                {formatValidationIssue(issue)}
               </li>
             ))}
           </ul>
@@ -278,94 +380,33 @@ export function InstanceSettingsEditor({
               />
             </SettingsField>
 
-            <div className="sm:col-span-2">
-              <div className={fieldLabelRowClassName}>
-                <span className={fieldLabelClassName}>
-                  {t("fields.managerGitHubUserIds")}
-                </span>
-              </div>
-              <p className="mb-3 text-xs leading-5 text-muted">
-                {t("fieldHints.managerGitHubUserIds")}
-              </p>
-              <div className="space-y-2">
-                {value.webui.access.managerGitHubUserIds.map((userId, index) => (
-                  <div key={`${index}:${userId}`} className="flex items-center gap-2">
-                    <input
-                      value={userId}
-                      disabled={isReadOnly}
-                      onChange={(event) => {
-                        const managerGitHubUserIds = [
-                          ...value.webui.access.managerGitHubUserIds,
-                        ];
-                        managerGitHubUserIds[index] = event.target.value.replace(/\D/g, "");
-                        updateAccess({ managerGitHubUserIds });
-                      }}
-                      inputMode="numeric"
-                      autoCapitalize="none"
-                      autoCorrect="off"
-                      spellCheck={false}
-                      aria-label={t("managerIdLabel", { index: index + 1 })}
-                      className={formControlClassName({
-                        className: "min-w-0 flex-1 font-mono",
-                      })}
-                    />
-                    {isReadOnly ? null : (
-                      <Button
-                        onClick={() => {
-                          const managerGitHubUserIds =
-                            value.webui.access.managerGitHubUserIds.filter(
-                              (_, candidateIndex) => candidateIndex !== index,
-                            );
-                          updateAccess({ managerGitHubUserIds });
-                        }}
-                        size="icon"
-                        variant="danger"
-                        title={t("removeManager")}
-                        aria-label={t("removeManager")}
-                      >
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          className="h-4 w-4"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          aria-hidden="true"
-                        >
-                          <path d="M5 12h14" strokeLinecap="round" />
-                        </svg>
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-              {isReadOnly ? null : (
-                <Button
-                  onClick={() =>
-                    updateAccess({
-                      managerGitHubUserIds: [
-                        ...value.webui.access.managerGitHubUserIds,
-                        "",
-                      ],
-                    })
-                  }
-                  className="mt-3"
-                  size="sm"
-                  variant="secondary"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    className="h-4 w-4"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    aria-hidden="true"
-                  >
-                    <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-                  </svg>
-                  {t("addManager")}
-                </Button>
-              )}
-            </div>
+            <GitHubUserIdListEditor
+              addLabel={t("addManager")}
+              description={t("fieldHints.managerGitHubUserIds")}
+              ids={value.webui.access.managerGitHubUserIds}
+              isReadOnly={isReadOnly}
+              itemLabel={(index) => t("managerIdLabel", { index })}
+              label={t("fields.managerGitHubUserIds")}
+              onChange={(managerGitHubUserIds) =>
+                updateAccess({ managerGitHubUserIds })
+              }
+              removeLabel={t("removeManager")}
+            />
+
+            {value.webui.access.mode === "allowlist" ? null : (
+              <GitHubUserIdListEditor
+                addLabel={t("addBlockedUser")}
+                description={t("fieldHints.blockedGitHubUserIds")}
+                ids={value.webui.access.blockedGitHubUserIds ?? []}
+                isReadOnly={isReadOnly}
+                itemLabel={(index) => t("blockedIdLabel", { index })}
+                label={t("fields.blockedGitHubUserIds")}
+                onChange={(blockedGitHubUserIds) =>
+                  updateAccess({ blockedGitHubUserIds })
+                }
+                removeLabel={t("removeBlockedUser")}
+              />
+            )}
             </SettingsSection>
           ) : null}
 
@@ -445,4 +486,113 @@ function SettingsField({
       <p className="mt-1.5 text-xs leading-5 text-muted">{description}</p>
     </div>
   );
+}
+
+function GitHubUserIdListEditor({
+  addLabel,
+  description,
+  ids,
+  isReadOnly,
+  itemLabel,
+  label,
+  onChange,
+  removeLabel,
+}: {
+  addLabel: string;
+  description: string;
+  ids: readonly string[];
+  isReadOnly: boolean;
+  itemLabel: (index: number) => string;
+  label: string;
+  onChange: (ids: string[]) => void;
+  removeLabel: string;
+}) {
+  return (
+    <div className="sm:col-span-2">
+      <div className={fieldLabelRowClassName}>
+        <span className={fieldLabelClassName}>{label}</span>
+      </div>
+      <p className="mb-3 text-xs leading-5 text-muted">{description}</p>
+      <div className="space-y-2">
+        {ids.map((userId, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <input
+              value={userId}
+              disabled={isReadOnly}
+              onChange={(event) => {
+                const nextIds = [...ids];
+                nextIds[index] = event.target.value.replace(/\D/g, "");
+                onChange(nextIds);
+              }}
+              inputMode="numeric"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              aria-label={itemLabel(index + 1)}
+              className={formControlClassName({
+                className: "min-w-0 flex-1 font-mono",
+              })}
+            />
+            {isReadOnly ? null : (
+              <Button
+                onClick={() =>
+                  onChange(
+                    ids.filter(
+                      (_, candidateIndex) => candidateIndex !== index,
+                    ),
+                  )
+                }
+                size="icon"
+                variant="danger"
+                title={removeLabel}
+                aria-label={removeLabel}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="h-4 w-4"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
+                  <path d="M5 12h14" strokeLinecap="round" />
+                </svg>
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+      {isReadOnly ? null : (
+        <Button
+          onClick={() => onChange([...ids, ""])}
+          className="mt-3"
+          size="sm"
+          variant="secondary"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-4 w-4"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+          </svg>
+          {addLabel}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function resolveValidationPluginId(path: string): string | null {
+  const [, root, encodedPluginId] = path.split("/");
+  if (root !== "plugins" || !encodedPluginId) {
+    return null;
+  }
+
+  return encodedPluginId
+    .replaceAll("~1", "/")
+    .replaceAll("~0", "~");
 }

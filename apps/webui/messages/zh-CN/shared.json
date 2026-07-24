@@ -6,6 +6,7 @@
   "auth": {
     "signInTitle": "登录配置控制台",
     "signInWithGithub": "使用 GitHub 登录",
+    "signInError": "GitHub 登录未能完成，请检查网络连接后重试。",
     "accessDeniedTitle": "无权访问",
     "accessDeniedDescription": "当前 GitHub 账号不在此部署允许访问的用户范围内。",
     "signOutAndReturn": "退出并返回"

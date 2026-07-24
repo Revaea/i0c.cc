@@ -55,6 +55,7 @@ export interface DataConfig {
     access: {
       mode: WebUiAccessMode
       managerGitHubUserIds: readonly string[]
+      blockedGitHubUserIds?: readonly string[]
     }
   }
   plugins: Record<string, PluginInstanceConfig>
